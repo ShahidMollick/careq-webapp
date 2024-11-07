@@ -70,14 +70,13 @@
 }
 
 .accord {
-  border-right: 1px solid rgba(100, 116, 139, 0.37);
+  border-right: 1px solid rgba(100, 116, 139, 0.132);
   padding: 1rem;
-  background-color: #64748B 0.4;
   height: 100%;
   overflow: auto;
   scrollbar-width: thin;
-  scrollbar-border-radius: 100px;
   width: 100%;
+  background-color: var(--secondary-accent);
 }
 .card-list {
   display: flex;
