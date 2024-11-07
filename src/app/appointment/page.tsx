@@ -202,7 +202,9 @@ const AppointmentPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Button variant={'default'}>Schedule Follow Up</Button>
+              <Button variant={'default'}> 
+              <Image src="/calender.svg" width={18} height={18} alt="icon" />
+                 Schedule Follow Up</Button>
             </div>
             <div className="preview-body"></div>
             <div className="preview-footer">
