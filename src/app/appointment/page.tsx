@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/accordion";
 import { ComboboxDemo } from "@/components/ui/combobox";
 import data from "./appointments.json";
-//import BulletPointTextarea from "@/components/ui/editor";
-//import { TextareaForm } from "@/components/ui/textareaForm";
+import { Textarea } from "@/components/ui/textarea"
+
+
 
 const AppointmentPage: React.FC = () => {
   /*const [data, setData] = useState(null);
@@ -121,7 +122,7 @@ const AppointmentPage: React.FC = () => {
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
-                        <div>{item.ticketNumber}</div>
+                        <div >{item.ticketNumber}</div>
                       </div>
                     </div>
                   ))}
@@ -154,7 +155,10 @@ const AppointmentPage: React.FC = () => {
             </Accordion>
           </div>
 
-          <div className="editor-container">{/*<BulletPointTextarea />*/}</div>
+          <div className="editor-container">
+            <div className="text-md">Prescription</div>
+            <Textarea placeholder="Write the prescription.........."/>
+          </div>
 
           <div className="preview">
             <div className="preview-header">
