@@ -82,7 +82,7 @@ const AppointmentPage: React.FC = () => {
                 <AccordionTrigger>Serving</AccordionTrigger>
                 <AccordionContent>
                   {data.serving.map((item, index) => (
-                    <div key={index} className="card-list">
+                    <div key={index} className="card-list" style={{background: "rgba(23, 194, 123, 0.08)", borderRadius: "0.5rem"}}>
                       <Image
                         src={item.photoUrl}
                         alt={item.name}

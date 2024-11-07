@@ -64,12 +64,17 @@
 .content {
   display: grid;
   grid-template-columns: 1fr 2fr 1.1fr;
+  overflow: hidden;
 }
 
 .accord {
   border-right: 1px solid rgba(100, 116, 139, 0.37);
   padding: 1rem;
   background-color: #64748B 0.4;
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-border-radius: 100px;
 }
 .card-list {
   display: flex;
@@ -77,13 +82,14 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 1rem;
+  width: 100%;
 }
 .patient {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  gap: 2rem;
+  width: 100%;
 }
 
 .editor-container {
