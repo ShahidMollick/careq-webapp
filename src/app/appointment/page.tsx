@@ -92,13 +92,13 @@ const AppointmentPage: React.FC = () => {
                       />
                       <div className="patient">
                         <div className="patient-detail">
-                          <h3>{item.name}</h3>
+                          <h3 className="font-bold">{item.name}</h3>
                           <p>
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
 
-                        <div>{item.ticketNumber}</div>
+                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
                       </div>
                     </div>
                   ))}
@@ -117,12 +117,12 @@ const AppointmentPage: React.FC = () => {
                       />
                       <div className="patient">
                         <div className="patient-detail">
-                          <h3>{item.name}</h3>
+                          <h3 className="font-bold">{item.name}</h3>
                           <p>
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
-                        <div >{item.ticketNumber}</div>
+                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
                       </div>
                     </div>
                   ))}
@@ -141,12 +141,12 @@ const AppointmentPage: React.FC = () => {
                       />
                       <div className="patient">
                         <div className="patient-detail">
-                          <h3>{item.name}</h3>
+                          <h3 className="font-bold">{item.name}</h3>
                           <p>
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
-                        <div>{item.ticketNumber}</div>
+                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
                       </div>
                     </div>
                   ))}
@@ -155,9 +155,13 @@ const AppointmentPage: React.FC = () => {
             </Accordion>
           </div>
 
-          <div className="editor-container">
-            <div className="text-md">Prescription</div>
-            <Textarea placeholder="Write the prescription.........."/>
+          <div className="editor-container p-4">
+            <div className="flex flex-row justify-between items-center mb-4">
+               <div className="text-md sub-section-title">Prescription</div>
+                <Button>Save Prescription</Button>
+            </div>
+            
+            <Textarea placeholder="| Start typing prescription details here......"  className="overflow-auto h-full"/>
           </div>
 
           <div className="preview">
