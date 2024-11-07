@@ -1,0 +1,136 @@
+.main-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100%;
+}
+.left-menu {
+  width: 5.5rem;
+  height: 100%;
+  background-color: #164772;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+  padding-top: 2rem;
+}
+.logo-icon {
+  margin-bottom: 2rem;
+}
+.icon {
+  border-radius: 16px;
+  background: #17c27b;
+  box-shadow: 0px 4px 17px 1px rgba(0, 0, 0, 0.25);
+  padding: 0.8rem;
+}
+
+.head {
+  color: #000;
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 33.398px; /* 104.369% */
+  letter-spacing: -0.384px;
+}
+.right-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.nav-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+.clinic-option {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+.right {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+.doctor-profile {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1.1fr;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.accord {
+}
+.card-list {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+}
+.patient {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.editor-container {
+  height: 100%;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  border-left: 1px solid rgba(100, 116, 139, 0.37);
+}
+.preview-header{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.37);
+  padding: 1rem;
+  padding-top: 0;
+}
+.sub-section{
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  line-height: normal;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.middle {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.middle-profile-info {
+  border-radius: 8px;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  padding: 1rem;
+}
+.preview-footer{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
