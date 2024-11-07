@@ -79,7 +79,7 @@ const AppointmentPage: React.FC = () => {
               className="w-full"
             >
               <AccordionItem value="item-1">
-                <AccordionTrigger>Serving</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">Serving</AccordionTrigger>
                 <AccordionContent>
                   {data.serving.map((item, index) => (
                     <div key={index} className="card-list" style={{background: "rgba(23, 194, 123, 0.08)", borderRadius: "0.5rem"}}>
@@ -104,7 +104,7 @@ const AppointmentPage: React.FC = () => {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger>Waiting</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">Waiting</AccordionTrigger>
                 <AccordionContent>
                   {data.waiting.map((item, index) => (
                     <div key={index} className="card-list">
@@ -128,7 +128,7 @@ const AppointmentPage: React.FC = () => {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
-                <AccordionTrigger>Completed</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">Completed</AccordionTrigger>
                 <AccordionContent>
                   {data.completed.map((item, index) => (
                     <div key={index} className="card-list">
