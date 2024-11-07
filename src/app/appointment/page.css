@@ -63,8 +63,9 @@
 
 .content {
   display: grid;
-  grid-template-columns: 1fr 2fr 1.1fr;
+  grid-template-columns: 25% 50% 25%;
   overflow: hidden;
+  justify-content: space-between;
 }
 
 .accord {
@@ -75,6 +76,7 @@
   overflow: auto;
   scrollbar-width: thin;
   scrollbar-border-radius: 100px;
+  width: 100%;
 }
 .card-list {
   display: flex;
@@ -94,14 +96,15 @@
 
 .editor-container {
   height: 100%;
+  width: 100%;
 }
 
 .preview {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
   border-left: 1px solid rgba(100, 116, 139, 0.37);
+  max-width: 30rem;
+  width: 100%;
 }
 .preview-header{
   display: flex;
@@ -110,7 +113,7 @@
   gap: 1rem;
   border-bottom: 1px solid rgba(100, 116, 139, 0.37);
   padding: 1rem;
-  padding-top: 0;
+  width: 100%;
 }
 .sub-section{
   display: flex;
@@ -133,6 +136,7 @@
   border-radius: 8px;
   border: 1px solid rgba(100, 116, 139, 0.2);
   padding: 1rem;
+  width: 100%;
 }
 .preview-footer{
   display: flex;
