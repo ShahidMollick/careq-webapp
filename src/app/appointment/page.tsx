@@ -173,7 +173,7 @@ const AppointmentPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="middle">
+              <div className="middle text-sm">
                 <div className="middle-profile-pic">
                   <Image
                     src="/doctor.svg"
@@ -182,27 +182,27 @@ const AppointmentPage: React.FC = () => {
                     alt="icon"
                   />
                 </div>
-                <div className="middle-profile-info">
-                  <div className="sub-section-title">Disha Pandey</div>
-                  <div className="sub-section-title">
-                    <span>Sex: </span>
-                    <span className="sub-section-sub-title">Female</span>
-                    <span> Age: </span>
-                    <span className="sub-section-sub-title">19</span>
+                <div className="border p-4 w-full rounded-md">
+                  <div className="font-bold">Disha Pandey</div>
+                  <div>
+                    <span className="font-bold">Sex: </span>
+                    <span>Female</span>
+                    <span className="font-bold"> Age: </span>
+                    <span>19</span>
                   </div>
-                  <div className="sub-section-title">
-                    <span>Phone no: </span>
-                    <span className="sub-section-sub-title">+918765789621</span>
+                  <div>
+                    <span className="font-bold">Phone no: </span>
+                    <span>+918765789621</span>
                   </div>
-                  <div className="sub-section-title">
-                    <span>Email: </span>
-                    <span className="sub-section-sub-title">
+                  <div>
+                    <span className="font-bold">Email: </span>
+                    <span>
                       dishapandey@careq.com
                     </span>
                   </div>
                 </div>
               </div>
-              <Button variant={"default"} size={'default'}>Schedule Follow Up</Button>
+              <Button variant={'default'}>Schedule Follow Up</Button>
             </div>
             <div className="preview-body"></div>
             <div className="preview-footer">
