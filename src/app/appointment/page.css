@@ -66,6 +66,7 @@
   grid-template-columns: 25% 50% 25%;
   overflow: hidden;
   justify-content: space-between;
+  height: 100%;
 }
 
 .accord {
