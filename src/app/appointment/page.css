@@ -64,8 +64,6 @@
 .content {
   display: grid;
   grid-template-columns: 1fr 2fr 1.1fr;
-  padding: 1rem;
-  
 }
 
 .accord {
