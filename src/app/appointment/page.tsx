@@ -67,8 +67,8 @@ const AppointmentPage: React.FC = () => {
         </Link>
       </div>
       <div className="right-body">
-        <div className="nav-bar">
-          <div className="head">Appointment Management</div>
+        <div className="nav-bar item-center">
+          <div className="text-xl font-bold">Appointment Management</div>
           <div className="right">
             <div className="clinic-option">
               <ComboboxDemo />
