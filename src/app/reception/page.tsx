@@ -5,7 +5,7 @@ import React from 'react';
 const ReceptionistPage: React.FC = () => {
    
     return (
-        <div className='grid grid-cols-3 gap-4'>
+        <div className='grid grid-cols-3 gap-4 p-4'>
             <AppointmentBox />
             <PrescriptionStatusBox />
         </div>
