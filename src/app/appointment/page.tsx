@@ -14,6 +14,7 @@ import { ComboboxDemo } from "@/components/ui/combobox";
 import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
+import { Save } from "lucide-react";
 
 const AppointmentPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -215,7 +216,10 @@ const AppointmentPage: React.FC = () => {
           <div className="editor-container p-4">
             <div className="flex flex-row justify-between items-center mb-4">
               <div className="text-md sub-section-title">Prescription</div>
-              <Button>Save Prescription</Button>
+              <Button>
+                <Save className="h-5 w-5" />{" "}
+                Save Prescription
+              </Button>
             </div>
 
             <Textarea
