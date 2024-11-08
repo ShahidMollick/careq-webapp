@@ -15,6 +15,7 @@ import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Save } from "lucide-react";
+import { FileText } from "lucide-react";
 
 const AppointmentPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -213,9 +214,19 @@ const AppointmentPage: React.FC = () => {
             </Accordion>
           </div>
 
-          <div className="editor-container p-4">
+          <div className="editor-container p-4 pb-[20%]">
             <div className="flex flex-row justify-between items-center mb-4">
-              <div className="text-md sub-section-title">Prescription</div>
+            <div className="head">
+                <div className="small-icon">
+                <FileText className="text-white" width={16} height={16} />
+                </div>
+                <div className="sub-section">
+                  <div className="sub-section-title">Prescription</div>
+                  <div className="sub-section-sub-title">
+                    Prescription at a glance
+                  </div>
+                </div>
+              </div>
               <Button>
                 <Save className="h-5 w-5" />{" "}
                 Save Prescription
@@ -226,13 +237,14 @@ const AppointmentPage: React.FC = () => {
               placeholder="| Start typing prescription details here......"
               className="overflow-auto h-full"
             />
+            
           </div>
 
           <div className="preview">
             <div className="preview-header">
               <div className="head">
                 <div className="small-icon">
-                  <Image src="/profile.svg" width={24} height={24} alt="icon" />
+                  <Image src="/profile.svg" width={16} height={16} alt="icon" />
                 </div>
                 <div className="sub-section">
                   <div className="sub-section-title">Patient Profile</div>
