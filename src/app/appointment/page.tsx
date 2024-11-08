@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import "./page.css";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,24 +12,32 @@ import {
 } from "@/components/ui/accordion";
 import { ComboboxDemo } from "@/components/ui/combobox";
 import data from "./appointments.json";
-import { Textarea } from "@/components/ui/textarea"
-
-
+import { Textarea } from "@/components/ui/textarea";
+import { Search } from "lucide-react";
 
 const AppointmentPage: React.FC = () => {
-  /*const [data, setData] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
-        const fetchData = async () => {
-            const res = await fetch('https://example.com/api/data');
-            const result = await res.json();
-            setData(result);
-        };
+  // Get the first ticket number (from the 'serving' array)
+  const firstTicketNumber =
+    data.serving.length > 0 ? data.serving[0].ticketNumber : null;
 
-        fetchData();
-    }, []);
+  // Get the last ticket number (from the 'completed' array)
+  const lastTicketNumber =
+    data.completed.length > 0
+      ? data.completed[data.completed.length - 1].ticketNumber
+      : null;
 
-    if (!data) return <p>Loading...</p>;*/
+  // Filter data based on search term
+  const filterData = (sectionData) =>
+    sectionData.filter((item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  // Filtered sections
+  const filteredServing = filterData(data.serving);
+  const filteredWaiting = filterData(data.waiting);
+  const filteredCompleted = filterData(data.completed);
 
   return (
     <div className="main-container">
@@ -74,16 +83,51 @@ const AppointmentPage: React.FC = () => {
         </div>
         <div className="content">
           <div className="accord">
+            <div className="flex flex-row gap-2 w-full">
+              <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37] ...">
+                Current Queue : {firstTicketNumber}
+              </div>
+              <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37] ...">
+                Total Patients : {lastTicketNumber}
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="search-bar flex items-center mt-4 mb-2 relative">
+              <input
+                type="text"
+                placeholder="Search by patient name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border border-gray-300 p-2 pl-10 rounded-lg w-full text-sm bg-transparent"
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                width={16}
+                height={16}
+              />
+            </div>
+
             <Accordion
               type="multiple"
               defaultValue={["item-1", "item-2"]}
               className="w-full"
             >
+              {/* Serving Section */}
               <AccordionItem value="item-1">
-                <AccordionTrigger className="font-bold text-secondary">Serving</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">
+                  Serving
+                </AccordionTrigger>
                 <AccordionContent>
-                  {data.serving.map((item, index) => (
-                    <div key={index} className="card-list" style={{background: "rgba(23, 194, 123, 0.08)", borderRadius: "0.5rem"}}>
+                  {filteredServing.map((item, index) => (
+                    <div
+                      key={index}
+                      className="card-list"
+                      style={{
+                        background: "rgba(23, 194, 123, 0.08)",
+                        borderRadius: "0.5rem",
+                      }}
+                    >
                       <Image
                         src={item.photoUrl}
                         alt={item.name}
@@ -97,17 +141,22 @@ const AppointmentPage: React.FC = () => {
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
+                        <div className="border p-2 rounded-md">
+                          {item.ticketNumber}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
 
-                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
+              {/* Waiting Section */}
               <AccordionItem value="item-2">
-                <AccordionTrigger className="font-bold text-secondary">Waiting</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">
+                  Waiting
+                </AccordionTrigger>
                 <AccordionContent>
-                  {data.waiting.map((item, index) => (
+                  {filteredWaiting.map((item, index) => (
                     <div key={index} className="card-list">
                       <Image
                         src={item.photoUrl}
@@ -122,16 +171,22 @@ const AppointmentPage: React.FC = () => {
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
-                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
+                        <div className="border p-2 rounded-md">
+                          {item.ticketNumber}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </AccordionContent>
               </AccordionItem>
+
+              {/* Completed Section */}
               <AccordionItem value="item-3">
-                <AccordionTrigger className="font-bold text-secondary">Completed</AccordionTrigger>
+                <AccordionTrigger className="font-bold text-secondary">
+                  Completed
+                </AccordionTrigger>
                 <AccordionContent>
-                  {data.completed.map((item, index) => (
+                  {filteredCompleted.map((item, index) => (
                     <div key={index} className="card-list">
                       <Image
                         src={item.photoUrl}
@@ -146,7 +201,9 @@ const AppointmentPage: React.FC = () => {
                             Sex: {item.sex} Age: {item.age}
                           </p>
                         </div>
-                        <div className="border p-2 rounded-md">{item.ticketNumber}</div>
+                        <div className="border p-2 rounded-md">
+                          {item.ticketNumber}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -157,11 +214,14 @@ const AppointmentPage: React.FC = () => {
 
           <div className="editor-container p-4">
             <div className="flex flex-row justify-between items-center mb-4">
-               <div className="text-md sub-section-title">Prescription</div>
-                <Button>Save Prescription</Button>
+              <div className="text-md sub-section-title">Prescription</div>
+              <Button>Save Prescription</Button>
             </div>
-            
-            <Textarea placeholder="| Start typing prescription details here......"  className="overflow-auto h-full"/>
+
+            <Textarea
+              placeholder="| Start typing prescription details here......"
+              className="overflow-auto h-full"
+            />
           </div>
 
           <div className="preview">
@@ -179,12 +239,7 @@ const AppointmentPage: React.FC = () => {
               </div>
               <div className="middle text-sm">
                 <div className="middle-profile-pic">
-                  <Image
-                    src="/doctor.svg"
-                    width={60}
-                    height={60}
-                    alt="icon"
-                  />
+                  <Image src="/doctor.svg" width={60} height={60} alt="icon" />
                 </div>
                 <div className="border p-4 w-full rounded-md">
                   <div className="font-bold">Disha Pandey</div>
@@ -200,15 +255,14 @@ const AppointmentPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-bold">Email: </span>
-                    <span>
-                      dishapandey@careq.com
-                    </span>
+                    <span>dishapandey@careq.com</span>
                   </div>
                 </div>
               </div>
-              <Button variant={'default'}> 
-              <Image src="/calender.svg" width={18} height={18} alt="icon" />
-                 Schedule Follow Up</Button>
+              <Button variant={"default"}>
+                <Image src="/calender.svg" width={18} height={18} alt="icon" />
+                Schedule Follow Up
+              </Button>
             </div>
             <div className="preview-body"></div>
             <div className="preview-footer">
