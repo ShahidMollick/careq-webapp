@@ -2,7 +2,12 @@ import React from "react";
 
 const MetricBox: React.FC = () => {
   return (
-    <div className="flex flex-row justify-between rounded-md p-4 border-1">
+   
+    <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem]"
+    style={{
+      boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
+    }}
+    >
       <div>
         <div>
           <div>Total Appointments</div>
@@ -16,3 +21,4 @@ const MetricBox: React.FC = () => {
 };
 
 export default MetricBox;
+

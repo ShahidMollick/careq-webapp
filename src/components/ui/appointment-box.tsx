@@ -17,7 +17,7 @@ const AppointmentBox: React.FC = () => {
       : null;
 
   return (
-    <div className="flex flex-col gap-4 width-full max-w-lg">
+    <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem] " >
       <div className="flex flex-row justify-between items-center">
         <div className="flex flex-col">
           <div className="text-md font-bold">Appointments</div>

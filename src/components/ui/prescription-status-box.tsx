@@ -5,7 +5,7 @@ import { Badge } from "./badge";
 
 const PrescriptionStatusBox: React.FC = () => {
   return (
-    <div className="flex flex-col gap-4 width-full max-w-lg">
+    <div className="flex flex-col gap-4 width-full max-w-lg bg-white shadow-lg border border-slate-200 rounded-lg p-5">
       <div className="flex flex-row justify-between items-center">
         <div className="flex flex-col">
           <div className="text-md font-bold">Prescription Status</div>
