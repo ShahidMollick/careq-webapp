@@ -36,15 +36,7 @@ export default function RootLayout({
           <div className="left-menu">
           <Image src="/circle-logo.svg" alt="icon" width={45} height={45} />
 
-          <Link href="/dashboard" passHref>
-            <Image
-              src="/dashboard.svg"
-              alt="logo"
-              width={45}
-              height={45}
-              className="icon"
-            />
-          </Link>
+          
           <Link href="/appointment" passHref>
             {" "}
             <Image
@@ -54,6 +46,16 @@ export default function RootLayout({
               height={45}
               className="icon"
             />{" "}
+          </Link>
+          <Link href="/dashboard" passHref>
+            <Image
+              src="/dashboard.svg"
+              alt="logo"
+              width={45}
+              height={45}
+              className="icon"
+            />
+            
           </Link>
           </div>
           <div className="flex flex-col w-full">

@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import "./page.css";
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -10,7 +9,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ComboboxDemo } from "@/components/ui/combobox";
 import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";

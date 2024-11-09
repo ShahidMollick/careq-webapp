@@ -5,7 +5,7 @@ import data from "../../app/appointment/appointments.json";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 
-const AppointmentBox: React.FC = () => {
+const DoctorBox: React.FC = () => {
   // Get the first ticket number (from the 'serving' array)
   const firstTicketNumber =
     data.serving.length > 0 ? data.serving[0].ticketNumber : null;
@@ -129,11 +129,11 @@ const AppointmentBox: React.FC = () => {
         </div>
       </div>
       <Button className="bg-secondary flex items-center">
-        Add Patient
+        Add Doctor
         <Plus className="mr-2 h-5 w-5" />
       </Button>
     </div>
   );
 };
 
-export default AppointmentBox;
+export default DoctorBox;
