@@ -4,6 +4,14 @@ import "./page.css";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -14,27 +22,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Save } from "lucide-react";
 import { FileText } from "lucide-react";
+import { Download } from 'lucide-react';
+import { ScheduleBtn } from "@/components/ui/schedule-up-btn";
 
 const AppointmentPage: React.FC = () => {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
-  // Get the first ticket number (from the 'serving' array)
   const firstTicketNumber =
     data.serving.length > 0 ? data.serving[0].ticketNumber : null;
-
-  // Get the last ticket number (from the 'completed' array)
   const lastTicketNumber =
     data.completed.length > 0
       ? data.completed[data.completed.length - 1].ticketNumber
       : null;
 
-  // Filter data based on search term
   const filterData = (sectionData) =>
     sectionData.filter((item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // Filtered sections
   const filteredServing = filterData(data.serving);
   const filteredWaiting = filterData(data.waiting);
   const filteredCompleted = filterData(data.completed);
@@ -175,9 +182,9 @@ const AppointmentPage: React.FC = () => {
 
           <div className="editor-container p-4 pb-[20%]">
             <div className="flex flex-row justify-between items-center mb-4">
-            <div className="head">
+              <div className="head">
                 <div className="small-icon">
-                <FileText className="text-white" width={16} height={16} />
+                  <FileText className="text-white" width={16} height={16} />
                 </div>
                 <div className="sub-section">
                   <div className="sub-section-title">Prescription</div>
@@ -187,8 +194,7 @@ const AppointmentPage: React.FC = () => {
                 </div>
               </div>
               <Button>
-                <Save className="h-5 w-5" />{" "}
-                Save Prescription
+                <Save className="h-5 w-5" /> Save Prescription
               </Button>
             </div>
 
@@ -197,10 +203,25 @@ const AppointmentPage: React.FC = () => {
               className="overflow-auto h-full"
             />
             <div className="flex flex-row justify-between">
-              <div className="w-30 h-20 p-1"><Image src="/clinic-sign.png" alt="sign" width={50} height={20} layout="responsive" /></div>
-              <div className="w-30 h-20 p-1"><Image src="/doc-sign.png" alt="sign" width={50} height={20} layout="responsive" /></div>
+              <div className="w-30 h-20 p-1">
+                <Image
+                  src="/clinic-sign.png"
+                  alt="sign"
+                  width={50}
+                  height={20}
+                  layout="responsive"
+                />
+              </div>
+              <div className="w-30 h-20 p-1">
+                <Image
+                  src="/doc-sign.png"
+                  alt="sign"
+                  width={50}
+                  height={20}
+                  layout="responsive"
+                />
+              </div>
             </div>
-                  
           </div>
 
           <div className="preview">
@@ -216,6 +237,7 @@ const AppointmentPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
               <div className="middle text-sm">
                 <div className="middle-profile-pic">
                   <Image src="/doctor.svg" width={60} height={60} alt="icon" />
@@ -238,15 +260,94 @@ const AppointmentPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Button variant={"default"}>
-                <Image src="/calender.svg" width={18} height={18} alt="icon" />
-                Schedule Follow Up
-              </Button>
+
+              <ScheduleBtn onDateChange={setSelectedDate} />
             </div>
+
             <div className="preview-body"></div>
-            <div className="preview-footer">
-              <Button>Finish Consultation</Button>
-              <Button>Next Patient</Button>
+
+            <Card className="rounded-none h-[21rem] p-0">
+              <div className="flex flex-row justify-between items-center p-3">
+                <div className="head">
+                  <div className="small-icon">
+                    <FileText className="text-white" />
+                  </div>
+                  <div className="sub-section">
+                    <div className="sub-section-title">
+                      Recent Medical History
+                    </div>
+                    <div className="sub-section-sub-title">
+                      Review the recent prescription
+                    </div>
+                  </div>
+                  <div>
+                    <Button className="bg-white text-black w-[3rem] px-8  rounded-[9.484px]  border border-[#64748b60]">
+                      View all
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="flex flex-row ml-[0.2rem] h-[40]">
+                <div className="w-full overflow-hidden">
+                  <div className="mt-0">
+                    <div className="border border-[#9D9D9D] rounded-md p-2">
+                      <div className="w-full h-40 overflow-hidden">
+                        <Image
+                          src="/image 4.png"
+                          alt="Medical Image"
+                          width={500} // Reduced width to control size
+                          height={300} // Reduced height to control size
+                          className="object-contain max-h-[600px]"
+                        />
+                      </div>
+
+                      {/* Dialog for full-size image */}
+                      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            className="bg-white text-black w-full px-8 rounded-[9.484px] border border-[#9D9D9D] my-[0.5rem]"
+                            onClick={() => setIsOpen(true)}
+                          >
+                            Open Prescription
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader >
+                            <DialogTitle className="flex flex-row justify-between item-center mx-4">
+                              <div className="mt-[0.5rem]">Prescription Image</div>
+                              <Button>
+                                <Download /> 
+                                Download
+                              </Button>
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="flex justify-center">
+                            <Image
+                              src="/image 4.png"
+                              alt="Medical Image"
+                              width={800} // Reduced width to control size
+                              height={300} // Reduced height to control size
+                              className="object-contain max-h-[600px] "
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      <div className="text-gray-400 text-left text-sm italic mt-[2px]">
+                        Prescribed on 24 October at 9:42 am
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="preview-footer mt-[1rem]">
+              <Button className="bg-white text-black border border-[#000] w-[150px]">
+                Finish Consultation
+              </Button>
+              <Button className="bg-[#16477240] w-[150px]">Next Patient</Button>
             </div>
           </div>
         </div>

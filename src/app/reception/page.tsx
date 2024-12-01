@@ -1,8 +1,9 @@
 import AppointmentBox from "@/components/ui/appointment-box";
-import DoctorBox from "@/components/ui/doction-box";
+import DoctorBox from "@/components/ui/doctor-box";
 import MetricBox from "@/components/ui/metric-box";
 import PrescriptionStatusBox from "@/components/ui/prescription-status-box";
 import React from "react";
+import ChartBox from "@/components/ui/chart-box";
 
 const ReceptionistPage: React.FC = () => {
   return (
@@ -20,8 +21,8 @@ const ReceptionistPage: React.FC = () => {
         <MetricBox />
       </div>
       <div className="flex flex-row justify-center item-center gap-8 p-4">
+        <ChartBox />
         <DoctorBox />
-        
         <PrescriptionStatusBox />
       </div>
     </div>
