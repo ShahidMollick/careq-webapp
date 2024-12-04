@@ -5,14 +5,15 @@
   width: 100%;
 }
 .left-menu {
-  width: 5.5rem;
+  width: 23rem;
   height: 100%;
   background-color: #164772;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  align-items: center;
+  align-items: flex-start;
   padding-top: 2rem;
+  padding-left: 2rem;
 }
 .logo-icon {
   margin-bottom: 2rem;
@@ -156,5 +157,4 @@
   transform: translateY(-50%);
   color: rgba(0, 0, 0, 0.5); /* Adjust color for icon */
 }
-
 
