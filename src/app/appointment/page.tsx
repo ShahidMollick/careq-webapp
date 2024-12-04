@@ -194,7 +194,7 @@ const AppointmentPage: React.FC = () => {
 
             <Textarea
               placeholder="| Start typing prescription details here......"
-              className="overflow-auto h-full"
+              className="overflow-auto h-[80%]"
             />
             <div className="flex flex-row justify-between">
               <div className="w-30 h-20 p-1"><Image src="/clinic-sign.png" alt="sign" width={50} height={20} layout="responsive" /></div>
