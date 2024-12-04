@@ -1,23 +1,60 @@
   .left-menu {
-    width: 5.5rem;
+    width: 23rem;
     height: 100%;
     background-color: #164772;
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    align-items: center;
+    align-items: flex-start;
     padding-top: 2rem;
+    padding-left: 2rem;
+  }
+  .mainlogo{
+    display: flex;
+    gap: 10px;
   }
   .logo-icon {
     margin-bottom: 2rem;
   }
+  .dashboardfont{
+    color: #FFF;
+font-family: Inter;
+font-size: 18.857px;
+font-style: normal;
+font-weight: 500;
+line-height: normal;
+  }
+  .carelogo{
+    color: #FFF;
+font-family: Poppins;
+font-size: 31.496px;
+font-style: normal;
+font-weight: 800;
+line-height: normal;
+  }
+  .qlogo{
+    color: #17C27B;
+font-family: Poppins;
+font-size: 31.496px;
+font-style: normal;
+font-weight: 800;
+line-height: normal;
+  }
+.dashboardIcons{
+  display: flex;
+  gap: 10px;
+}
   .icon {
     border-radius: 16px;
     background: #17c27b;
     box-shadow: 0px 4px 17px 1px rgba(0, 0, 0, 0.25);
     padding: 0.8rem;
   }
-  
+.left-menuoptions{
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
   .head {
     color: #000;
     font-family: Inter;
@@ -150,6 +187,3 @@
     transform: translateY(-50%);
     color: rgba(0, 0, 0, 0.5); /* Adjust color for icon */
   }
-  
-  
-  
