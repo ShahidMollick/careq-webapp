@@ -42,6 +42,7 @@ const AppointmentPage: React.FC = () => {
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+  
   const filteredServing = filterData(data.serving);
   const filteredWaiting = filterData(data.waiting);
   const filteredCompleted = filterData(data.completed);
