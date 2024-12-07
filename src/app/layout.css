@@ -1,5 +1,5 @@
 .left-menu {
-  width: 23rem;
+  width: 18%;
   height: 100%;
   background-color: #164772;
   display: flex;
@@ -9,84 +9,100 @@
   padding-top: 2rem;
   padding-left: 2rem;
 }
-.mainlogo{
+
+.mainlogo {
   display: flex;
   gap: 10px;
 }
+
 .logo-icon {
   margin-bottom: 2rem;
 }
-.dashboardfont{
+
+.dashboardfont {
   color: #FFF;
-font-family: Inter;
-font-size: 18.857px;
-font-style: normal;
-font-weight: 500;
-line-height: normal;
+  font-family: Inter;
+  font-size: .8rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
 }
-.carelogo{
+
+.carelogo {
   color: #FFF;
-font-family: Poppins;
-font-size: 31.496px;
-font-style: normal;
-font-weight: 800;
-line-height: normal;
+  font-family: Poppins;
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
 }
-.qlogo{
+
+.qlogo {
   color: #17C27B;
-font-family: Poppins;
-font-size: 31.496px;
-font-style: normal;
-font-weight: 800;
-line-height: normal;
+  font-family: Poppins;
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
 }
-.dashboardIcons{
-display: flex;
-gap: 10px;
+
+.dashboardIcons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+
 .icon {
   border-radius: 16px;
   background: #17c27b;
   box-shadow: 0px 4px 17px 1px rgba(0, 0, 0, 0.25);
   padding: 0.8rem;
 }
-.left-menuoptions{
-display: flex;
-flex-direction: column;
-gap: 40px;
+
+.left-menuoptions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
+
 .head {
   color: #000;
   font-family: Inter;
   font-size: 32px;
   font-style: normal;
   font-weight: 700;
-  line-height: 33.398px; /* 104.369% */
+  line-height: 33.398px;
+  /* 104.369% */
   letter-spacing: -0.384px;
 }
+
 .right-body {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
-.nav-bar {
+
+/* .nav-bar {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid #e5e5e5;
-}
+} */
+
 .clinic-option {
   display: flex;
   flex-direction: row;
   gap: 1rem;
 }
+
 .right {
   display: flex;
   flex-direction: row;
   gap: 1rem;
 }
+
 .doctor-profile {
   display: flex;
   flex-direction: row;
@@ -110,6 +126,7 @@ gap: 40px;
   width: 100%;
   background-color: var(--secondary-accent);
 }
+
 .card-list {
   display: flex;
   flex-direction: row;
@@ -118,6 +135,7 @@ gap: 40px;
   border-radius: 1rem;
   width: 100%;
 }
+
 .patient {
   display: flex;
   flex-direction: row;
@@ -138,7 +156,8 @@ gap: 40px;
   max-width: 30rem;
   width: 100%;
 }
-.preview-header{
+
+.preview-header {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -147,43 +166,52 @@ gap: 40px;
   padding: 1rem;
   width: 100%;
 }
-.sub-section{
+
+.sub-section {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   line-height: normal;
 }
+
 .head {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
+
 .middle {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
   gap: 1rem;
 }
+
 .middle-profile-info {
   border-radius: 8px;
   border: 1px solid rgba(100, 116, 139, 0.2);
   padding: 1rem;
   width: 100%;
 }
-.preview-footer{
+
+.preview-footer {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 1rem;
 }
+
 .search-bar input {
-  padding-left: 2.5rem; /* Adjust padding to fit icon */
+  padding-left: 2.5rem;
+  /* Adjust padding to fit icon */
 }
 
 .search-bar .search-icon {
   position: absolute;
-  left: 0.75rem; /* Adjust left position as needed */
+  left: 0.75rem;
+  /* Adjust left position as needed */
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(0, 0, 0, 0.5); /* Adjust color for icon */
+  color: rgba(0, 0, 0, 0.5);
+  /* Adjust color for icon */
 }
