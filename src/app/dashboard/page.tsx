@@ -1,9 +1,46 @@
+"use client"
 import React from 'react';
 import { DataTableDemo } from '@/components/ui/history';
 import { ComboboxDemo } from "@/components/ui/combobox";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import MetricBox from '@/components/ui/metric-box';
+import MetricBoxCustom from '@/components/ui/metric-box-custom';
+import { Component } from '@/components/ui/graph-cards';
+
+// import { TrendingUp } from "lucide-react"
+// import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+
+// import {
+//     Card,
+//     CardContent,
+//     CardDescription,
+//     CardFooter,
+//     CardHeader,
+//     CardTitle,
+// } from "@/components/ui/card"
+// import {
+//     ChartConfig,
+//     ChartContainer,
+//     ChartTooltip,
+//     ChartTooltipContent,
+// } from "@/components/ui/chart"
+// import { Component } from '@/components/ui/graph-cards';
+// const chartData = [
+//     { month: "January", desktop: 186 },
+//     { month: "February", desktop: 305 },
+//     { month: "March", desktop: 237 },
+//     { month: "April", desktop: 73 },
+//     { month: "May", desktop: 209 },
+//     { month: "June", desktop: 214 },
+// ]
+
+// const chartConfig = {
+//     desktop: {
+//         label: "Desktop",
+//         color: "hsl(var(--chart-1))",
+//     },
+// } satisfies ChartConfig
 
 const DashboardPage: React.FC = () => {
     return (
@@ -39,76 +76,40 @@ const DashboardPage: React.FC = () => {
                         Your consultation queue is now live! Patient #3 is waiting
                     </div>
                 </div>
-                <Button className="text-xl p-5 bg-green-600">
+                <Button className="p-5 bg-green-600 text-[15px]">
                     Continue Consultation
                 </Button>
             </div>
 
-            <div className="numbercards flex">
+            <div className="numbercards flex mt-[20px]">
+                <MetricBoxCustom number={65} heading='Total Appointments'></MetricBoxCustom>
 
-                <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem]"
+                <MetricBoxCustom number={40} heading='Total Patient Waiting'></MetricBoxCustom>
+
+                <MetricBoxCustom number={25} heading='Total Patients Consulted'></MetricBoxCustom>
+
+                <div className="flex flex-row justify-between  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-3 w-[23%]  h-[120px] ml-[1.3rem]"
                     style={{
                         boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
                     }}
                 >
                     <div>
                         <div>
-                            <div>Total Appointments</div>
-                            <div>Today</div>
+                            <div className="font-bold">Total Revenue</div>
+                            <div className="text-green-600 font-bold">Today</div>
                         </div>
-                        <div className="text-sm text-gray-500">Total Appointments Your Patients Have Booked For Today</div>
+                        <div className="text-sm text-gray-500">Set the dimensions for the layer.</div>
                     </div>
-                    <div className="bg-primary-accent text-primary text-3xl bold item-center  rounded-md h-[82px]">65</div>
-                </div>
-
-
-                <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem]"
-                    style={{
-                        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
-                    }}
-                >
-                    <div>
-                        <div>
-                            <div>Total Appointments</div>
-                            <div>Today</div>
-                        </div>
-                        <div className="text-sm text-gray-500">Total Patients Waiting for Your Consultation Today</div>
-                    </div>
-                    <div className="bg-primary-accent text-primary text-3xl bold  item-center rounded-md">40</div>
-                </div>
-
-
-                <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem]"
-                    style={{
-                        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
-                    }}
-                >
-                    <div>
-                        <div>
-                            <div>Total Appointments</div>
-                            <div>Today</div>
-                        </div>
-                        <div className="text-sm text-gray-500">Total Patients You&apos;ve Consulted Today</div>
-                    </div>
-                    <div className="bg-primary-accent text-primary text-3xl bold  item-center rounded-md">25</div>
-                </div>
-
-
-                <div className="flex flex-row justify-between rounded-md  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-5 w-[316px] h-[130px] ml-[1.3rem]"
-                    style={{
-                        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
-                    }}
-                >
-                    <div>
-                        <div>
-                            <div>Total Appointments</div>
-                            <div>Today</div>
-                        </div>
-                        <div className="text-sm text-gray-500">Total Revenue You’ve Earned Today</div>
-                    </div>
-                    <div className="bg-primary-accent text-primary text-3xl bold item-center rounded-md">$3,200</div>
+                    <div className="bg-primary-accent text-primary text-3xl font-bold p-2 item-center h-[50px] rounded-md">$3,200</div>
                 </div>
             </div>
+
+                    <div className='ml-[20px] font-bold text-[20px]'>Overview</div>
+            <div className='flex mt-[10px]  justify-around'>
+                <Component />
+                <Component />
+            </div>
+
         </div>
     );
 };
