@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Save } from "lucide-react";
 import { FileText } from "lucide-react";
-import { Download } from 'lucide-react';
+import { Download } from "lucide-react";
 import { ScheduleBtn } from "@/components/ui/schedule-up-btn";
 
 const AppointmentPage: React.FC = () => {
@@ -42,7 +42,6 @@ const AppointmentPage: React.FC = () => {
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  
   const filteredServing = filterData(data.serving);
   const filteredWaiting = filterData(data.waiting);
   const filteredCompleted = filterData(data.completed);
@@ -314,11 +313,13 @@ const AppointmentPage: React.FC = () => {
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
-                          <DialogHeader >
+                          <DialogHeader>
                             <DialogTitle className="flex flex-row justify-between item-center mx-4">
-                              <div className="mt-[0.5rem]">Prescription Image</div>
+                              <div className="mt-[0.5rem]">
+                                Prescription Image
+                              </div>
                               <Button>
-                                <Download /> 
+                                <Download />
                                 Download
                               </Button>
                             </DialogTitle>

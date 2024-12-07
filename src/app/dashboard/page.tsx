@@ -88,7 +88,7 @@ const DashboardPage: React.FC = () => {
                             <div>Total Appointments</div>
                             <div>Today</div>
                         </div>
-                        <div className="text-sm text-gray-500">Total Patients You've Consulted Today</div>
+                        <div className="text-sm text-gray-500">Total Patients You&apos;ve Consulted Today</div>
                     </div>
                     <div className="bg-primary-accent text-primary text-3xl bold  item-center rounded-md">25</div>
                 </div>
