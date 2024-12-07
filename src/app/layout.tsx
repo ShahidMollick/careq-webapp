@@ -32,18 +32,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} h-screen overflow-hidden antialiased`}
       >
-        <div className="flex flex-row h-full">
+        <div className="flex flex-row h-full ">
 
           {/* Code for the Left menu */}
 
           <div className="left-menu">
             <div className="mainlogo">
-              <Image src="/circle-logo.svg" alt="icon" width={45} height={45} />
+              <Image src="/circle-logo.svg" alt="icon" width={35} height={35} />
               <div className="carelogo">Care<span className="qlogo">Q</span></div>
             </div>
 
             <div className="left-menuoptions">
-
               <Link href="/dashboard" passHref>
                 <div className="dashboardIcons">
                   <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
@@ -79,42 +78,22 @@ export default function RootLayout({
                   <div className="dashboardfont">Settings</div>
                 </div>
               </Link>
+            </div>
 
-
+            <div className="fixed bottom-5">              
               <Link href="/" passHref>
-                <div className="dashboardIcons">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.78627 2.28711C7.35233 2.28711 7.00056 2.63889 7.00056 3.07282C7.00056 3.50676 7.35233 3.85854 7.78627 3.85854H19.572V21.1443H7.78627C7.35233 21.1443 7.00056 21.496 7.00056 21.93C7.00056 22.3639 7.35233 22.7157 7.78627 22.7157H19.572C20.4399 22.7157 21.1434 22.0121 21.1434 21.1443V3.85854C21.1434 2.99066 20.4399 2.28711 19.572 2.28711H7.78627ZM11.0919 8.4101C10.785 8.10326 10.2875 8.10326 9.98069 8.4101C9.67385 8.71694 9.67385 9.21442 9.98069 9.52127L12.1751 11.7157H1.50056C1.06662 11.7157 0.714844 12.0675 0.714844 12.5014C0.714844 12.9353 1.06662 13.2871 1.50056 13.2871H12.1751L9.98069 15.4815C9.67385 15.7884 9.67385 16.2859 9.98069 16.5927C10.2875 16.8995 10.785 16.8995 11.0919 16.5927L14.6276 13.057C14.9344 12.7501 14.9344 12.2527 14.6276 11.9458L11.0919 8.4101Z" fill="white" />
-                  </svg>
-                  <div className="dashboardfont">Log out</div>
-                </div>
-              </Link>
-
+              <div className="dashboardIcons">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.78627 2.28711C7.35233 2.28711 7.00056 2.63889 7.00056 3.07282C7.00056 3.50676 7.35233 3.85854 7.78627 3.85854H19.572V21.1443H7.78627C7.35233 21.1443 7.00056 21.496 7.00056 21.93C7.00056 22.3639 7.35233 22.7157 7.78627 22.7157H19.572C20.4399 22.7157 21.1434 22.0121 21.1434 21.1443V3.85854C21.1434 2.99066 20.4399 2.28711 19.572 2.28711H7.78627ZM11.0919 8.4101C10.785 8.10326 10.2875 8.10326 9.98069 8.4101C9.67385 8.71694 9.67385 9.21442 9.98069 9.52127L12.1751 11.7157H1.50056C1.06662 11.7157 0.714844 12.0675 0.714844 12.5014C0.714844 12.9353 1.06662 13.2871 1.50056 13.2871H12.1751L9.98069 15.4815C9.67385 15.7884 9.67385 16.2859 9.98069 16.5927C10.2875 16.8995 10.785 16.8995 11.0919 16.5927L14.6276 13.057C14.9344 12.7501 14.9344 12.2527 14.6276 11.9458L11.0919 8.4101Z" fill="white" />
+                </svg>
+                <div className="dashboardfont">Log out</div>
+              </div>
+            </Link>
             </div>
 
           </div>
 
-          <div className="flex flex-col w-full">
-
-            {/* Code for Navbar */}
-            {/* <div className="nav-bar item-center">
-              <div className="text-xl font-bold appointmentmanagement">Appointment Management</div>
-              <div className="right">
-                <div className="clinic-option">
-                  <ComboboxDemo />
-                  <Image src="/bell.svg" alt="bell" width={30} height={30} />
-                </div>
-                <div className="doctor-profile">
-                  <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
-                  <div className="doctor-name">
-                    <p>Dr. John Doe</p>
-                    <p>Doctor</p>
-                  </div>
-                </div>
-              </div>
-            </div> */}
-
-
+          <div className="flex flex-col w-[82%]">
             <div>{children}</div>
           </div>
 
