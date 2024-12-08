@@ -1,155 +1,218 @@
-  .left-menu {
-    width: 5.5rem;
-    height: 100%;
-    background-color: #164772;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    align-items: center;
-    padding-top: 2rem;
-  }
-  .logo-icon {
-    margin-bottom: 2rem;
-  }
-  .icon {
-    border-radius: 16px;
-    background: #17c27b;
-    box-shadow: 0px 4px 17px 1px rgba(0, 0, 0, 0.25);
-    padding: 0.8rem;
-  }
-  
-  .head {
-    color: #000;
-    font-family: Inter;
-    font-size: 32px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 33.398px; /* 104.369% */
-    letter-spacing: -0.384px;
-  }
-  .right-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-  .nav-bar {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e5e5e5;
-  }
-  .clinic-option {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-  }
-  .right {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-  }
-  .doctor-profile {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-  }
-  
-  .content {
-    display: grid;
-    grid-template-columns: 25% 50% 25%;
-    overflow: hidden;
-    justify-content: space-between;
-    height: 100%;
-  }
-  
-  .accord {
-    border-right: 1px solid rgba(100, 116, 139, 0.132);
-    padding: 1rem;
-    height: 100%;
-    overflow: auto;
-    scrollbar-width: thin;
-    width: 100%;
-    background-color: var(--secondary-accent);
-  }
-  .card-list {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    padding: 1rem;
-    border-radius: 1rem;
-    width: 100%;
-  }
-  .patient {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-  
-  .editor-container {
-    height: 100%;
-    width: 100%;
-  }
-  
-  .preview {
-    display: flex;
-    flex-direction: column;
-    border-left: 1px solid rgba(100, 116, 139, 0.37);
-    max-width: 30rem;
-    width: 100%;
-  }
-  .preview-header{
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 1rem;
-    border-bottom: 1px solid rgba(100, 116, 139, 0.37);
-    padding: 1rem;
-    width: 100%;
-  }
-  .sub-section{
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    line-height: normal;
-  }
-  .head {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .middle {
-    display: flex;
-    justify-content: flex-start;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  .middle-profile-info {
-    border-radius: 8px;
-    border: 1px solid rgba(100, 116, 139, 0.2);
-    padding: 1rem;
-    width: 100%;
-  }
-  .preview-footer{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-  }
-  .search-bar input {
-    padding-left: 2.5rem; /* Adjust padding to fit icon */
-  }
-  
-  .search-bar .search-icon {
-    position: absolute;
-    left: 0.75rem; /* Adjust left position as needed */
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(0, 0, 0, 0.5); /* Adjust color for icon */
-  }
-  
-  
-  
+.left-menu {
+  width: 250px;
+  height: 100%;
+  background-color: #164772;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: flex-start;
+  /* padding-top: 2rem;
+  padding-left: 2rem; */
+  padding: 2rem;
+}
+
+.mainlogo {
+  display: flex;
+  gap: 10px;
+}
+
+.logo-icon {
+  margin-bottom: 2rem;
+}
+
+.dashboardfont {
+  color: #FFF;
+  font-family: Inter;
+  font-size: .8rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.carelogo {
+  color: #FFF;
+  font-family: Poppins;
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
+}
+
+.qlogo {
+  color: #17C27B;
+  font-family: Poppins;
+  font-size: 1.5rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
+}
+
+.dashboardIcons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  border-radius: 16px;
+  background: #17c27b;
+  box-shadow: 0px 4px 17px 1px rgba(0, 0, 0, 0.25);
+  padding: 0.8rem;
+}
+
+.left-menuoptions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.head {
+  color: #000;
+  font-family: Inter;
+  font-size: 32px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 33.398px;
+  /* 104.369% */
+  letter-spacing: -0.384px;
+}
+
+.right-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* .nav-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e5e5;
+} */
+
+.clinic-option {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.right {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.doctor-profile {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 25% 50% 25%;
+  overflow: hidden;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.accord {
+  border-right: 1px solid rgba(100, 116, 139, 0.132);
+  padding: 1rem;
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: thin;
+  width: 100%;
+  background-color: var(--secondary-accent);
+}
+
+.card-list {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  width: 100%;
+}
+
+.patient {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.editor-container {
+  height: 100%;
+  width: 100%;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(100, 116, 139, 0.37);
+  max-width: 30rem;
+  width: 100%;
+}
+
+.preview-header {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(100, 116, 139, 0.37);
+  padding: 1rem;
+  width: 100%;
+}
+
+.sub-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  line-height: normal;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.middle {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.middle-profile-info {
+  border-radius: 8px;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+  padding: 1rem;
+  width: 100%;
+}
+
+.preview-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-bar input {
+  padding-left: 2.5rem;
+  /* Adjust padding to fit icon */
+}
+
+.search-bar .search-icon {
+  position: absolute;
+  left: 0.75rem;
+  /* Adjust left position as needed */
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(0, 0, 0, 0.5);
+  /* Adjust color for icon */
+}

@@ -23,7 +23,7 @@ export default {
   			primary: {
   				DEFAULT: 'var(--primary)',
   				foreground: 'var(--primary-foreground)',
-				accent: 'var(--primary-accent)'
+  				accent: 'var(--primary-accent)'
   			},
   			secondary: {
   				DEFAULT: 'var(--secondary)',
