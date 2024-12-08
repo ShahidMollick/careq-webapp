@@ -6,7 +6,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import MetricBox from '@/components/ui/metric-box';
 import MetricBoxCustom from '@/components/ui/metric-box-custom';
-import { Component } from '@/components/ui/graph-cards';
+import { Component } from '@/components/ui/graph-card1';
+import { Component2 } from '@/components/ui/graph-card2';
 
 const DashboardPage: React.FC = () => {
     return (
@@ -48,30 +49,17 @@ const DashboardPage: React.FC = () => {
             </div>
 
             <div className="numbercards flex mt-[20px] justify-around">
-                <MetricBoxCustom number={65} heading='Total Appointments'></MetricBoxCustom>
-                <MetricBoxCustom number={40} heading='Total Patient Waiting'></MetricBoxCustom>
-                <MetricBoxCustom number={25} heading='Total Patients Consulted'></MetricBoxCustom>
+                <MetricBoxCustom number='65' heading='Total Appointments'></MetricBoxCustom>
+                <MetricBoxCustom number='40' heading='Total Patient Waiting'></MetricBoxCustom>
+                <MetricBoxCustom number="25" heading='Total Patients Consulted'></MetricBoxCustom>
+                <MetricBoxCustom number="$3,200" heading='Total Revenue'></MetricBoxCustom>
 
-                <div className="flex flex-row justify-between  border-1  border-radius: 13.391px bg-white shadow-lg border border-slate-200 rounded-lg p-3 w-[23%]  ml-[1.3rem]"
-                    style={{
-                        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.05)",
-                    }}
-                >
-                    <div>
-                        <div>
-                            <div className="font-bold text-[12px]">Total Revenue</div>
-                            <div className="text-green-600 text-xs font-bold">Today</div>
-                        </div>
-                        <div className="text-sm text-gray-500">Set the dimensions for the layer.</div>
-                    </div>
-                    <div className="bg-primary-accent text-primary text-xl font-bold p-2 item-center h-max rounded-md">$3,200</div>
-                </div>
             </div>
 
             <div className='ml-[20px] mt-[20px] font-bold text-[15px]'>Overview</div>
             <div className='flex mt-[10px]  justify-around'>
                 <Component/>
-                <Component/>
+                <Component2/>
             </div>
 
         </div>
