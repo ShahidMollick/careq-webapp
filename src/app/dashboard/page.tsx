@@ -6,8 +6,9 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import MetricBox from '@/components/ui/metric-box';
 import MetricBoxCustom from '@/components/ui/metric-box-custom';
-import { Component } from '@/components/ui/graph-card1';
+import { PatientGraph } from '@/components/ui/graph-card1';
 import { Component2 } from '@/components/ui/graph-card2';
+import { GradientPatientGraph } from '@/components/ui/gradiant-chart';
 
 const DashboardPage: React.FC = () => {
     return (
@@ -58,8 +59,9 @@ const DashboardPage: React.FC = () => {
 
             <div className='ml-[20px] mt-[20px] font-bold text-[15px]'>Overview</div>
             <div className='flex mt-[10px]  justify-around'>
-                <Component/>
-                <Component2/>
+                <PatientGraph/>
+                {/* <Component2/> */}
+                <GradientPatientGraph/>
             </div>
 
         </div>

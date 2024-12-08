@@ -44,7 +44,7 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function Component() {
+export function PatientGraph() {
     return (
         <Card className="">
             <Tabs defaultValue="annually" className="">
@@ -212,6 +212,7 @@ export function Component() {
                     </TabsContent>
 
                 </CardContent>
+
             </Tabs>
         </Card>
     )

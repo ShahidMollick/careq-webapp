@@ -78,6 +78,29 @@ export default function RootLayout({
                   <div className="dashboardfont">Appointments</div>
                   <img src="/chevron-left.svg" alt="left-arrow" />
                 </div>
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="item-1">
+                    <AccordionTrigger>
+                      <Link href="/appointment" passHref>
+                      <div className="dashboardIcons">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="35" height="25" viewBox="0 0 25 25" fill="none">
+                          <path fill-rule="evenodd" clip-rule="evenodd" d="M5.91557 2.28711C5.32035 2.28711 4.77622 2.6234 4.51004 3.15577L2.37006 7.43573C2.31551 7.54483 2.28711 7.66513 2.28711 7.78711V21.1443C2.28711 22.0121 2.99067 22.7157 3.85854 22.7157H21.1443C22.0121 22.7157 22.7157 22.0121 22.7157 21.1443V7.78711C22.7157 7.66513 22.6873 7.54482 22.6327 7.43572L20.4928 3.15581C20.2266 2.62344 19.6824 2.28716 19.0872 2.28715L12.5014 2.28713L5.91557 2.28711ZM5.91556 3.85854L11.7157 3.85856V7.00139H4.34414L5.91556 3.85854ZM13.2871 7.00139V3.85856L19.0872 3.85858L20.6586 7.00139H13.2871ZM12.5014 8.57282H21.1443V21.1443L3.85854 21.1443V8.57282H12.5014ZM9.35854 11.7157C8.9246 11.7157 8.57282 12.0675 8.57282 12.5014C8.57282 12.9353 8.9246 13.2871 9.35854 13.2871H15.6443C16.0782 13.2871 16.43 12.9353 16.43 12.5014C16.43 12.0675 16.0782 11.7157 15.6443 11.7157H9.35854Z" fill="white" />
+                        </svg>
+                        <div className="dashboardfont">Appointments</div>
+                        {/* <img src="/chevron-left.svg" alt="left-arrow" /> */}
+                      </div>
+                      </Link>
+                      </AccordionTrigger>
+                    <AccordionContent>
+                      
+                    </AccordionContent>
+                    <AccordionContent>
+                      Yes. It adheres to the WAI-ARIA design pattern.
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+
 
               </Link>
 
