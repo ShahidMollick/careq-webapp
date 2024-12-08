@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -6,6 +7,13 @@ import Image from "next/image";
 import Link from "next/link";
 import './layout.css';
 import { ComboboxDemo } from "@/components/ui/combobox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -27,12 +35,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} h-screen overflow-hidden antialiased`}
       >
-        <div className="flex flex-row h-full ">
+        <div className="flex flex-row h-[100vh] gap-1 bg-[var(--secondary )]">
 
           {/* Code for the Left menu */}
 
@@ -63,11 +72,13 @@ export default function RootLayout({
 
               <Link href="/appointment" passHref>
                 <div className="dashboardIcons">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="35" height="25" viewBox="0 0 25 25" fill="none">
                     <path fill-rule="evenodd" clip-rule="evenodd" d="M5.91557 2.28711C5.32035 2.28711 4.77622 2.6234 4.51004 3.15577L2.37006 7.43573C2.31551 7.54483 2.28711 7.66513 2.28711 7.78711V21.1443C2.28711 22.0121 2.99067 22.7157 3.85854 22.7157H21.1443C22.0121 22.7157 22.7157 22.0121 22.7157 21.1443V7.78711C22.7157 7.66513 22.6873 7.54482 22.6327 7.43572L20.4928 3.15581C20.2266 2.62344 19.6824 2.28716 19.0872 2.28715L12.5014 2.28713L5.91557 2.28711ZM5.91556 3.85854L11.7157 3.85856V7.00139H4.34414L5.91556 3.85854ZM13.2871 7.00139V3.85856L19.0872 3.85858L20.6586 7.00139H13.2871ZM12.5014 8.57282H21.1443V21.1443L3.85854 21.1443V8.57282H12.5014ZM9.35854 11.7157C8.9246 11.7157 8.57282 12.0675 8.57282 12.5014C8.57282 12.9353 8.9246 13.2871 9.35854 13.2871H15.6443C16.0782 13.2871 16.43 12.9353 16.43 12.5014C16.43 12.0675 16.0782 11.7157 15.6443 11.7157H9.35854Z" fill="white" />
                   </svg>
                   <div className="dashboardfont">Appointments</div>
+                  <img src="/chevron-left.svg" alt="left-arrow" />
                 </div>
+
               </Link>
 
               <Link href="/settings" passHref>
@@ -80,20 +91,20 @@ export default function RootLayout({
               </Link>
             </div>
 
-            <div className="fixed bottom-5">              
+            <div className="fixed bottom-5">
               <Link href="/" passHref>
-              <div className="dashboardIcons">
-                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M7.78627 2.28711C7.35233 2.28711 7.00056 2.63889 7.00056 3.07282C7.00056 3.50676 7.35233 3.85854 7.78627 3.85854H19.572V21.1443H7.78627C7.35233 21.1443 7.00056 21.496 7.00056 21.93C7.00056 22.3639 7.35233 22.7157 7.78627 22.7157H19.572C20.4399 22.7157 21.1434 22.0121 21.1434 21.1443V3.85854C21.1434 2.99066 20.4399 2.28711 19.572 2.28711H7.78627ZM11.0919 8.4101C10.785 8.10326 10.2875 8.10326 9.98069 8.4101C9.67385 8.71694 9.67385 9.21442 9.98069 9.52127L12.1751 11.7157H1.50056C1.06662 11.7157 0.714844 12.0675 0.714844 12.5014C0.714844 12.9353 1.06662 13.2871 1.50056 13.2871H12.1751L9.98069 15.4815C9.67385 15.7884 9.67385 16.2859 9.98069 16.5927C10.2875 16.8995 10.785 16.8995 11.0919 16.5927L14.6276 13.057C14.9344 12.7501 14.9344 12.2527 14.6276 11.9458L11.0919 8.4101Z" fill="white" />
-                </svg>
-                <div className="dashboardfont">Log out</div>
-              </div>
-            </Link>
+                <div className="dashboardIcons">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 25 25" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.78627 2.28711C7.35233 2.28711 7.00056 2.63889 7.00056 3.07282C7.00056 3.50676 7.35233 3.85854 7.78627 3.85854H19.572V21.1443H7.78627C7.35233 21.1443 7.00056 21.496 7.00056 21.93C7.00056 22.3639 7.35233 22.7157 7.78627 22.7157H19.572C20.4399 22.7157 21.1434 22.0121 21.1434 21.1443V3.85854C21.1434 2.99066 20.4399 2.28711 19.572 2.28711H7.78627ZM11.0919 8.4101C10.785 8.10326 10.2875 8.10326 9.98069 8.4101C9.67385 8.71694 9.67385 9.21442 9.98069 9.52127L12.1751 11.7157H1.50056C1.06662 11.7157 0.714844 12.0675 0.714844 12.5014C0.714844 12.9353 1.06662 13.2871 1.50056 13.2871H12.1751L9.98069 15.4815C9.67385 15.7884 9.67385 16.2859 9.98069 16.5927C10.2875 16.8995 10.785 16.8995 11.0919 16.5927L14.6276 13.057C14.9344 12.7501 14.9344 12.2527 14.6276 11.9458L11.0919 8.4101Z" fill="white" />
+                  </svg>
+                  <div className="dashboardfont">Log out</div>
+                </div>
+              </Link>
             </div>
 
           </div>
 
-          <div className="flex flex-col w-[82%]">
+          <div className="flex flex-col w-[100%]">
             <div>{children}</div>
           </div>
 
