@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+
 const chartData = [
     { month: "January", desktop: 300 },
     { month: "February", desktop: 420 },
@@ -32,7 +33,7 @@ const chartData = [
     { month: "October", desktop: 320 },
     { month: "November", desktop: 270 },
     { month: "December", desktop: 490 },
-    
+
 ]
 const chartConfig = {
     desktop: {
