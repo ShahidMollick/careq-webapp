@@ -180,7 +180,7 @@ const AppointmentPage: React.FC = () => {
             </Accordion>
           </div>
 
-          <div className="editor-container p-4 pb-[20%]">
+          <div className="h-full w-full p-4 pb-[10%]">
             <div className="flex flex-row justify-between items-center mb-4">
               <div className="head">
                 <div className="small-icon">
@@ -200,7 +200,7 @@ const AppointmentPage: React.FC = () => {
 
             <Textarea
               placeholder="| Start typing prescription details here......"
-              className="overflow-auto h-full"
+              className=""
             />
             <div className="flex flex-row justify-between">
               <div className="w-30 h-20 p-1">
