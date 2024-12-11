@@ -86,10 +86,10 @@ export default function RootLayout({
                   <AccordionContent>
                     <div className="dashboardOptions flex f flex-col gap-2 w-full">
                       <Link href="/appointment" passHref>
-                        <div className="dashboardfont ext-lg ml-3 mt-3 w-40 h-7 flex items-center justify-center hover:bg-green-500 hover:bg-opacity-20 rounded-lg transition duration-200" >All Appointments</div>
+                        <Button variant={'ghost'}> All Appointments</Button>
                       </Link>
                       <Link href="/follow-ups" passHref>
-                        <div className="dashboardfont ext-lg w-40 h-7 flex items-center justify-center hover:bg-green-500 hover:bg-opacity-20 rounded-lg transition duration-200">Follow-ups</div>
+                        <Button variant={'ghost'}> Follow Ups</Button>
                       </Link>
                     </div>
                   </AccordionContent>
