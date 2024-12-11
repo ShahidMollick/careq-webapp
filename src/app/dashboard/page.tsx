@@ -7,35 +7,12 @@ import { Button } from "@/components/ui/button";
 import MetricBox from "@/components/ui/metric-box";
 import MetricBoxCustom from "@/components/ui/metric-box-custom";
 import { PatientGraph } from "@/components/ui/graph-card1";
-import { Component2 } from "@/components/ui/graph-card2";
 import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
 
 const DashboardPage: React.FC = () => {
   return (
     <div>
       {/* Need To be copied in every page */}
-      <div className="nav-bar bg-white w-[100%] flex item-center justify-between p-3">
-        <div className="font-bold text-[20px]">Dashboard</div>
-        <div className="right flex items-center">
-          <div className="clinic-option">
-            <ComboboxDemo />
-            <Image src="/bell.svg" alt="bell" width={20} height={20} />
-          </div>
-          <div className="doctor-profile">
-            <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
-            <div className="doctor-name">
-              <p className="font-bold">Dr. John Doe</p>
-              <p>Doctor</p>
-            </div>
-            <Image
-              src="/chevron-down.svg"
-              alt="down-arrow"
-              width={20}
-              height={20}
-            />
-          </div>
-        </div>
-      </div>
 
       <div className="h-[50px] w-[100%] flex bg-[#e7f5f0] items-center gap-[22px] px-6 justify-between text-[12px] py-4">
         <div className="flex items-center gap-2">
