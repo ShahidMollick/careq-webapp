@@ -7,12 +7,14 @@ import Image from "next/image";
 import Link from "next/link";
 import './layout.css';
 import { ComboboxDemo } from "@/components/ui/combobox";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Ghost } from "lucide-react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -71,8 +73,8 @@ export default function RootLayout({
               </Link>
 
 
-              <Accordion type="single" collapsible className="mt-0" >
-                <AccordionItem value="item-1" className="mt-0">
+              <Accordion type="single" collapsible className="" >
+                <AccordionItem value="item-1" className="">
                   <AccordionTrigger>
                     <div className="dashboardIcons mb-0">
                       <svg xmlns="http://www.w3.org/2000/svg" width="35" height="25" viewBox="0 0 25 25" fill="none">
@@ -82,12 +84,12 @@ export default function RootLayout({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="dashboardOptions flex f flex-col gap-2">
+                    <div className="dashboardOptions flex f flex-col gap-2 w-full">
                       <Link href="/appointment" passHref>
-                        <div className="dashboardfont ext-lg ml-3 mt-3 w-40 h-7 flex items-center justify-center hover:bg-green-500 hover:bg-opacity-20 rounded-lg transition duration-200" >All Appointments</div>
+                        <Button variant={'ghost'}> All Appointments</Button>
                       </Link>
                       <Link href="/follow-ups" passHref>
-                        <div className="dashboardfont ext-lg w-40 h-7 flex items-center justify-center hover:bg-green-500 hover:bg-opacity-20 rounded-lg transition duration-200">Follow-ups</div>
+                        <Button variant={'ghost'}> Follow Ups</Button>
                       </Link>
                     </div>
                   </AccordionContent>
