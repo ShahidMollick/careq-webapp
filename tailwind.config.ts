@@ -78,7 +78,10 @@ export default {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
+  		},
+		screens: {
+			'custom-lg': '1200px', // Define your custom breakpoint
+		  },
   	}
   },
   plugins: [require("tailwindcss-animate")],

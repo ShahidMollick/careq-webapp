@@ -35,7 +35,7 @@ const chartData = [
 ]
 const chartConfig = {
     desktop: {
-        label: "Desktop",
+        label: "Patients",
         color: " var(--primary)",
     },
     mobile: {
@@ -46,14 +46,14 @@ const chartConfig = {
 
 export function PatientGraph() {
     return (
-        <Card className="">
-            <Tabs defaultValue="annually" className="">
+        <Card className="w-full">
+            <Tabs defaultValue="daily" className="">
                 <CardHeader>
-                    <div className="flex justify-between mx-4 gap-3">
+                    <div className="flex justify-between gap-3">
                         <div className=" ">
 
                             <div className="flex gap-[10px]">
-                                <div className="bg-[#164772] rounded-sm px-[8px] py-[9px]">
+                                <div className="bg-[#164772] rounded-md px-[8px] py-[9px]">
                                     <svg width="20" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <g id="icon/user">
                                             <path id="Vector" d="M19 21V19C19 17.9391 18.5786 16.9217 17.8284 16.1716C17.0783 15.4214 16.0609 15 15 15H9C7.93913 15 6.92172 15.4214 6.17157 16.1716C5.42143 16.9217 5 17.9391 5 19V21" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -61,14 +61,16 @@ export function PatientGraph() {
                                         </g>
                                     </svg>
                                 </div>
+                                <div>
                                 <CardTitle className="text-2xl">30,450</CardTitle>
-                            </div>
-                            <CardDescription className="text-xs">
+                                <CardDescription className="text-xs">
                                 Patients Consulted
-                            </CardDescription>
+                                </CardDescription>
+                                </div>
+                            </div>
                         </div>
                         <div>
-                            <Tabs defaultValue="annually" className="text-xs">
+                            <Tabs defaultValue="daily" className="text-xs">
                                 <TabsList>
                                     <TabsTrigger value="daily">Daily</TabsTrigger>
                                     <TabsTrigger value="weekly">Weekly</TabsTrigger>
@@ -101,7 +103,7 @@ export function PatientGraph() {
 
                 <CardContent className="">
                     <TabsContent value="daily">
-                        <ChartContainer className="w-[100%] h-[100px]" config={chartConfig}>
+                        <ChartContainer className="w-[100%] h-[100%] max-h-[300px]" config={chartConfig}>
                             <AreaChart
                                 accessibilityLayer
                                 data={chartData}

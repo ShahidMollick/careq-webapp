@@ -1,0 +1,120 @@
+Frontend
+
+src/
+├── components/                     # Reusable UI components
+│   ├── layout/                     # Layout components (e.g., header, footer, sidebar)
+│   ├── forms/                      # Shared form components
+│   ├── modals/                     # Modal components
+│   ├── doctor/                     # Doctor-specific components
+│   │   ├── PrescriptionForm.tsx    # Form for writing a prescription
+│   │   └── AppointmentHistory.tsx  # Component for viewing past appointments
+│   ├── admin/                      # Admin-specific components
+│   │   └── DoctorVerification.tsx  # Component for verifying doctors
+│   ├── patient/                    # Patient-specific components (if any)
+│   └── table/                      # Table components for displaying data
+├── pages/                          # Next.js pages
+│   ├── api/                        # API routes (for server-side logic)
+│   ├── login.tsx                   # Login page
+│   ├── register.tsx                # Registration page
+│   ├── dashboard/                  # Dashboard pages based on roles
+│   │   ├── index.tsx               # Main dashboard (redirects based on role)
+│   │   ├── doctor/                 # Doctor-specific dashboard
+│   │   │   ├── index.tsx           # Doctor dashboard homepage
+│   │   │   ├── prescriptions.tsx   # Page for writing prescriptions
+│   │   │   └── appointments.tsx    # View past appointments
+│   │   ├── admin/                  # Admin-specific dashboard
+│   │   │   ├── index.tsx           # Admin dashboard homepage
+│   │   │   ├── manage-doctors.tsx  # Page to add and verify doctors
+│   │   │   ├── manage-patients.tsx # Page to add patients
+│   │   │   └── manage-queue.tsx    # Queue management page
+│   └── prescriptions/              # Prescription-related pages (if needed)
+├── context/                        # Global state management
+│   ├── AuthContext.tsx             # Auth context to manage login state and roles
+│   ├── RoleContext.tsx             # Role context to manage user roles and permissions
+├── services/                       # API services to interact with the backend
+│   ├── authService.ts              # Service for authentication-related API calls
+│   ├── doctorService.ts            # Service for doctor-specific API calls
+│   ├── adminService.ts             # Service for admin actions (adding doctors, patients)
+│   ├── patientService.ts           # Service for patient-related API calls
+│   └── prescriptionService.ts      # Service for prescription-related API calls
+├── hooks/                          # Custom hooks
+│   ├── useAuth.ts                  # Hook for authentication logic
+│   ├── useRole.ts                  # Hook for role-based access logic
+├── middleware/                     # Middleware for protecting routes
+│   └── authMiddleware.ts           # Protects routes based on auth state and role
+├── utils/                          # Utility functions
+│   ├── formatDate.ts               # Date formatting helper
+│   ├── constants.ts                # Application-wide constants
+├── styles/                         # Global styles
+│   ├── globals.css                 # Global CSS file
+│   └── components/                 # Component-specific styles
+└── app.tsx                         # Main application entry point
+
+backend
+src/
+├── config/                   # Configuration files for different environments
+│   ├── database.config.ts    # Database configuration
+│   ├── auth.config.ts        # Auth settings (e.g., JWT, OAuth)
+├── common/                   # Common utilities and shared modules
+│   ├── decorators/           # Custom decorators (e.g., roles decorator)
+│   ├── guards/               # Auth and role-based guards
+│   │   ├── jwt.guard.ts      # JWT authentication guard
+│   │   └── roles.guard.ts    # Role-based access control guard
+│   ├── interceptors/         # Interceptors (e.g., for logging or response formatting)
+│   ├── pipes/                # Pipes for validation and transformation
+│   └── filters/              # Exception filters
+├── auth/                     # Authentication module
+│   ├── auth.module.ts        # Main auth module
+│   ├── auth.controller.ts    # Auth routes (login, register)
+│   ├── auth.service.ts       # Authentication logic (JWT generation, password hashing)
+│   ├── jwt.strategy.ts       # JWT strategy for passport
+│   └── role.guard.ts         # Role-based access guard
+├── doctor/                   # Doctor management module
+│   ├── doctor.module.ts      # Main doctor module
+│   ├── doctor.controller.ts  # Routes for doctor-related actions (e.g., write prescription)
+│   ├── doctor.service.ts     # Logic for doctor registration and verification
+│   ├── entities/
+│   │   └── doctor.entity.ts  # Doctor database schema
+│   ├── dto/                  # Data transfer objects for validation
+│   ├── interfaces/           # Interfaces for doctor data structures
+│   └── verification/         # Doctor verification logic
+│       ├── verification.service.ts # Handles doctor verification
+│       └── verification.entity.ts  # Verification data schema (e.g., pending/verified)
+├── patient/                  # Patient management module
+│   ├── patient.module.ts     # Main patient module
+│   ├── patient.controller.ts # Routes for patient-related actions
+│   ├── patient.service.ts    # Logic for managing patients
+│   ├── entities/
+│   │   └── patient.entity.ts # Patient database schema
+│   ├── dto/                  # DTOs for request/response validation
+│   └── interfaces/           # Interfaces for patient data
+├── admin/                    # Admin management module
+│   ├── admin.module.ts       # Main admin module
+│   ├── admin.controller.ts   # Routes for admin actions (add doctors, add patients)
+│   ├── admin.service.ts      # Logic for managing admin functions
+│   └── dto/                  # DTOs for input validation
+├── appointment/              # Appointment management module
+│   ├── appointment.module.ts # Main appointment module
+│   ├── appointment.controller.ts # Routes for appointments
+│   ├── appointment.service.ts # Logic for managing appointments
+│   ├── entities/
+│   │   └── appointment.entity.ts # Appointment database schema
+│   ├── dto/                  # DTOs for appointment data
+│   └── interfaces/           # Interfaces for appointment data
+├── prescription/             # Prescription management module
+│   ├── prescription.module.ts # Main prescription module
+│   ├── prescription.controller.ts # Routes for prescription actions
+│   ├── prescription.service.ts # Logic for managing prescriptions
+│   ├── entities/
+│   │   └── prescription.entity.ts # Prescription database schema
+│   ├── dto/                  # DTOs for prescription data
+│   └── interfaces/           # Interfaces for prescription data
+├── user/                     # User module for shared user logic
+│   ├── user.module.ts        # Main user module
+│   ├── user.controller.ts    # Routes for user profile actions
+│   ├── user.service.ts       # User profile and role management logic
+│   ├── entities/
+│   │   └── user.entity.ts    # User database schema with roles and permissions
+│   └── dto/                  # User-related DTOs
+├── main.ts                   # Entry point for NestJS app
+└── app.module.ts             # Root module importing all other modules

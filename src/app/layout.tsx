@@ -119,7 +119,7 @@ export default function RootLayout({
 
           </div>
 
-          <div className="flex flex-col w-[100%]">
+          <div className="flex flex-col bg-gray-50  w-[100%]">
             <div>{children}</div>
           </div>
 
