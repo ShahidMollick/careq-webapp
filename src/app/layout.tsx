@@ -1,30 +1,9 @@
 import type { Metadata } from "next";
-import { GetServerSideProps } from "next";
-import { usePathname } from "next/navigation";
+import { ReduxProvider } from './redux/ReduxProvider'
 import localFont from "next/font/local";
 import "./globals.css";
-import React, { useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import "./layout.css";
-import { ComboboxDemo } from "@/components/ui/clinic-select";
-import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Stringifier } from "postcss";
-import path from "path";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 
 type Props = {
   pathname: string;
@@ -74,7 +53,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} h-full overflow-hidden antialiased`}
       >
-        {children}
+        <ReduxProvider>
+          {children}
+        </ReduxProvider>
       </body>
     </html>
   );
