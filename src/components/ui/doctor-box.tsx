@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "./button";
 import Image from "next/image";
-import data from "../../app/appointment/appointments.json";
+import data from "../../app/doctor/appointment/appointments.json";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 
