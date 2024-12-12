@@ -34,16 +34,12 @@ const initialState: {
 export const fetchAppointments = createAsyncThunk<Appointment[], string>(
   "appointments/fetchAppointments",
   async (doctorId: string) => {
-    console.log(doctorId);
-    const response = await fetch("http://localhost:3001/appointment/doctor", {
+    const response = await fetch(`http://localhost:3001/appointment/doctor/${doctorId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ "doctorId": doctorId }),
+      }
     });
-
-    console.log(response);
     if (!response.ok) {
       throw new Error("Failed to fetch appointments");
     }
