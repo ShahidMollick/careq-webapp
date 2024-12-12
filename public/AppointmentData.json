@@ -1,0 +1,94 @@
+{
+    "appointments": [
+      {
+        "queue_no": 1,
+        "patient_name": "Harsh Sharma",
+        "email": "harshsharma@yahoo.com",
+        "phone_number": "+91 9832834921",
+        "age": 45,
+        "date": "Today",
+        "status": "Waiting"
+      },
+      {
+        "queue_no": 2,
+        "patient_name": "Priya Gupta",
+        "email": "priyagupta@gmail.com",
+        "phone_number": "+91 9832812345",
+        "age": 30,
+        "date": "Today",
+        "status": "Serving"
+      },
+      {
+        "queue_no": 3,
+        "patient_name": "Amit Verma",
+        "email": "amitverma@outlook.com",
+        "phone_number": "+91 9832876543",
+        "age": 28,
+        "date": "Today",
+        "status": "Completed"
+      },
+      {
+        "queue_no": 4,
+        "patient_name": "Kavita Mehta",
+        "email": "kavitamehta@gmail.com",
+        "phone_number": "+91 9832876541",
+        "age": 35,
+        "date": "Today",
+        "status": "Waiting"
+      },
+      {
+        "queue_no": 5,
+        "patient_name": "John Doe",
+        "email": "johndoe@gmail.com",
+        "phone_number": "+91 9123456789",
+        "age": 28,
+        "date": "Today",
+        "status": "Waiting"
+      },
+      {
+        "queue_no": 6,
+        "patient_name": "Alice Smith",
+        "email": "alicesmith@yahoo.com",
+        "phone_number": "+91 9876543210",
+        "age": 34,
+        "date": "Today",
+        "status": "Serving"
+      },
+      {
+        "queue_no": 7,
+        "patient_name": "Bob Johnson",
+        "email": "bobjohnson@outlook.com",
+        "phone_number": "+91 9234567890",
+        "age": 41,
+        "date": "Today",
+        "status": "Completed"
+      },
+      {
+        "queue_no": 8,
+        "patient_name": "Clara Davis",
+        "email": "claradavis@gmail.com",
+        "phone_number": "+91 9112345678",
+        "age": 22,
+        "date": "Today",
+        "status": "Waiting"
+      },
+      {
+        "queue_no": 9,
+        "patient_name": "Ethan Wilson",
+        "email": "ethanwilson@yahoo.com",
+        "phone_number": "+91 9445567890",
+        "age": 30,
+        "date": "Today",
+        "status": "Completed"
+      },
+      {
+        "queue_no": 10,
+        "patient_name": "Sophia Martinez",
+        "email": "sophiamartinez@gmail.com",
+        "phone_number": "+91 9009876543",
+        "age": 36,
+        "date": "Today",
+        "status": "Serving"
+      }
+    ]
+  }

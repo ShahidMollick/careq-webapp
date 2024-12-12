@@ -85,7 +85,7 @@ export default function RootLayout({
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="dashboardOptions flex f flex-col gap-2 w-full">
-                      <Link href="/appointment" passHref>
+                      <Link href="/Q" passHref>
                         <Button variant={'ghost'}> All Appointments</Button>
                       </Link>
                       <Link href="/follow-ups" passHref>
