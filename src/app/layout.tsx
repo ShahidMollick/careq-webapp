@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import "./layout.css";
 import { ComboboxDemo } from "@/components/ui/clinic-select";
+import {Button} from "@/components/ui/button"
 import {
   Accordion,
   AccordionContent,
@@ -235,10 +236,14 @@ export default function RootLayout({
                     <div className="text-sm font-semibold">Dr. John Doe</div>
                     <div className="text-sm font-normal">Doctor</div>
                   </div>
-                  {/* <Button>
-
-                
-                  </Button> */}
+                  <Button variant={'ghost'}>
+                  <Image
+                    src="/chevron-down.svg"
+                    alt="down-arrow"
+                    width={20}
+                    height={20}
+                  />
+                  </Button>
                   
                 </div>
               </div>
