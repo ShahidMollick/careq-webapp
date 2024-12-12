@@ -1,5 +1,6 @@
 body{
   background-color: var(--secondary);
+  height: 100vh;
 }
 .left-menu {
   width: 250px;
