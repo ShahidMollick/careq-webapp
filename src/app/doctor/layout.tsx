@@ -83,7 +83,7 @@ export default function DoctorLayout({
             </div>
 
             <div className="left-menuoptions">
-              <Link href="/doctor/dashboard" passHref>
+              <Link href="/doctor" passHref>
                 <div className="dashboardIcons">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -123,7 +123,7 @@ export default function DoctorLayout({
                 </div>
               </Link>
 
-              <Link href="doctor/appointment" passHref>
+              <Link href="/doctor/appointment" passHref>
                 <div className="dashboardIcons">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -145,7 +145,7 @@ export default function DoctorLayout({
                 <Accordion type="single" collapsible>
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
-                      <Link href="doctor/appointment" passHref>
+                      <Link href="/doctor/appointment" passHref>
                         <div className="dashboardIcons">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
