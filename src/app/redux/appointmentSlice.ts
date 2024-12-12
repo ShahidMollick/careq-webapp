@@ -1,43 +1,61 @@
 // redux/appointmentSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "./store";
 
-// Define types
-export interface Appointment {
-  id: number;
-  patientName: string;
-  doctorId: number;
-  doctorName: string;
-  time: string;
-}
-
-interface AppointmentState {
-  appointments: Appointment[];
-  loading: boolean;
-  error: string | null;
+// Define the Appointment type
+interface Appointment {
+  _id: string;
+  patient: string;
+  doctor: string;
+  appointmentDate: string;
+  queueNumber: number;
+  status: string;
+  paymentStatus: string;
+  queueStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }
 
 // Initial state
-const initialState: AppointmentState = {
-  appointments: [],
+const initialState: {
+  totalAppointments: number;
+  loading: boolean;
+  error: string | null;
+  appointments: Appointment[];
+} = {
+  totalAppointments: 0,
   loading: false,
   error: null,
+  appointments: [],
 };
 
 // Create async thunk for fetching appointments from an API
-export const fetchAppointments = createAsyncThunk<Appointment[]>(
-  'appointments/fetchAppointments',
-  async () => {
-    const response = await fetch('http://localhost:5000/api/appointments');
+export const fetchAppointments = createAsyncThunk<Appointment[], string>(
+  "appointments/fetchAppointments",
+  async (doctorId: string) => {
+    console.log(doctorId);
+    const response = await fetch("http://localhost:3001/appointment/doctor", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ "doctorId": doctorId }),
+    });
+
+    console.log(response);
     if (!response.ok) {
-      throw new Error('Failed to fetch appointments');
+      throw new Error("Failed to fetch appointments");
     }
-    return response.json();
+    const data: Appointment[] = await response.json();
+    console.log(data);
+    return data;
   }
 );
 
 // Create the slice
 const appointmentSlice = createSlice({
-  name: 'appointments',
+  name: "appointments",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -46,15 +64,25 @@ const appointmentSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAppointments.fulfilled, (state, action: PayloadAction<Appointment[]>) => {
-        state.loading = false;
-        state.appointments = action.payload;
-      })
+      .addCase(
+        fetchAppointments.fulfilled,
+        (state, action: PayloadAction<Appointment[]>) => {
+          state.loading = false;
+          state.appointments = action.payload;
+          state.totalAppointments = action.payload.length;
+        }
+      )
       .addCase(fetchAppointments.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to load appointments';
+        state.error = action.error.message || "Failed to load appointments";
       });
   },
 });
 
 export default appointmentSlice.reducer;
+export const selectAppointments = (state: RootState) =>
+  state.appointments.appointments;
+export const selectTotalAppointments = (state: RootState) =>
+  state.appointments.totalAppointments;
+export const selectLoading = (state: RootState) => state.appointments.loading;
+export const selectError = (state: RootState) => state.appointments.error;

@@ -1,6 +1,6 @@
 import React from "react";
 interface MetricBoxCustomProps {
-    number: string;
+    number: string | number;
     heading: string;
     description: string;
 };

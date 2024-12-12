@@ -1,5 +1,11 @@
 "use client";
 import React from "react";
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { AppDispatch } from '../redux/store';
+import { useDispatch } from 'react-redux';
+import { fetchAppointments, selectTotalAppointments } from '../redux/appointmentSlice';
+import { RootState } from '../redux/store';
 import { DataTableDemo } from "@/components/ui/history";
 import { ComboboxDemo } from "@/components/ui/combobox";
 import Image from "next/image";
@@ -10,6 +16,15 @@ import { PatientGraph } from "@/components/ui/graph-card1";
 import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
 
 const DashboardPage: React.FC = () => {
+
+  const dispatch: AppDispatch = useDispatch();
+  const totalAppointments = useSelector(selectTotalAppointments);
+
+  useEffect(() => {
+    dispatch(fetchAppointments("dwarika"));
+  }, [dispatch]);
+
+  
   return (
     <div className="h-[100%] w-[100%]">
 
@@ -29,7 +44,7 @@ const DashboardPage: React.FC = () => {
         <div className="flex flex-row   w-full gap-3 justify-start flex-wrap custom-lg:lg:flex-nowrap">
           <div className="flex flex-row gap-3 w-full ">
             <MetricBoxCustom
-              number="65"
+              number={totalAppointments}
               heading="Total Appointments"
               description="Total appointments your patients have booked for today"
             ></MetricBoxCustom>
