@@ -11,13 +11,13 @@ import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
 
 const DashboardPage: React.FC = () => {
   return (
-    <div>
+    <div className="h-[100%] w-[100%]">
       {/* Need To be copied in every page */}
 
-      <div className="h-[50px] w-[100%] flex bg-[#e7f5f0] items-center gap-[22px] px-6 justify-between text-[12px] py-4">
+      <div className="h-[50px] w-[100%] flex bg-[#e7f5f0] items-center gap-[22px] px-6 justify-between text-sm  py-4">
         <div className="flex items-center gap-2">
           <Image src="/user.svg" alt="user" width={20} height={20} />
-          <div className="text-secondary text-sm">
+          <div className="text-secondary w-full text-sm">
             Your consultation queue is now live! Patient #3 is waiting
           </div>
         </div>
@@ -26,8 +26,8 @@ const DashboardPage: React.FC = () => {
           <img className="w-[30px]" src="/plus.svg" alt="" />
         </div>
       </div>
-      <div className="p-4 flex flex-col gap-4">
-        <div className="flex flex-row  w-full h-full gap-3 justify-start flex-wrap custom-lg:lg:flex-nowrap">
+      <div className="p-4 flex flex-col overflow-scroll w-full gap-4">
+        <div className="flex flex-row   w-full h-full gap-3 justify-start flex-wrap custom-lg:lg:flex-nowrap">
           <div className="flex flex-row gap-3 w-full ">
             <MetricBoxCustom
               number="65"
@@ -54,7 +54,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="text-xl font-bold text-secondary">Overview</div>
-        <div className="flex gap-3 justify-around">
+        <div className="flex gap-3 justify-around w-full h-[100%] flex-wrap lg:flex-nowrap ">
           <PatientGraph />
           <PatientGraph />
         </div>

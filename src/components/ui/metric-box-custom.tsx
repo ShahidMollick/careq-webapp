@@ -14,10 +14,10 @@ const MetricBoxCustom: React.FC<MetricBoxCustomProps> = ({number,heading, descri
     >
       <div>
         <div>
-          <div className="font-semibold text-lg">{heading}</div>
-          <div className="text-primary font-semibold text-lg -translate-y-1">Today</div>
+          <div className="font-semibold text-md">{heading}</div>
+          <div className="text-primary font-semibold text-md -translate-y-1">Today</div>
         </div>
-        <div className="text-md text-gray-500">{description}</div>
+        <div className="text-sm text-gray-500">{description}</div>
       </div>
       <div className="bg-primary-accent text-primary text-xl h-max p-2 font-bold rounded-md">{number}</div>
     </div>

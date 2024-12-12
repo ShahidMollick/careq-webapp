@@ -93,12 +93,12 @@ export function PatientGraph() {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full h-full">
       <Tabs value={tabValue} onValueChange={setTabValue} className="">
         <CardHeader>
-          <div className="flex justify-between gap-3">
+          <div className="flex justify-between items-center gap-3">
             <div className="flex gap-[10px]">
-              <div className="bg-[#164772] rounded-md px-[8px] py-[9px]">
+              <div className="bg-[#164772] justify-center item-center rounded-md p-2 ">
                 <svg
                   width="20"
                   height="17"
@@ -127,8 +127,8 @@ export function PatientGraph() {
                 </svg>
               </div>
               <div>
-                <CardTitle className="text-2xl">30,450</CardTitle>
-                <CardDescription className="text-xs">
+                <CardTitle className="text-md">30,450</CardTitle>
+                <CardDescription className="text-sm">
                   Patients Consulted
                 </CardDescription>
               </div>
