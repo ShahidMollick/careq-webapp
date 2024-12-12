@@ -98,7 +98,7 @@ export function PatientGraph() {
         <CardHeader>
           <div className="flex justify-between items-center gap-3">
             <div className="flex gap-[10px]">
-              <div className="bg-[#164772] justify-center item-center rounded-md p-2 ">
+              <div className="bg-[#164772] flex justify-center item-center rounded-md p-2 ">
                 <svg
                   width="20"
                   height="17"
@@ -152,6 +152,11 @@ export function PatientGraph() {
                 left: -20,
                 right: 12,
               }}
+              height={
+                100
+              }
+              width={100}
+              
             >
               <CartesianGrid vertical={false} />
               <XAxis

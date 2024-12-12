@@ -27,7 +27,7 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
       <div className="p-4 flex flex-col overflow-scroll w-full gap-4">
-        <div className="flex flex-row   w-full h-full gap-3 justify-start flex-wrap custom-lg:lg:flex-nowrap">
+        <div className="flex flex-row   w-full gap-3 justify-start flex-wrap custom-lg:lg:flex-nowrap">
           <div className="flex flex-row gap-3 w-full ">
             <MetricBoxCustom
               number="65"
