@@ -20,11 +20,15 @@ interface Appointment {
 // Initial state
 const initialState: {
   totalAppointments: number;
+  totalWaiting: number;
+  totalConsulted: number;
   loading: boolean;
   error: string | null;
   appointments: Appointment[];
 } = {
   totalAppointments: 0,
+  totalWaiting: 0,
+  totalConsulted: 0,
   loading: false,
   error: null,
   appointments: [],
@@ -66,6 +70,12 @@ const appointmentSlice = createSlice({
           state.loading = false;
           state.appointments = action.payload;
           state.totalAppointments = action.payload.length;
+          state.totalWaiting = action.payload.filter(
+            (appointment) => appointment.queueStatus === "Waiting"
+          ).length;
+          state.totalConsulted = action.payload.filter(
+            (appointment) => appointment.queueStatus === "Completed"
+          ).length;
         }
       )
       .addCase(fetchAppointments.rejected, (state, action) => {
@@ -80,5 +90,9 @@ export const selectAppointments = (state: RootState) =>
   state.appointments.appointments;
 export const selectTotalAppointments = (state: RootState) =>
   state.appointments.totalAppointments;
+export const selectTotalWaiting = (state: RootState) =>
+    state.appointments.totalWaiting;
+export const selectTotalConsulted = (state: RootState) =>
+    state.appointments.totalConsulted;
 export const selectLoading = (state: RootState) => state.appointments.loading;
 export const selectError = (state: RootState) => state.appointments.error;

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { AppDispatch } from '../redux/store';
 import { useDispatch } from 'react-redux';
-import { fetchAppointments, selectTotalAppointments } from '../redux/appointmentSlice';
+import { fetchAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
 import { RootState } from '../redux/store';
 import { DataTableDemo } from "@/components/ui/history";
 import { ComboboxDemo } from "@/components/ui/combobox";
@@ -19,6 +19,8 @@ const DashboardPage: React.FC = () => {
 
   const dispatch: AppDispatch = useDispatch();
   const totalAppointments = useSelector(selectTotalAppointments);
+  const totalWaiting = useSelector(selectTotalWaiting);
+  const totalConsulted = useSelector(selectTotalConsulted);
 
   useEffect(() => {
     dispatch(fetchAppointments("dwarika"));
@@ -49,19 +51,19 @@ const DashboardPage: React.FC = () => {
               description="Total appointments your patients have booked for today"
             ></MetricBoxCustom>
             <MetricBoxCustom
-              number="40"
+              number={totalWaiting}
               heading="Total Patient Waiting"
               description="Total patients waiting for Your consultation today"
             ></MetricBoxCustom>
           </div>
           <div className="flex flex-row gap-3 w-full ">
             <MetricBoxCustom
-              number="25"
+              number={totalConsulted}
               heading="Total Patients Consulted"
               description="Total patients you have consulted today"
             ></MetricBoxCustom>
             <MetricBoxCustom
-              number="$3,200"
+              number={totalAppointments*600}
               heading="Total Revenue"
               description="Total revenue you have earned today"
             ></MetricBoxCustom>
