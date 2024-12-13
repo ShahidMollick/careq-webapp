@@ -10,6 +10,11 @@ interface SidebarItemProps {
   icon: JSX.Element;
   label: string;
 }
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+  } from "@/components/ui/collapsible"
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
   const pathname = usePathname();
@@ -25,7 +30,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
       <Link href={href} passHref>
         <div className="dashboardIcons flex items-center">
           {icon}
-          <p className="text-white text-[15px] ml-3">{label}</p>
+          <p className="text-white text-sm ml-3">{label}</p>
         </div>
       </Link>
     </Button>
@@ -103,6 +108,9 @@ const Sidebar: React.FC = () => {
             }
             label="My Appointments"
           />
+
+
+          
         </div>
       </div>
 
@@ -126,7 +134,7 @@ const Sidebar: React.FC = () => {
                 fill="white"
               />
             </svg>
-            <p className="text-[16px] text-white">Log out</p>
+            <p className="text-sm text-white">Log out</p>
           </div>
         </Link>
       </Button>

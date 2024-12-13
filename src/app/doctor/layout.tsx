@@ -126,7 +126,7 @@ export default function DoctorLayout({
               </div>
             </div>
           </div>
-          <div className="h-[100%] w-full">{children}</div>
+          <div className="h-[100%] w-full overflow-scroll">{children}</div>
         </div>
       </div>
     </section>
