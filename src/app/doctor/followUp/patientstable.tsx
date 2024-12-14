@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/carousel";
 
 import { ChevronDown, MoreHorizontal } from "lucide-react";
-
+import { PatientsTables } from "../appointments/patientstable"; 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -77,7 +77,8 @@ type Patient = {
   phone: string;
   age: number;
   date: string;
-  status: "waiting" | "serving" | "completed";
+
+  status: "Pending Confirmation" | "Appointment Confirmed" | "Appointment Completed";
 };
 
 const initialPatients: Patient[] = [
@@ -89,7 +90,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9832893023",
     age: 19,
     date: "Today",
-    status: "waiting",
+    status: "Pending Confirmation",
   },
   {
     id: 2,
@@ -99,7 +100,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9876543210",
     age: 25,
     date: "Today",
-    status: "serving",
+    status: "Pending Confirmation",
   },
   {
     id: 3,
@@ -109,7 +110,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9988776655",
     age: 22,
     date: "Today",
-    status: "completed",
+    status: "Appointment Completed",
   },
   {
     id: 4,
@@ -119,7 +120,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9765432101",
     age: 30,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 5,
@@ -129,7 +130,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9845678901",
     age: 28,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 6,
@@ -139,7 +140,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9008765432",
     age: 35,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 7,
@@ -149,7 +150,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9234567890",
     age: 24,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 8,
@@ -159,7 +160,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9501234567",
     age: 40,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 9,
@@ -169,7 +170,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9098765432",
     age: 26,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 10,
@@ -179,7 +180,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9376543210",
     age: 32,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 11,
@@ -189,7 +190,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9801234567",
     age: 27,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 12,
@@ -199,7 +200,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9912345678",
     age: 31,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 13,
@@ -209,7 +210,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9887654321",
     age: 38,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 14,
@@ -219,7 +220,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9776543210",
     age: 23,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 15,
@@ -229,7 +230,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9609876543",
     age: 29,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 16,
@@ -239,7 +240,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9512345678",
     age: 33,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 17,
@@ -249,7 +250,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9245678901",
     age: 41,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 18,
@@ -259,7 +260,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9487654321",
     age: 26,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 9,
@@ -269,7 +270,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9098765432",
     age: 26,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 10,
@@ -279,7 +280,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9376543210",
     age: 32,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 11,
@@ -289,7 +290,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9801234567",
     age: 27,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 12,
@@ -299,7 +300,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9912345678",
     age: 31,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
   {
     id: 13,
@@ -309,7 +310,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9887654321",
     age: 38,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 14,
@@ -319,7 +320,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9776543210",
     age: 23,
     date: "Today",
-    status: "completed",
+    status: "Appointment Confirmed",
   },
   {
     id: 15,
@@ -329,7 +330,7 @@ const initialPatients: Patient[] = [
     phone: "+91 9609876543",
     age: 29,
     date: "Today",
-    status: "waiting",
+    status: "Appointment Confirmed",
   },
   {
     id: 16,
@@ -339,78 +340,9 @@ const initialPatients: Patient[] = [
     phone: "+91 9512345678",
     age: 33,
     date: "Today",
-    status: "serving",
+    status: "Appointment Confirmed",
   },
-  {
-    id: 19,
-    queueNo: 19,
-    name: "Nikhil Agarwal",
-    email: "nikhil.agarwal@example.com",
-    phone: "+91 9612345678",
-    age: 34,
-    date: "Today",
-    status: "serving",
-  },
-  {
-    id: 20,
-    queueNo: 20,
-    name: "Aarti Joshi",
-    email: "aarti.joshi@example.com",
-    phone: "+91 9743234567",
-    age: 29,
-    date: "Today",
-    status: "completed",
-  },
-  {
-    id: 21,
-    queueNo: 21,
-    name: "Amit Soni",
-    email: "amit.soni@example.com",
-    phone: "+91 9384765432",
-    age: 27,
-    date: "Today",
-    status: "waiting",
-  },
-  {
-    id: 22,
-    queueNo: 22,
-    name: "Vandana Bhatia",
-    email: "vandana.bhatia@example.com",
-    phone: "+91 9224567890",
-    age: 30,
-    date: "Today",
-    status: "serving",
-  },
-  {
-    id: 23,
-    queueNo: 23,
-    name: "Karan Mehta",
-    email: "karan.mehta@example.com",
-    phone: "+91 9536789012",
-    age: 24,
-    date: "Today",
-    status: "waiting",
-  },
-  {
-    id: 24,
-    queueNo: 24,
-    name: "Geeta Verma",
-    email: "geeta.verma@example.com",
-    phone: "+91 9476543210",
-    age: 39,
-    date: "Today",
-    status: "completed",
-  },
-  {
-    id: 25,
-    queueNo: 25,
-    name: "Sandeep Kumar",
-    email: "sandeep.kumar@example.com",
-    phone: "+91 9087654321",
-    age: 37,
-    date: "Today",
-    status: "waiting",
-  },
+  
 ];
 
 export const columns: ColumnDef<Patient>[] = [
@@ -464,9 +396,9 @@ export const columns: ColumnDef<Patient>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const statusClasses = {
-        waiting: "bg-blue-100 text-blue-600",
-        serving: "bg-yellow-100 text-yellow-600",
-        completed: "bg-green-100 text-green-600",
+        'Pending Confirmation': "bg-red-100 text-red-600",
+        'Appointment Confirmed': "bg-blue-100 text-blue-600",
+        'Appointment Completed': "bg-green-100 text-green-600",
       };
       return (
         <span className={`px-2 py-1 rounded-md ${statusClasses[status] || ""}`}>
@@ -555,7 +487,7 @@ export const columns: ColumnDef<Patient>[] = [
                   <span className="mr-1">
                     <CalendarPlus />
                   </span>
-                  Schedule Follow Up
+                  Reschedule 
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-fit">
@@ -663,8 +595,8 @@ export function PatientsTable() {
         email: newPatient.email,
         phone: newPatient.phone,
         age: Number(newPatient.age),
-        date: "Today",
-        status: "waiting", // default status
+        date: "2024-12-14", // New patient date
+        status: "Appointment Confirmed", // default status
       },
     ]);
     setNewPatient({ name: "", email: "", phone: "", age: "" });
@@ -693,6 +625,7 @@ export function PatientsTable() {
     }
   };
   // Handle Date Filter Change (when a date is selected from the calendar)
+  // Handle Date Filter Change (when a date is selected from the calendar)
   const handleDateFilterChange = (selectedDate: string) => {
     const date = new Date(selectedDate);
 
@@ -702,15 +635,15 @@ export function PatientsTable() {
       table.setColumnFilters([
         { id: "date", value: selectedDate }, // Filter by exact date
       ]);
+    } else {
+      console.error("Invalid date selected");
     }
   };
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-        
-      
         <Input
-          placeholder="Search patients..."
+          placeholder="Search follow up patients..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -743,17 +676,15 @@ export function PatientsTable() {
         </Dialog>
         {/* Conditionally render "Delete Selected" button */}
       </div>
-        {/* Conditionally render "Delete Selected" button */}
-      
 
       {/* Tabs for filtering by status */}
       <div className="flex flex-row justify-between">
         <Tabs value={activeTab} className="" onValueChange={handleTabChange}>
           <TabsList className="space-x-4">
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="waiting">Waiting</TabsTrigger>
-            <TabsTrigger value="serving">Serving</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="Pending Confirmation">Pending Confirmation</TabsTrigger>
+            <TabsTrigger value="Appointment Confirmed">	Appointment Confirmed</TabsTrigger>
+            <TabsTrigger value="Appointment Completed">Appointment Completed</TabsTrigger>
           </TabsList>
 
           {/* Tab Content */}
@@ -800,52 +731,22 @@ export function PatientsTable() {
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="default" className="ml-2">
-                Add Patient
+                Schedule Follow up
                 <span className="mr-1">
                   <UserRoundPlus />
                 </span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[80%] flex flex-col align-start h-[95vh] max-w-[100%]">
               <DialogHeader>
-                <DialogTitle>Add New Patient</DialogTitle>
+                <DialogTitle>
+                  Schedule Follow Up
+                </DialogTitle>
                 <DialogDescription>
-                  Quickly fill out the patient’s information to register them.
+                  Choose among your past patients to schedule follow up
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex flex-row gap-2">
-                  <Input
-                    placeholder="Name"
-                    value={newPatient.name}
-                    onChange={(e) =>
-                      setNewPatient({ ...newPatient, name: e.target.value })
-                    }
-                  />
-                  <Input
-                    placeholder="Age"
-                    type="number"
-                    value={newPatient.age}
-                    onChange={(e) =>
-                      setNewPatient({ ...newPatient, age: e.target.value })
-                    }
-                  />
-                </div>
-                <Input
-                  placeholder="Phone"
-                  value={newPatient.phone}
-                  onChange={(e) =>
-                    setNewPatient({ ...newPatient, phone: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Email"
-                  value={newPatient.email}
-                  onChange={(e) =>
-                    setNewPatient({ ...newPatient, email: e.target.value })
-                  }
-                />
-              </div>
+              <PatientsTable/>
 
               <DialogClose>
                 <div className="flex justify-end mt-4">
