@@ -38,10 +38,10 @@ const initialState: {
 export const fetchAppointments = createAsyncThunk<Appointment[], string>(
   "appointments/fetchAppointments",
   async (doctorId: string) => {
-    const response = await fetch(`http://localhost:3001/appointment/doctor/${doctorId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/appointment/doctor/${doctorId}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
+      "Content-Type": "application/json",
       }
     });
     if (!response.ok) {
