@@ -5,8 +5,17 @@ import { RootState } from "./store";
 // Define the Appointment type
 interface Appointment {
   _id: string;
-  patient: string;
-  doctor: string;
+  patient: {
+    _id: string;
+    name: string;
+    age: number;
+    email: string;
+    contactNumber: string;
+  };
+  doctor: {
+    _id: string;
+    appointmentFee: number;
+  };
   appointmentDate: string;
   queueNumber: number;
   status: string;
@@ -49,6 +58,9 @@ export const fetchAppointments = createAsyncThunk<Appointment[], string>(
     }
     const data: Appointment[] = await response.json();
     console.log(data);
+    if (data.length > 0) {
+      console.log(data[0].doctor.appointmentFee);
+    }
     return data;
   }
 );

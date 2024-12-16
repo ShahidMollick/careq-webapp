@@ -7,7 +7,7 @@ import { GalleryHorizontalEnd } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ColumnDef,
   SortingState,
@@ -68,9 +68,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import usePatients from "./usePatients";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/app/redux/store";
+import { fetchAppointments } from "@/app/redux/appointmentSlice";
+
+
 
 type Patient = {
-  id: number;
+  id: string;
   queueNo: number;
   name: string;
   email: string;
@@ -80,7 +86,8 @@ type Patient = {
   status: "waiting" | "serving" | "completed";
 };
 
-const initialPatients: Patient[] = [
+
+/*const initialPatients: Patient[] = [
   {
     id: 1,
     queueNo: 1,
@@ -411,9 +418,11 @@ const initialPatients: Patient[] = [
     date: "Today",
     status: "waiting",
   },
-];
+];*/
 
-export const columns: ColumnDef<Patient>[] = [
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const columns: ColumnDef<Patient, any>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -616,7 +625,23 @@ export const columns: ColumnDef<Patient>[] = [
 ];
 
 export function PatientsTable() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const initialPatients = usePatients(); // Fetch patients using custom hook
+
+  const [patients, setPatients] = useState(initialPatients);
+
+  useEffect(() => {
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
+  }, [dispatch]);
+
+  useEffect(() => {
+    setPatients(patients);
+  }, [patients]);
+
+
+
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -670,12 +695,12 @@ export function PatientsTable() {
     setNewPatient({ name: "", email: "", phone: "", age: "" });
   };
 
-  const handleDeletePatient = (id: number) => {
+  const handleDeletePatient = (id: string) => {
     setPatients((prev) => prev.filter((patient) => patient.id !== id));
   };
 
   const handleDeleteSelectedPatients = () => {
-    const selectedIds = Object.keys(rowSelection).map((id) => parseInt(id));
+    const selectedIds = Object.keys(rowSelection).map((id) => (id));
     setPatients((prev) =>
       prev.filter((patient) => !selectedIds.includes(patient.id))
     );

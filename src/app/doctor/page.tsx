@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { AppDispatch } from '../redux/store';
 import { useDispatch } from 'react-redux';
-import { fetchAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
+import { fetchAppointments, selectAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
 import { RootState } from '../redux/store';
 import { DataTableDemo } from "@/components/ui/history";
 import { ComboboxDemo } from "@/components/ui/combobox";
@@ -18,12 +18,13 @@ import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
 const DashboardPage: React.FC = () => {
 
   const dispatch: AppDispatch = useDispatch();
+  const appointments = useSelector(selectAppointments);
   const totalAppointments = useSelector(selectTotalAppointments);
   const totalWaiting = useSelector(selectTotalWaiting);
   const totalConsulted = useSelector(selectTotalConsulted);
 
   useEffect(() => {
-    dispatch(fetchAppointments("dwarika"));
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
   }, [dispatch]);
 
   
@@ -63,7 +64,7 @@ const DashboardPage: React.FC = () => {
               description="Total patients you have consulted today"
             ></MetricBoxCustom>
             <MetricBoxCustom
-              number={totalAppointments*600}
+              number={totalAppointments * (appointments[0]?.doctor?.appointmentFee ?? 0)}
               heading="Total Revenue"
               description="Total revenue you have earned today"
             ></MetricBoxCustom>
