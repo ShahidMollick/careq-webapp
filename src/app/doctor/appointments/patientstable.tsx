@@ -82,6 +82,7 @@ type Patient = {
   email: string;
   phone: string;
   age: number;
+  sex: string;
   date: string;
   status: "waiting" | "serving" | "completed";
 };
@@ -631,17 +632,6 @@ export function PatientsTable() {
 
   const [patients, setPatients] = useState(initialPatients);
 
-  useEffect(() => {
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-  }, [dispatch]);
-
-  useEffect(() => {
-    setPatients(patients);
-  }, [patients]);
-
-
-
-  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -651,6 +641,7 @@ export function PatientsTable() {
     email: "",
     phone: "",
     age: "",
+    sex: "",
   });
 
   // Track the active tab for filtering
@@ -692,7 +683,7 @@ export function PatientsTable() {
         status: "waiting", // default status
       },
     ]);
-    setNewPatient({ name: "", email: "", phone: "", age: "" });
+    setNewPatient({ name: "", email: "", phone: "", age: "", sex: "" });
   };
 
   const handleDeletePatient = (id: string) => {
@@ -729,6 +720,11 @@ export function PatientsTable() {
       ]);
     }
   };
+
+  useEffect(() => {
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
+  }, [dispatch]);
+
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
@@ -856,6 +852,13 @@ export function PatientsTable() {
                     }
                   />
                 </div>
+                <Input
+                    placeholder="Sex"
+                    value={newPatient.sex}
+                    onChange={(e) =>
+                      setNewPatient({ ...newPatient, sex: e.target.value })
+                    }
+                />
                 <Input
                   placeholder="Phone"
                   value={newPatient.phone}

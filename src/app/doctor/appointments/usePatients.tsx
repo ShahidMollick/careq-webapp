@@ -20,16 +20,22 @@ const usePatients = (): Patient[] => {
 
   // Map appointments into the required Patient format
   return useMemo(() => {
-    return appointments.map((appointment) => ({
-      id: appointment._id,
-      queueNo: appointment.queueNumber,
-      name: appointment.patient.name,
-      email: appointment.patient.email,
-      phone: appointment.patient.contactNumber,
-      age: appointment.patient.age,
-      date: new Date(appointment.appointmentDate).toLocaleDateString(),
-      status: appointment.queueStatus.toLowerCase(),
-    }));
+    return appointments.map((appointment) => {
+      const appointmentDate = new Date(appointment.appointmentDate);
+      const today = new Date();
+      const isToday = appointmentDate.toDateString() === today.toDateString();
+
+      return {
+        id: appointment._id,
+        queueNo: appointment.queueNumber,
+        name: appointment.patient.name,
+        email: appointment.patient.email,
+        phone: appointment.patient.contactNumber,
+        age: appointment.patient.age,
+        date: isToday ? "Today" : appointmentDate.toLocaleDateString(),
+        status: appointment.queueStatus.toLowerCase(),
+      };
+    });
   }, [appointments]);
 };
 

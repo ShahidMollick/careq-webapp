@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import "./page.css";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -17,25 +17,66 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import data from "./appointments.json";
+//import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Save } from "lucide-react";
 import { FileText } from "lucide-react";
 import { Download } from "lucide-react";
 import { ScheduleBtn } from "@/components/ui/schedule-up-btn";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch } from "@/app/redux/store";
+import { fetchAppointments, selectAppointments, selectError, selectLoading, selectTotalAppointments } from "@/app/redux/appointmentSlice";
+import groupAppointmentsByStatus from "./groupAppointmentsByStatus";
+
+const callNextPatient = async (dispatch: AppDispatch) => {
+  try {
+    const response = await fetch("http://localhost:3001/doctor/next-patient", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ doctorId: "6756a4e490c807765b6f4be0" }), // Replace with real doctor ID
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to call next patient");
+    }
+
+    const data = await response.json();
+    console.log("Next patient called successfully:", data);
+    // Optionally, you can update the state or perform other actions here
+
+    // Refetch the appointments to reflect the updated queue
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
+
+  } catch (error) {
+    console.error("Error calling next patient:", error);
+  }
+};
 
 const AppointmentPage: React.FC = () => {
+  const dispatch: AppDispatch = useDispatch();
+
+  // Fetch appointments from Redux
+  const appointments = useSelector(selectAppointments);
+  const lastTicketNumber = useSelector(selectTotalAppointments);
+  const loading = useSelector(selectLoading);
+  const error = useSelector(selectError);
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
+  console.log("appointments fetched in queue page: ", appointments)
+
+  // Transform the appointments into the desired JSON structure
+  const data = groupAppointmentsByStatus(appointments);
+  console.log("data: ", data);
+
   const firstTicketNumber =
     data.serving.length > 0 ? data.serving[0].ticketNumber : null;
-  const lastTicketNumber =
-    data.completed.length > 0
-      ? data.completed[data.completed.length - 1].ticketNumber
-      : null;
+  
 
   const filterData = (sectionData) =>
     sectionData.filter((item) =>
@@ -45,6 +86,11 @@ const AppointmentPage: React.FC = () => {
   const filteredServing = filterData(data.serving);
   const filteredWaiting = filterData(data.waiting);
   const filteredCompleted = filterData(data.completed);
+
+  useEffect(() => {
+    // Fetch data when the component mounts
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0")); // Replace doctor123 with a real doctor ID
+  }, [dispatch]);
 
   return (
     <div className="main-container">
@@ -349,7 +395,7 @@ const AppointmentPage: React.FC = () => {
               <Button className="bg-white text-black border border-[#000] w-[150px]">
                 Finish Consultation
               </Button>
-              <Button className="bg-[#16477240] w-[150px]">Next Patient</Button>
+              <Button className="bg-[#16477240] w-[150px]" onClick={() => callNextPatient(dispatch)}>Next Patient</Button>
             </div>
           </div>
         </div>
