@@ -7,7 +7,7 @@ import { GalleryHorizontalEnd } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ColumnDef,
   SortingState,
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/carousel";
 
 import { ChevronDown, MoreHorizontal } from "lucide-react";
-import { PatientsTables } from "../appointments/patientstable"; 
+//import { PatientsTables } from "../appointments/patientstable"; 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -68,6 +68,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/app/redux/store";
+import usePatients from "./usePatients";
+import { fetchAppointments } from "@/app/redux/appointmentSlice";
 
 type Patient = {
   id: number;
@@ -77,11 +81,10 @@ type Patient = {
   phone: string;
   age: number;
   date: string;
-
   status: "Pending Confirmation" | "Appointment Confirmed" | "Appointment Completed";
 };
 
-const initialPatients: Patient[] = [
+/*const initialPatients: Patient[] = [
   {
     id: 1,
     queueNo: 1,
@@ -343,7 +346,7 @@ const initialPatients: Patient[] = [
     status: "Appointment Confirmed",
   },
   
-];
+];*/
 
 export const columns: ColumnDef<Patient>[] = [
   {
@@ -548,7 +551,18 @@ export const columns: ColumnDef<Patient>[] = [
 ];
 
 export function PatientsTable() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const initialPatients = usePatients(); // Fetch patients using custom hook
+
+  const [patients, setPatients] = useState(initialPatients);
+
+  console.log("Patients", patients);
+
+  useEffect(() => {
+    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
+  }, [dispatch]);
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
