@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "../redux/store";
 import {
@@ -44,10 +45,22 @@ const DashboardPage: React.FC = () => {
       days: ["Wed", "Thu"],
     },
     {
-      name: "Dr. Irfan Ali",
-      time: "16:00-18:00",
+      name: "Dr. Harsh swami",
+      time: "4:00-18:00",
       isOnLeave: false,
       days: ["Fri", "Sat"],
+    },
+    {
+      name: "Dr. Irfan Ali",
+      time: "4:00-18:00",
+      isOnLeave: false,
+      days: ["Today","Fri", "Sat"],
+    },
+    {
+      name: "Dr. Arushi sharma",
+      time: "12:00-15:00",
+      isOnLeave: false,
+      days: ["Today","Wed", "Thu"],
     },
   ];
 
@@ -85,14 +98,6 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="h-[100%] w-[100%]">
-      <div className="h-[50px] w-[100%] flex bg-[#e7f5f0] items-center gap-[22px] px-6 justify-between text-sm py-4">
-        <div className="text-secondary w-full text-sm">
-          Your consultation queue is now live! Patient #3 is waiting
-        </div>
-        <div className="flex items-center">
-          <Button variant="default">Continue Consultation</Button>
-        </div>
-      </div>
       <div className="p-4 flex flex-col overflow-hidden w-full gap-4">
         <div className="flex flex-row gap-3 w-full">
           <MetricBoxCustom
@@ -126,6 +131,11 @@ const DashboardPage: React.FC = () => {
                 <CardDescription>
                   Quickly see current consultation status
                 </CardDescription>
+              </div>
+              <div>
+                <Link href='/admin/doctor' passHref>
+                <Button variant='outline' className="">Manage Doctors</Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent>
@@ -166,7 +176,7 @@ const DashboardPage: React.FC = () => {
                         </div>
                       </div>
                       <p className="text-sm text-gray-700">{doctor.time}</p>
-                      <Badge className={`justify-center rounded-full w-24 px-3 py-1 ${color}`}>
+                      <Badge className={`justify-center rounded-full w-32 px-3 py-1 ${color}`}>
                         {status}
                       </Badge>
                     </CardContent>

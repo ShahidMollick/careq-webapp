@@ -77,59 +77,6 @@ export default function DoctorLayout({
 
 				<Sidebar></Sidebar>
 
-<<<<<<< HEAD
-
-        <div className="flex flex-col bg-gray-50 h-[100%] items-center justify-start rounded-xl w-[100%] border-b-gray-500 border-b-2">
-          <div className=" bg-white w-[100%] rounded-tl-lg flex item-center justify-between px-4 py-1">
-            <div className="font-bold flex items-center text-secondary text-xl">
-              {getActiveMenuName(pathname)}
-            </div>
-            <div className="flex gap-6 items-center">
-              <div className=" flex gap-6">
-                <ComboboxDemo />
-                <Image src="/bell.svg" alt="bell" width={20} height={20} />
-              </div>
-              <div className="flex mr-2 gap-2">
-                <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
-                <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    {" "}
-                    <Button
-                      className=" p-1 px-2 flex gap-4 h-fit"
-                      variant={"ghost"}
-                    >
-                      <div className="flex justify-start h-full flex-col">
-                        <div className="text-sm  font-semibold">
-                          Dr. John Doe
-                        </div>
-                        <div className="text-sm text-start font-normal">
-                          Doctor
-                        </div>
-                      </div>
-                      <Image
-                        src="/chevron-down.svg"
-                        alt="down-arrow"
-                        width={16}
-                        height={16}
-                      />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Doctor</DropdownMenuItem>
-                    <DropdownMenuItem>Admin</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-          <div className="h-[100%] w-full relative overflow-scroll">{children}</div>
-        </div>
-      </div>
-    </section>
-  );
-=======
 				<div className="flex flex-col bg-gray-50 h-[100%] items-center justify-start rounded-xl w-[100%] border-b-gray-500 border-b-2">
 					<div className=" bg-white w-[100%] rounded-tl-lg flex item-center justify-between px-4 py-1">
 						<div className="font-bold flex items-center text-secondary text-xl">
@@ -173,5 +120,4 @@ export default function DoctorLayout({
 			</div>
 		</section>
 	);
->>>>>>> ad6b95c56cf79020a8a0c1160fb3820397ef4b6c
 }

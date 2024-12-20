@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ChartLine } from "lucide-react";
 import {
   LogOut,
   Settings,
@@ -104,19 +105,20 @@ const Sidebar: React.FC = () => {
         <div className="flex flex-col w-full">
           <SidebarItem
             href="/admin"
-            icon={<Home size={24} className="text-white" />}
+            icon={<Home size={24} className="text-white w-24" />}
             label="Dashboard"
+          />
+          <SidebarItem
+            href="/admin/analytics"
+            icon={<ChartLine size={24} className="text-white" />}
+            label="Analytics"
           />
 
           <div className="text-[13px] cursor-default text-white text-opacity-70 font-bold my-2 ">
             Patient Management
           </div>
 
-          <SidebarItem
-            href="/admin/queue"
-            icon={<UsersRound size={24} className="text-white" />}
-            label="My Queue"
-          />
+
           <SidebarItem
             href="/admin/appointments"
             icon={<Stethoscope size={24} className="text-white" />}
