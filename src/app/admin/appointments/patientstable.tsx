@@ -1,26 +1,31 @@
 "use client";
-import { IndianRupee } from "lucide-react";
+
+import React, { useState , useRef } from "react";
 import {
-  Search,
-  Trash2,
-  CalendarPlus,
-  UserRoundPlus,
-  ChevronDown,
-  MoreHorizontal,
-  GalleryHorizontalEnd,
-} from "lucide-react";
-import Image from "next/image";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import React, { useEffect, useState } from "react";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // Ensure to replace with your actual Dialog component
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Trash2, MoreHorizontal } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   ColumnDef,
   SortingState,
@@ -33,36 +38,8 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Image from "next/image";
 
-// Define the Patient type
 type Patient = {
   id: string;
   queueNo: number;
@@ -79,7 +56,6 @@ type Patient = {
   };
 };
 
-// Sample patient data
 const initialPatients: Patient[] = [
   {
     id: "1",
@@ -113,28 +89,13 @@ const initialPatients: Patient[] = [
   },
 ];
 
-// Define the table columns
+type BillItem = {
+  id: number;
+  description: string;
+  amount: number;
+};
+
 export const columns: ColumnDef<Patient, any>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-  },
   {
     accessorKey: "queueNo",
     header: "Queue No.",
@@ -199,12 +160,6 @@ export const columns: ColumnDef<Patient, any>[] = [
     id: "actions",
     header: "Actions",
     cell: ({ row }) => {
-      const patient = row.original;
-
-      const handleDeletePatient = (id: string) => {
-        setPatients((prev) => prev.filter((p) => p.id !== id));
-      };
-
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -216,65 +171,184 @@ export const columns: ColumnDef<Patient, any>[] = [
           <DropdownMenuContent className="flex flex-col" align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <Sheet>
-              <SheetTrigger>
-                <Button variant='ghost' className="font-normal px-2 py-[6px] w-full flex items-center justify-start">
-                  <IndianRupee></IndianRupee>
-                  Generate Bill</Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Are you absolutely sure?</SheetTitle>
-                  <SheetDescription>
-                    This action cannot be undone. This will permanently delete
-                    your account and remove your data from our servers.
-                  </SheetDescription>
-                </SheetHeader>
-              </SheetContent>
-            </Sheet>
-
-            <DropdownMenuSeparator />
-            <Dialog>
-              <DialogTrigger>
-                <Button
-                  className="font-normal px-2 py-[6px] w-full flex items-center justify-start hover:text-red-500 hover:bg-red-50 text-start text-red-500 text-[14px]"
-                  variant="ghost"
-                >
-                  <Trash2 className="mr-1" />
-                  Delete Patient
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Confirm Delete</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  Are you sure you want to delete this patient? This action
-                  cannot be undone.
-                </div>
-                <div className="flex justify-end">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-                  <DialogClose asChild>
-                    <Button
-                      variant="destructive"
-                      type="submit"
-                      onClick={() => handleDeletePatient(patient.id)}
-                      className="ml-2"
-                    >
-                      Delete
-                    </Button>
-                  </DialogClose>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <BillDialog />
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   },
 ];
+
+function BillDialog() {
+  const [billItems, setBillItems] = useState([
+    { id: 1, description: "Consultation Fees", amount: 500 },
+    { id: 2, description: "Mortar L-I", amount: 50 },
+    { id: 3, description: "Mortar L-2", amount: 250 },
+  ]);
+
+  const [newItem, setNewItem] = useState({ id: 0, description: "", amount: 0 });
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItem.description || newItem.amount <= 0) {
+      alert("Please enter valid item details.");
+      return;
+    }
+    const newItemWithId = { ...newItem, id: billItems.length + 1 };
+    setBillItems([...billItems, newItemWithId]);
+    setNewItem({ id: 0, description: "", amount: 0 });
+  };
+
+  const handleDeleteItem = (id: number) => {
+    setBillItems(billItems.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateItem = (id: number, field: keyof typeof newItem, value: string) => {
+    setBillItems(
+      billItems.map((item) =>
+        item.id === id
+          ? { ...item, [field]: field === "amount" ? parseFloat(value) || 0 : value }
+          : item
+      )
+    );
+  };
+
+  const totalAmount = billItems.reduce((total, item) => total + item.amount, 0);
+
+  const handlePrint = () => {
+    if (printRef.current) {
+      const printContents = printRef.current.innerHTML;
+      const originalContents = document.body.innerHTML;
+
+      document.body.innerHTML = printContents;
+      window.print();
+      document.body.innerHTML = originalContents;
+      window.location.reload(); // To refresh the page and restore the original content
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Generate Bill</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Patient Bill</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-4">
+          {billItems.map((item) => (
+            <div key={item.id} className="flex items-center gap-2">
+              <Input
+                placeholder="Item Description"
+                value={item.description}
+                onChange={(e) =>
+                  handleUpdateItem(item.id, "description", e.target.value)
+                }
+                className="flex-1"
+              />
+              <Input
+                type="number"
+                placeholder="Amount"
+                value={item.amount.toString()}
+                onChange={(e) =>
+                  handleUpdateItem(item.id, "amount", e.target.value)
+                }
+                className="w-28"
+              />
+              <Button
+                variant="ghost"
+                className="p-2 text-red-500"
+                onClick={() => handleDeleteItem(item.id)}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          <form onSubmit={handleAddItem} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="New Item Description"
+                value={newItem.description}
+                onChange={(e) =>
+                  setNewItem((prev) => ({ ...prev, description: e.target.value }))
+                }
+                className="flex-1"
+              />
+              <Input
+                type="number"
+                placeholder="Amount"
+                value={newItem.amount.toString()}
+                onChange={(e) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    amount: parseFloat(e.target.value) || 0,
+                  }))
+                }
+                className="w-28"
+              />
+              <Button type="submit" variant="ghost">
+                Add
+              </Button>
+            </div>
+          </form>
+          <div className="mt-4 text-lg font-semibold">Total: ₹{totalAmount}</div>
+          <Button variant="default" className="w-full mt-4" onClick={handlePrint}>
+            Print Prescription
+          </Button>
+        </div>
+
+        {/* Printable Bill Section */}
+        <div ref={printRef} style={{ display: "none" , backgroundColor:"white"}}>
+          <h1 style={{ textAlign: "center", margin: "20px 0" }}>Patient Bill</h1>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ border: "1px solid #000", padding: "8px" }}>Item</th>
+                <th style={{ border: "1px solid #000", padding: "8px" }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billItems.map((item) => (
+                <tr key={item.id}>
+                  <td style={{ border: "1px solid #000", padding: "8px" }}>{item.description}</td>
+                  <td style={{ border: "1px solid #000", padding: "8px" }}>₹{item.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td style={{ border: "1px solid #000", padding: "8px", fontWeight: "bold" }}>Total</td>
+                <td style={{ border: "1px solid #000", padding: "8px", fontWeight: "bold" }}>
+                  ₹{totalAmount}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default BillDialog;
+
+export function ActionsMenu() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost">Open Menu</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent onPointerDown={(e) => e.stopPropagation()} className="p-4">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <BillDialog />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 
 export function PatientsTable() {
   const [patients, setPatients] = useState<Patient[]>(initialPatients);
