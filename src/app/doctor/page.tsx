@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { AppDispatch } from '../redux/store';
 import { useDispatch } from 'react-redux';
-import { fetchAppointments, selectAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
+//import { fetchAppointments, selectAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
 import { RootState } from '../redux/store';
 import { DataTableDemo } from "@/components/ui/history";
 import { ComboboxDemo } from "@/components/ui/combobox";
@@ -14,10 +14,11 @@ import MetricBox from "@/components/ui/metric-box";
 import MetricBoxCustom from "@/components/ui/metric-box-custom";
 import { PatientGraph } from "@/components/ui/graph-card1";
 import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
+import { fetchAppointmentsByDoctor, selectAllAppointments } from "../redux/appointmentSlice";
 
 const DashboardPage: React.FC = () => {
 
-  const dispatch: AppDispatch = useDispatch();
+  /*const dispatch: AppDispatch = useDispatch();
   const appointments = useSelector(selectAppointments);
   const totalAppointments = useSelector(selectTotalAppointments);
   const totalWaiting = useSelector(selectTotalWaiting);
@@ -25,7 +26,21 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-  }, [dispatch]);
+  }, [dispatch]);*/
+
+  const totalAppointments = 67;
+  const totalWaiting = 53;
+  const totalConsulted = 28;
+
+  
+
+
+  useEffect(() => {
+    const doctorId = "67684d21509a946844805041";
+    const hospitalId = "67680c40dc41628884bddfeb";
+    localStorage.setItem("doctorId", doctorId);
+    localStorage.setItem("hospitalId", hospitalId);
+  }, []);
 
   
   return (
@@ -64,7 +79,7 @@ const DashboardPage: React.FC = () => {
               description="Total patients you have consulted today"
             ></MetricBoxCustom>
             <MetricBoxCustom
-              number={totalAppointments * (appointments[0]?.doctor?.appointmentFee ?? 0)}
+              number="5643"
               heading="Total Revenue"
               description="Total revenue you have earned today"
             ></MetricBoxCustom>

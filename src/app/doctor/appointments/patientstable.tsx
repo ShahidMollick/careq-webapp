@@ -8,6 +8,8 @@ import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import React, { useEffect, useState } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import {
   ColumnDef,
   SortingState,
@@ -69,11 +71,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import usePatients from "./usePatients";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/app/redux/store";
-import { fetchAppointments } from "@/app/redux/appointmentSlice";
-
-
+import {
+  fetchAppointmentsByDoctor,
+  selectAllAppointments,
+} from "@/app/redux/appointmentSlice";
 
 type Patient = {
   id: string;
@@ -86,7 +89,6 @@ type Patient = {
   date: string;
   status: "waiting" | "serving" | "completed";
 };
-
 
 /*const initialPatients: Patient[] = [
   {
@@ -421,7 +423,6 @@ type Patient = {
   },
 ];*/
 
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const columns: ColumnDef<Patient, any>[] = [
   {
@@ -626,9 +627,13 @@ export const columns: ColumnDef<Patient, any>[] = [
 ];
 
 export function PatientsTable() {
-
   const dispatch = useDispatch<AppDispatch>();
   const initialPatients = usePatients(); // Fetch patients using custom hook
+  const appointments = useSelector(selectAllAppointments);
+
+  //console.log("appointments", appointments);
+
+  //console.log("initialPatients", initialPatients);
 
   const [patients, setPatients] = useState(initialPatients);
 
@@ -647,6 +652,43 @@ export function PatientsTable() {
   // Track the active tab for filtering
   const [activeTab, setActiveTab] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
+
+  // Update patients when appointments change
+  useEffect(() => {
+    if (appointments && appointments.length > 0) {
+      const mappedPatients = appointments.map((appointment, index) => {
+        // Format date
+        const appointmentDate = new Date(appointment.appointmentDate);
+        const today = new Date();
+        const isToday =
+          appointmentDate.getDate() === today.getDate() &&
+          appointmentDate.getMonth() === today.getMonth() &&
+          appointmentDate.getFullYear() === today.getFullYear();
+
+        const formattedDate = isToday
+          ? "Today"
+          : appointmentDate.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+
+        return {
+          id: appointment._id,
+          queueNo: appointment.queueNumber,
+          name: appointment.patient.name,
+          email: appointment.patient.email,
+          phone: appointment.patient.contactNumber,
+          age: appointment.patient.age,
+          sex: appointment.patient.sex,
+          date: formattedDate,
+          status: appointment.queueStatus.toLowerCase(),
+        };
+      });
+      setPatients(mappedPatients);
+    }
+  }, [appointments]);
+
   // Update table whenever the tab changes
   const table = useReactTable({
     data: patients,
@@ -667,23 +709,88 @@ export function PatientsTable() {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const handleAddPatient = () => {
-    const id = patients.length + 1;
-    const queueNo = id;
-    setPatients((prev) => [
-      ...prev,
-      {
-        id,
-        queueNo,
+  const handleAddPatient = async () => {
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      const hospitalId = localStorage.getItem("hospitalId");
+
+      // Validate required fields
+      if (
+        !newPatient.name ||
+        !newPatient.age ||
+        !newPatient.sex ||
+        !newPatient.phone ||
+        !newPatient.email
+      ) {
+        console.log("Please fill in all required fields");
+        return;
+      }
+
+      console.log("Booking appointment...");
+
+      // Prepare the request body
+      const appointmentData = {
         name: newPatient.name,
-        email: newPatient.email,
-        phone: newPatient.phone,
         age: Number(newPatient.age),
-        date: "Today",
-        status: "waiting", // default status
-      },
-    ]);
-    setNewPatient({ name: "", email: "", phone: "", age: "", sex: "" });
+        sex: newPatient.sex,
+        phone: newPatient.phone,
+        email: newPatient.email,
+        doctorId,
+        hospitalId,
+        paymentMethod: "Card",
+      };
+
+      // Make the API call to book appointment
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(appointmentData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to book appointment");
+        throw new Error(errorData.message || "Failed to book appointment");
+      }
+
+      const data = await response.json();
+      toast.success("Patient added successfully");
+      console.log("Appointment booked successfully:", data);
+
+      // After successful booking, update the local state with the new appointment
+      setPatients((prev) => [
+        ...prev,
+        {
+          id: data._id,
+          queueNo: data.queueNumber,
+          name: data.patient.name,
+          email: data.patient.email,
+          phone: data.patient.contactNumber,
+          age: data.patient.age,
+          sex: data.patient.sex,
+          date: new Date(data.appointmentDate).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+          status: data.queueStatus.toLowerCase(),
+        },
+      ]);
+
+      // Clear the form
+      setNewPatient({ name: "", email: "", phone: "", age: "", sex: "" });
+
+      // Refetch appointments to sync with server
+      dispatch(fetchAppointmentsByDoctor());
+    } catch (error) {
+      toast.error("Error booking appointment");
+      console.error("Error booking appointment:", error);
+    }
   };
 
   const handleDeletePatient = (id: string) => {
@@ -691,7 +798,7 @@ export function PatientsTable() {
   };
 
   const handleDeleteSelectedPatients = () => {
-    const selectedIds = Object.keys(rowSelection).map((id) => (id));
+    const selectedIds = Object.keys(rowSelection).map((id) => id);
     setPatients((prev) =>
       prev.filter((patient) => !selectedIds.includes(patient.id))
     );
@@ -721,15 +828,10 @@ export function PatientsTable() {
     }
   };
 
-  useEffect(() => {
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-  }, [dispatch]);
-
   return (
     <div className="w-full">
+      <Toaster />
       <div className="flex items-center py-4">
-        
-      
         <Input
           placeholder="Search patients..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -742,7 +844,6 @@ export function PatientsTable() {
           <DialogTrigger asChild>
             <Button variant="outline" className="ml-4 flex items-center">
               <CalendarPlus className="mr-2" /> {/* Calendar icon */}
-              
             </Button>
           </DialogTrigger>
           <DialogContent className="w-fit">
@@ -764,8 +865,7 @@ export function PatientsTable() {
         </Dialog>
         {/* Conditionally render "Delete Selected" button */}
       </div>
-        {/* Conditionally render "Delete Selected" button */}
-      
+      {/* Conditionally render "Delete Selected" button */}
 
       {/* Tabs for filtering by status */}
       <div className="flex flex-row justify-between">
@@ -853,11 +953,11 @@ export function PatientsTable() {
                   />
                 </div>
                 <Input
-                    placeholder="Sex"
-                    value={newPatient.sex}
-                    onChange={(e) =>
-                      setNewPatient({ ...newPatient, sex: e.target.value })
-                    }
+                  placeholder="Sex"
+                  value={newPatient.sex}
+                  onChange={(e) =>
+                    setNewPatient({ ...newPatient, sex: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="Phone"

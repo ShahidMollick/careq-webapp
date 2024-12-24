@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { useMemo } from "react";
-import { selectAppointments } from "@/app/redux/appointmentSlice";
+import { selectAllAppointments } from "@/app/redux/appointmentSlice";
 
 // Patient Interface
 export type Patient = {
@@ -16,7 +16,9 @@ export type Patient = {
 
 // Custom Hook to Fetch and Prepare Patients Data
 const usePatients = (): Patient[] => {
-  const appointments = useSelector(selectAppointments);
+  const appointments = useSelector(selectAllAppointments);
+
+  //console.log(appointments);
 
   // Map appointments into the required Patient format
   return useMemo(() => {

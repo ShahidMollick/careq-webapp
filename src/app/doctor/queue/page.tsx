@@ -17,6 +17,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 //import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
@@ -26,49 +28,29 @@ import { Download } from "lucide-react";
 import { ScheduleBtn } from "@/components/ui/schedule-up-btn";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/app/redux/store";
-import { fetchAppointments, selectAppointments, selectError, selectLoading, selectTotalAppointments } from "@/app/redux/appointmentSlice";
+//import { fetchAppointments, selectAppointments, selectError, selectLoading, selectTotalAppointments } from "@/app/redux/appointmentSlice";
 import groupAppointmentsByStatus from "./groupAppointmentsByStatus";
-
-const callNextPatient = async (dispatch: AppDispatch) => {
-  try {
-    const response = await fetch("http://localhost:3001/doctor/next-patient", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ doctorId: "6756a4e490c807765b6f4be0" }), // Replace with real doctor ID
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to call next patient");
-    }
-
-    const data = await response.json();
-    console.log("Next patient called successfully:", data);
-    // Optionally, you can update the state or perform other actions here
-
-    // Refetch the appointments to reflect the updated queue
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-
-  } catch (error) {
-    console.error("Error calling next patient:", error);
-  }
-};
+import {
+  callNextPatient,
+  completeConsultation,
+  fetchTodayAppointmentsByDoctor,
+  selectTodayAppointments,
+} from "@/app/redux/appointmentSlice";
 
 const AppointmentPage: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
 
   // Fetch appointments from Redux
-  const appointments = useSelector(selectAppointments);
-  const lastTicketNumber = useSelector(selectTotalAppointments);
-  const loading = useSelector(selectLoading);
-  const error = useSelector(selectError);
+  const appointments = useSelector(selectTodayAppointments);
+  const lastTicketNumber = appointments.length;
+  //const loading = useSelector(selectLoading);
+  //const error = useSelector(selectError);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log("appointments fetched in queue page: ", appointments)
+  console.log("appointments fetched in queue page: ", appointments);
 
   // Transform the appointments into the desired JSON structure
   const data = groupAppointmentsByStatus(appointments);
@@ -76,7 +58,6 @@ const AppointmentPage: React.FC = () => {
 
   const firstTicketNumber =
     data.serving.length > 0 ? data.serving[0].ticketNumber : null;
-  
 
   const filterData = (sectionData) =>
     sectionData.filter((item) =>
@@ -84,16 +65,46 @@ const AppointmentPage: React.FC = () => {
     );
 
   const filteredServing = filterData(data.serving);
+  console.log("filteredServing: ", filteredServing);
+  console.log("servingid", filteredServing[0]?.id);
   const filteredWaiting = filterData(data.waiting);
   const filteredCompleted = filterData(data.completed);
 
+  const handleCallNext = () => {
+    dispatch(callNextPatient())
+      .unwrap()
+      .then(() => {
+        toast.success("Next patient called successfully");
+        console.log("Successfully called next patient");
+        dispatch(fetchTodayAppointmentsByDoctor());
+      })
+      .catch((error) => {
+        toast.error("Failed to call next patient");
+        console.error("Failed to call next patient:", error);
+      });
+  };
+
+  const finishConsultation = () => {
+    dispatch(completeConsultation())
+      .unwrap()
+      .then(() => {
+        toast.success("Consultation completed successfully");
+        console.log("Successfully finished consultation");
+        dispatch(fetchTodayAppointmentsByDoctor());
+      })
+      .catch((error) => {
+        toast.error("Failed to finish consultation");
+        console.error("Failed to finish consultation:", error);
+      });
+  };
+
   useEffect(() => {
-    // Fetch data when the component mounts
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0")); // Replace doctor123 with a real doctor ID
-  }, [dispatch]);
+      dispatch(fetchTodayAppointmentsByDoctor());
+  }, []);
 
   return (
     <div className="main-container">
+      <Toaster />
       <div className="right-body">
         <div className="content">
           <div className="accord">
@@ -248,8 +259,7 @@ const AppointmentPage: React.FC = () => {
               placeholder="| Start typing prescription details here......"
               className="h-full"
             />
-            <div className="flex flex-row justify-between">
-            </div>
+            <div className="flex flex-row justify-between"></div>
           </div>
 
           <div className="preview">
@@ -270,26 +280,39 @@ const AppointmentPage: React.FC = () => {
                 <div className="middle-profile-pic">
                   <Image src="/doctor.svg" width={60} height={60} alt="icon" />
                 </div>
-                <div className="border p-4 w-full rounded-md">
-                  <div className="font-bold">Disha Pandey</div>
-                  <div>
-                    <span className="font-bold">Sex: </span>
-                    <span>Female</span>
-                    <span className="font-bold"> Age: </span>
-                    <span>19</span>
+                {filteredServing.length > 0 ? (
+                  <div className="border p-4 w-full rounded-md">
+                    <div className="font-bold">{filteredServing[0].name}</div>
+                    <div>
+                      <span className="font-bold">Sex: </span>
+                      <span>{filteredServing[0].sex}</span>
+                      <span className="font-bold"> Age: </span>
+                      <span>{filteredServing[0].age}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold">Phone no: </span>
+                      <span>{filteredServing[0].phone}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold">Email: </span>
+                      <span>{filteredServing[0].email}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold">Phone no: </span>
-                    <span>+918765789621</span>
+                ) : (
+                  <div className="border p-4 w-full rounded-md">
+                    <div className="text-center font-bold">
+                      No patient is being served
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-bold">Email: </span>
-                    <span>dishapandey@careq.com</span>
-                  </div>
-                </div>
+                )}
               </div>
 
-              <ScheduleBtn onDateChange={setSelectedDate} />
+              <ScheduleBtn
+                parentAppointmentId={filteredServing[0]?.id}
+                followUpFee={50}
+                notes="Optional follow-up notes"
+                onDateChange={setSelectedDate}
+              />
             </div>
 
             <div className="preview-body"></div>
@@ -374,10 +397,18 @@ const AppointmentPage: React.FC = () => {
             </Card>
 
             <div className="preview-footer mt-[1rem]">
-              <Button className="bg-white text-black border border-[#000] w-[150px]">
+              <Button
+                className="bg-white text-black border border-[#000] w-[150px]"
+                onClick={finishConsultation}
+              >
                 Finish Consultation
               </Button>
-              <Button className="bg-[#16477240] w-[150px]" onClick={() => callNextPatient(dispatch)}>Next Patient</Button>
+              <Button
+                className="bg-[#16477240] w-[150px]"
+                onClick={handleCallNext}
+              >
+                Next Patient
+              </Button>
             </div>
           </div>
         </div>
