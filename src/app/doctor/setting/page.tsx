@@ -21,24 +21,67 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Pencil } from "lucide-react";
+import axios from "axios";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
+
+interface TimeSlot {
+  from?: string;
+  to?: string;
+  maxPatients?: number;
+  bookingWindowHour?: number;
+}
+
+interface HospitalSchedule {
+  hospital?: string;
+  appointmentFee?: number;
+  availabilityStatus?:
+    | "Break"
+    | "Consulting"
+    | "NotYetStarted"
+    | "Unavailable"
+    | "OnLeave";
+  availableDays?: string[];
+  availableTime?: TimeSlot[];
+}
+
+interface DoctorProfile {
+  name?: string;
+  contactNumber?: string;
+  specialization?: string;
+  qualification?: string;
+  licenseNumber?: string;
+  address?: string;
+  languages?: string[];
+  experience?: number;
+  profilePicture?: string;
+  images?: string[];
+  about?: string;
+  hospitals?: HospitalSchedule[];
+}
 
 const DashboardPage: React.FC = () => {
   // Initial values
-  const initialValues = {
-    firstName: "Shahid",
-    lastName: "Mollick",
-    specialization: "Internal Medicine",
-    experience: 25,
-    about:
-      "I am Dr. Shahid Mollick, a consultant in Internal Medicine. I completed my MBBS from All India Institute of Medical Sciences (AIIMS), New Delhi, in 2015, followed by an MD in Internal Medicine from Post Graduate Institute of Medical Education and Research (PGIMER), Chandigarh, in 2018. With over 6 years of experience, I focus on patient-centered care and advancing medical research.",
-  };
+  const [initialValues, setInitialValues] = useState<DoctorProfile | null>(
+    null
+  );
 
   // State for profile data and tracking changes
-  const [formData, setFormData] = useState(initialValues);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    specialization: "",
+    experience: 0,
+    about: "",
+    contactNumber: "",
+    qualification: "",
+    licenseNumber: "",
+    address: "",
+  });
   const [languages, setLanguages] = useState<string[]>([
     "Hindi",
     "English",
@@ -49,6 +92,19 @@ const DashboardPage: React.FC = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null); // Track profile image
   const [isModified, setIsModified] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Function to convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   // Function to handle language addition
   const addLanguage = () => {
@@ -79,7 +135,9 @@ const DashboardPage: React.FC = () => {
   };
 
   // Function to handle profile image upload
-  const handleProfileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (event.target.files) {
       const file = event.target.files[0];
       const imageUrl = URL.createObjectURL(file);
@@ -91,10 +149,7 @@ const DashboardPage: React.FC = () => {
   // Function to handle image upload (for other images)
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setUploadedImages((prev) => [
-        ...prev,
-        ...Array.from(event.target.files),
-      ]);
+      setUploadedImages((prev) => [...prev, ...Array.from(event.target.files)]);
       setIsModified(true); // Mark as modified
     }
   };
@@ -106,14 +161,103 @@ const DashboardPage: React.FC = () => {
   };
 
   // Function to save changes
-  const handleSave = () => {
-    console.log("Saving data...", formData);
-    setIsModified(false); // Reset the modified state after saving
-    setOpenConfirmDialog(false); // Close the confirmation dialog
+  const handleSave = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Convert images to base64
+      const profilePictureBase64 = profileImage
+        ? await fetch(profileImage)
+            .then((r) => r.blob())
+            .then(fileToBase64)
+        : undefined;
+      const imagesBase64 = await Promise.all(
+        uploadedImages.map((file) => fileToBase64(file))
+      );
+
+      const profileData: DoctorProfile = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        specialization: formData.specialization,
+        experience: formData.experience,
+        about: formData.about,
+        languages: languages,
+        profilePicture: profilePictureBase64,
+        images: imagesBase64,
+        contactNumber: formData.contactNumber,
+        qualification: formData.qualification,
+        licenseNumber: formData.licenseNumber,
+        address: formData.address,
+        hospitals: initialValues?.hospitals, // Preserve existing hospital data
+      };
+
+      const doctorId = localStorage.getItem("doctorId"); // Retrieve doctor ID from local storage
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        profileData
+      );
+
+      if (response.status === 200) {
+        setIsModified(false);
+        setOpenConfirmDialog(false);
+        setInitialValues(response.data);
+        toast.success("profile updated succesfully");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    const fetchDoctorProfile = async () => {
+      try {
+        const doctorId = localStorage.getItem("doctorId"); // Replace with actual doctor ID
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`
+        );
+        const profile = response.data;
+
+        // Split name into first and last name
+        const [firstName = "", lastName = ""] = (profile.name || "").split(" ");
+
+        setInitialValues(profile);
+        setFormData({
+          firstName,
+          lastName,
+          specialization: profile.specialization || "",
+          experience: profile.experience || 0,
+          about: profile.about || "",
+          contactNumber: profile.contactNumber || "",
+          qualification: profile.qualification || "",
+          licenseNumber: profile.licenseNumber || "",
+          address: profile.address || "",
+        });
+        setLanguages(profile.languages || []);
+        setProfileImage(profile.profilePicture || null);
+        // Convert base64 images to File objects if needed
+        if (profile.images?.length) {
+          // Implementation for converting base64 to File objects
+          // This depends on your backend image format
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch profile"
+        );
+      }
+    };
+
+    fetchDoctorProfile();
+  }, []);
+
+  // Error display component
+  const ErrorMessage = () =>
+    error ? <div className="text-red-500 text-sm mt-2">{error}</div> : null;
 
   return (
     <div className="w-full h-fit">
+      <Toaster />
       <Card className="w-full">
         <CardHeader className="flex">
           <div className="flex flex-row justify-between">
@@ -127,7 +271,10 @@ const DashboardPage: React.FC = () => {
             <div>
               {/* Save Button in Header */}
               {isModified && (
-                <Dialog>
+                <Dialog
+                  open={openConfirmDialog}
+                  onOpenChange={setOpenConfirmDialog}
+                >
                   <DialogTrigger asChild>
                     <Button onClick={() => setOpenConfirmDialog(true)}>
                       Save Changes
@@ -173,7 +320,9 @@ const DashboardPage: React.FC = () => {
                           Cancel
                         </Button>
                       </DialogClose>
-                      <Button onClick={handleSave}>Confirm Save</Button>
+                      <Button onClick={handleSave} disabled={isLoading} >
+                        {isLoading ? "Saving..." : "Confirm Save"}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -201,7 +350,10 @@ const DashboardPage: React.FC = () => {
                   className="absolute rounded-full bottom-1 right-1"
                   size="sm"
                 >
-                  <label htmlFor="profile-image-upload" className="cursor-pointer">
+                  <label
+                    htmlFor="profile-image-upload"
+                    className="cursor-pointer"
+                  >
                     <Pencil />
                   </label>
                 </Button>
@@ -369,6 +521,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+          <ErrorMessage />
         </CardContent>
       </Card>
     </div>

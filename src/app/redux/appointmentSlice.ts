@@ -127,6 +127,29 @@ export const createFollowUpAppointment = createAsyncThunk(
   }
 );
 
+export const fetchFollowUpAppointmentsByDoctor = createAsyncThunk(
+  "appointments/fetchFollowUpByDoctor",
+  async () => {
+    const doctorId = localStorage.getItem("doctorId");
+
+    if (!doctorId) {
+      throw new Error("Doctor ID not found in localStorage");
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/follow-up/doctor/${doctorId}`
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+);
+
 
 
 interface Appointment {
@@ -137,7 +160,8 @@ interface Appointment {
 
 interface AppointmentState {
   appointments: Appointment[];
-  todayAppointments: Appointment[]; // New state for today's appointments
+  todayAppointments: Appointment[];
+  followUpAppointments: Appointment[];
   status: string;
   error: string | null;
   selectedAppointment: Appointment | null;
@@ -145,7 +169,8 @@ interface AppointmentState {
 
 const initialState: AppointmentState = {
   appointments: [],
-  todayAppointments: [], // Initialize today's appointments
+  todayAppointments: [],
+  followUpAppointments: [],
   status: "idle",
   error: null,
   selectedAppointment: null,
@@ -161,12 +186,12 @@ const appointmentSlice = createSlice({
     clearAppointments: (state) => {
       state.appointments = [];
       state.todayAppointments = [];
+      state.followUpAppointments = [];
       state.status = "idle";
       state.error = null;
     },
     updateAppointmentStatus: (state, action) => {
       const { appointmentId, newStatus } = action.payload;
-      // Update in both arrays
       state.appointments = state.appointments.map((appointment) =>
         appointment._id === appointmentId
           ? { ...appointment, queueStatus: newStatus }
@@ -177,11 +202,15 @@ const appointmentSlice = createSlice({
           ? { ...appointment, queueStatus: newStatus }
           : appointment
       );
+      state.followUpAppointments = state.followUpAppointments.map((appointment) =>
+        appointment._id === appointmentId
+          ? { ...appointment, queueStatus: newStatus }
+          : appointment
+      );
     },
   },
   extraReducers: (builder) => {
     builder
-      // Regular appointments fetch
       .addCase(fetchAppointmentsByDoctor.pending, (state) => {
         state.status = "loading";
       })
@@ -194,7 +223,6 @@ const appointmentSlice = createSlice({
         state.status = "failed";
         state.error = action.error.message;
       })
-      // Today's appointments fetch
       .addCase(fetchTodayAppointmentsByDoctor.pending, (state) => {
         state.status = "loading";
       })
@@ -204,6 +232,18 @@ const appointmentSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchTodayAppointmentsByDoctor.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
+      })
+      .addCase(fetchFollowUpAppointmentsByDoctor.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchFollowUpAppointmentsByDoctor.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.followUpAppointments = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchFollowUpAppointmentsByDoctor.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message;
       })
@@ -219,6 +259,7 @@ const appointmentSlice = createSlice({
           );
         state.appointments = updateAppointment(state.appointments);
         state.todayAppointments = updateAppointment(state.todayAppointments);
+        state.followUpAppointments = updateAppointment(state.followUpAppointments);
         state.status = "succeeded";
       })
       .addCase(callNextPatient.rejected, (state, action) => {
@@ -238,6 +279,7 @@ const appointmentSlice = createSlice({
           );
         state.appointments = updateAppointment(state.appointments);
         state.todayAppointments = updateAppointment(state.todayAppointments);
+        state.followUpAppointments = updateAppointment(state.followUpAppointments);
         state.status = "succeeded";
       })
       .addCase(completeConsultation.rejected, (state, action) => {
@@ -260,6 +302,7 @@ const appointmentSlice = createSlice({
           );
         state.appointments = updateAppointment(state.appointments);
         state.todayAppointments = updateAppointment(state.todayAppointments);
+        state.followUpAppointments = updateAppointment(state.followUpAppointments);
         state.status = "succeeded";
       })
       .addCase(createFollowUpAppointment.rejected, (state, action) => {
@@ -269,10 +312,8 @@ const appointmentSlice = createSlice({
   },
 });
 
-// Add new selector for today's appointments
 export const selectTodayAppointments = (state) => state.appointments.todayAppointments;
-
-// Export existing selectors
+export const selectFollowUpAppointments = (state) => state.appointments.followUpAppointments;
 export const selectAllAppointments = (state) => state.appointments.appointments;
 export const selectAppointmentStatus = (state) => state.appointments.status;
 export const selectAppointmentError = (state) => state.appointments.error;

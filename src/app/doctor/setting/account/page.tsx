@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react"; // Import useState to manage state
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,11 +11,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Lock } from "lucide-react";
+import { Plus, Lock, Trash2 } from "lucide-react";
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -30,52 +28,249 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import axios from "axios";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
-// Sample clinics data
-const clinics = [
-  {
-    avatar: "/doctor.svg", // Avatar image URL
-    name: "BC Roy Hospital",
-    address:
-      "8882+P3X Indian Institute of Technology Kharagpur, Scholars Avenue, Campus, Kharagpur, West Bengal 721302",
-    schedule: [
-      { day: "Monday", time: "9 AM - 11 AM", price: "Rs. 500" },
-      { day: "Monday", time: "7 PM - 8 PM", price: "Rs. 500" },
-      { day: "Monday", time: "5 PM - 11 PM", price: "Rs. 500" },
-    ],
-  },
-  {
-    avatar: "/doctor.svg",
-    name: "XYZ Medical Center",
-    address: "1234 ABC Street, Some City, Some State, 123456",
-    schedule: [
-      { day: "Tuesday", time: "10 AM - 12 PM", price: "Rs. 600" },
-      { day: "Tuesday", time: "6 PM - 7 PM", price: "Rs. 600" },
-    ],
-  },
-  {
-    avatar: "/doctor.svg",
-    name: "HealthCare Clinic",
-    address: "9876 XYZ Road, Cityville, State, 654321",
-    schedule: [
-      { day: "Wednesday", time: "9 AM - 11 AM", price: "Rs. 700" },
-      { day: "Wednesday", time: "2 PM - 4 PM", price: "Rs. 700" },
-    ],
-  },
-];
+interface TimeSlot {
+  from: string;
+  to: string;
+  maxPatients: number;
+  bookingWindowHour: number;
+}
+
+interface Hospital {
+  _id: string;
+  hospitalName: string;
+  address: string;
+}
+
+interface HospitalSchedule {
+  hospital: Hospital;
+  appointmentFee: number;
+  availabilityStatus:
+    | "Break"
+    | "Consulting"
+    | "NotYetStarted"
+    | "Unavailable"
+    | "OnLeave";
+  availableDays: string[];
+  availableTime: TimeSlot[];
+}
+
+interface DoctorProfile {
+  name: string;
+  contactNumber: string;
+  email: string;
+  licenseNumber: string;
+  hospitals: HospitalSchedule[];
+}
 
 const DashboardPage: React.FC = () => {
-  const [selectedClinic, setSelectedClinic] = useState<any>(null); // State for the selected clinic
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // State to manage the dialog visibility
+  const [profile, setProfile] = useState<DoctorProfile | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [schedules, setSchedules] = useState<{ [key: string]: TimeSlot[] }>({});
+  const [currentHospital, setCurrentHospital] =
+    useState<HospitalSchedule | null>(null);
+  const [newTimeSlot, setNewTimeSlot] = useState({
+    day: "Monday",
+    from: "09:00",
+    to: "17:00",
+    appointmentFee: 500,
+  });
 
-  const handleClinicSelect = (clinic: any) => {
-    setSelectedClinic(clinic); // Set the selected clinic data
-    setIsDialogOpen(true); // Open the dialog when a clinic is selected
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const doctorId = localStorage.getItem("doctorId");
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`
+        );
+        setProfile(response.data);
+        if (response.data?.hospitals?.length > 0) {
+          setCurrentHospital(response.data.hospitals[0]);
+          const initialSchedules = {};
+          response.data.hospitals.forEach((hospital) => {
+            initialSchedules[hospital.hospital] = hospital.availableTime || [];
+          });
+          setSchedules(initialSchedules);
+        }
+      } catch (error) {
+        toast.error("Failed to fetch profile");
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleClinicSelect = async (clinic: any) => {
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      const hospitalData: HospitalSchedule = {
+        hospital: clinic._id || clinic.name,
+        appointmentFee: parseInt(clinic.schedule[0].price.replace("Rs. ", "")),
+        availabilityStatus: "NotYetStarted",
+        availableDays: [...new Set(clinic.schedule.map((s: any) => s.day))],
+        availableTime: clinic.schedule.map((s: any) => ({
+          from: convertTo24Hour(s.time.split("-")[0].trim()),
+          to: convertTo24Hour(s.time.split("-")[1].trim()),
+          maxPatients: 10,
+          bookingWindowHour: 24,
+        })),
+      };
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        {
+          hospitals: [...(profile?.hospitals || []), hospitalData],
+        }
+      );
+
+      setProfile(response.data);
+      setCurrentHospital(hospitalData);
+      toast.success("Clinic added successfully");
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to add clinic");
+    }
+  };
+
+  const handleAddTimeSlot = async () => {
+    if (!currentHospital) return;
+
+    const timeSlot: TimeSlot = {
+      from: newTimeSlot.from,
+      to: newTimeSlot.to,
+      maxPatients: 10,
+      bookingWindowHour: 24,
+    };
+
+    const updatedHospital = {
+      ...currentHospital,
+      availableTime: [...currentHospital.availableTime, timeSlot],
+      availableDays: [
+        ...new Set([...currentHospital.availableDays, newTimeSlot.day]),
+      ],
+    };
+
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      const updatedHospitals = profile?.hospitals.map((h) =>
+        h.hospital === currentHospital.hospital ? updatedHospital : h
+      );
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        { hospitals: updatedHospitals }
+      );
+
+      setProfile(response.data);
+      setCurrentHospital(updatedHospital);
+      toast.success("Time slot added successfully");
+    } catch (error) {
+      toast.error("Failed to add time slot");
+    }
+  };
+
+  const handleUpdateTimeSlot = async (
+    index: number,
+    field: string,
+    value: string
+  ) => {
+    if (!currentHospital) return;
+
+    const updatedTimeSlots = currentHospital.availableTime.map((slot, i) => {
+      if (i === index) {
+        // Create a new time slot object with the updated field
+        const updatedSlot = { ...slot };
+
+        // Validate time format
+        if (field === "from" || field === "to") {
+          if (/^\d{2}:\d{2}$/.test(value)) {
+            updatedSlot[field] = value;
+          }
+        } else {
+          updatedSlot[field] = value;
+        }
+
+        return updatedSlot;
+      }
+      return slot;
+    });
+
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      const updatedHospital = {
+        ...currentHospital,
+        availableTime: updatedTimeSlots,
+      };
+
+      const updatedHospitals = profile?.hospitals.map((h) =>
+        h.hospital === currentHospital.hospital ? updatedHospital : h
+      );
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        { hospitals: updatedHospitals }
+      );
+
+      setProfile(response.data);
+      setCurrentHospital(updatedHospital);
+      toast.success("Schedule updated");
+    } catch (error) {
+      toast.error("Failed to update schedule");
+    }
+  };
+
+  const handleDeleteTimeSlot = async (index: number) => {
+    if (!currentHospital) return;
+
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      const updatedTimeSlots = currentHospital.availableTime.filter(
+        (_, i) => i !== index
+      );
+      const updatedHospital = {
+        ...currentHospital,
+        availableTime: updatedTimeSlots,
+      };
+
+      const updatedHospitals = profile?.hospitals.map((h) =>
+        h.hospital === currentHospital.hospital ? updatedHospital : h
+      );
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        { hospitals: updatedHospitals }
+      );
+
+      setProfile(response.data);
+      setCurrentHospital(updatedHospital);
+      toast.success("Time slot deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete time slot");
+    }
+  };
+
+  const convertTo24Hour = (time12h: string) => {
+    const [time, modifier] = time12h.split(" ");
+    let [hours, minutes] = time.split(":");
+    if (minutes === undefined) minutes = "00";
+
+    if (hours === "12") {
+      hours = "00";
+    }
+
+    if (modifier === "PM") {
+      hours = (parseInt(hours, 10) + 12).toString();
+    }
+
+    return `${hours.padStart(2, "0")}:${minutes}`;
   };
 
   return (
     <div className="w-full">
-      {/* Main Account Section */}
+      <Toaster />
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Account</CardTitle>
@@ -87,9 +282,7 @@ const DashboardPage: React.FC = () => {
         </CardHeader>
 
         <CardContent>
-          {/* Personal Information Section */}
           <div className="mb-6 flex gap-8">
-            {/* Title and Action Button */}
             <div className="flex flex-col gap-4 w-1/3">
               <p className="font-semibold text-sm">Personal Information</p>
               <Button
@@ -103,27 +296,28 @@ const DashboardPage: React.FC = () => {
               </Button>
             </div>
 
-            {/* Form Section */}
             <div className="grid grid-cols-2 gap-4 w-2/3">
               <Input
                 disabled
-                value="shahidmollck13@gmail.com"
+                value={profile?.email || ""}
                 placeholder="Email"
               />
-              <Input disabled value="EP16401" placeholder="License Number" />
               <Input
                 disabled
-                value="+91 9987179937"
+                value={profile?.licenseNumber || ""}
+                placeholder="License Number"
+              />
+              <Input
+                disabled
+                value={profile?.contactNumber || ""}
                 placeholder="Mobile Number"
               />
             </div>
           </div>
 
-          <Separator className="my-4  bg-gray-100" />
+          <Separator className="my-4 bg-gray-100" />
 
-          {/* Clinics and Schedule Section */}
           <div className="flex gap-8">
-            {/* Title and Action Button */}
             <div className="flex flex-col gap-4 w-1/3">
               <p className="text-sm font-semibold">Clinics and Schedule</p>
               <Dialog>
@@ -141,29 +335,29 @@ const DashboardPage: React.FC = () => {
                   </DialogHeader>
                   <DialogDescription>
                     <Command>
-                      <CommandInput placeholder="Type a command or search..." />
+                      <CommandInput placeholder="Search hospitals..." />
                       <CommandList>
-                        <CommandEmpty>No results found.</CommandEmpty>
-                        <CommandGroup heading="Clinics">
-                          {clinics.map((clinic, index) => (
+                        <CommandEmpty>No hospitals found.</CommandEmpty>
+                        <CommandGroup heading="Available Hospitals">
+                          {profile?.hospitals?.map((hospital) => (
                             <CommandItem
-                              key={index}
-                              onSelect={() => handleClinicSelect(clinic)}
+                              key={hospital.hospital}
+                              onSelect={() => handleClinicSelect(hospital)}
                             >
                               <div className="flex items-center gap-3">
                                 <Image
-                                  src={clinic.avatar}
+                                  src="/doctor.svg"
                                   height={32}
                                   width={32}
-                                  alt="clinic avatar"
+                                  alt="hospital avatar"
                                   className="rounded-full"
                                 />
                                 <div>
                                   <p className="text-sm font-medium">
-                                    {clinic.name}
+                                    {hospital.hospital.hospitalName}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {clinic.address}
+                                    {hospital.hospital.address || "No address"}
                                   </p>
                                 </div>
                               </div>
@@ -177,10 +371,8 @@ const DashboardPage: React.FC = () => {
               </Dialog>
             </div>
 
-            {/* Clinic and Schedule Form */}
-            <div className="w-2/3">
-              {/* Clinic Card */}
-              <div className="">
+            {currentHospital && (
+              <div className="w-2/3">
                 <div className="mb-4 flex flex-row gap-4 items-center">
                   <Image
                     src="/doctor.svg"
@@ -189,52 +381,82 @@ const DashboardPage: React.FC = () => {
                     alt="clinic image"
                   />
                   <div>
-                    <p className="text-sm font-medium">BC Roy Hospital</p>
+                    <p className="text-sm font-medium">
+                      {currentHospital.hospital?.hospitalName}
+                    </p>
                     <p className="text-sm text-gray-500">
-                      8882+P3X Indian Institute of Technology Kharagpur,
-                      Scholars Avenue, Campus, Kharagpur, West Bengal 721302
+                      {currentHospital.hospital?.address || "Address"}
                     </p>
                   </div>
                 </div>
 
-                {/* Schedule Items */}
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-4">
-                    <Input value="Monday" disabled className="w-28" />
-                    <Input type="text" value="9 AM" className="w-20" />
-                    <Input type="text" value="11 AM" className="w-20" />
-                    <Input type="text" value="Rs. 500" className="w-24" />
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <Input value="Monday" disabled className="w-28" />
-                    <Input type="text" value="7 PM" className="w-20" />
-                    <Input type="text" value="8 PM" className="w-20" />
-                    <Input type="text" value="Rs. 500" className="w-24" />
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <Input value="Monday" disabled className="w-28" />
-                    <Input type="text" value="5 PM" className="w-20" />
-                    <Input type="text" value="11 PM" className="w-20" />
-                    <Input type="text" value="Rs. 500" className="w-24" />
-                  </div>
+                  {currentHospital.availableTime.map((slot, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <Input
+                        value={currentHospital.availableDays[0]}
+                        disabled
+                        className="w-28"
+                      />
+                      <Input
+                        type="time"
+                        value={slot.from}
+                        onChange={(e) =>
+                          handleUpdateTimeSlot(index, "from", e.target.value)
+                        }
+                        onBlur={(e) =>
+                          handleUpdateTimeSlot(index, "from", e.target.value)
+                        }
+                        className="w-20"
+                      />
+                      <Input
+                        type="time"
+                        value={slot.to}
+                        onChange={(e) =>
+                          handleUpdateTimeSlot(index, "to", e.target.value)
+                        }
+                        onBlur={(e) =>
+                          handleUpdateTimeSlot(index, "to", e.target.value)
+                        }
+                        className="w-20"
+                      />
+                      <Input
+                        type="number"
+                        value={currentHospital.appointmentFee}
+                        onChange={(e) =>
+                          handleUpdateTimeSlot(
+                            index,
+                            "appointmentFee",
+                            e.target.value
+                          )
+                        }
+                        className="w-24"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteTimeSlot(index)}
+                        className="text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Add Day and Time Button */}
                 <Button
                   variant="outline"
-                  className="mt-4  w-1/3 flex items-center gap-2"
+                  className="mt-4 w-1/3 flex items-center gap-2"
+                  onClick={handleAddTimeSlot}
                 >
                   <Plus size={16} /> Add day and time
                 </Button>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Dialog to show clinic schedule details */}
       {selectedClinic && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
@@ -246,8 +468,16 @@ const DashboardPage: React.FC = () => {
                 {selectedClinic.schedule.map((scheduleItem, index) => (
                   <div key={index} className="flex items-center gap-4">
                     <Input value={scheduleItem.day} disabled className="w-28" />
-                    <Input value={scheduleItem.time} disabled className="w-40" />
-                    <Input value={scheduleItem.price} disabled className="w-24" />
+                    <Input
+                      value={scheduleItem.time}
+                      disabled
+                      className="w-40"
+                    />
+                    <Input
+                      value={scheduleItem.price}
+                      disabled
+                      className="w-24"
+                    />
                   </div>
                 ))}
               </div>

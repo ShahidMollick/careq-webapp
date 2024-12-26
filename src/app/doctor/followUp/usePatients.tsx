@@ -24,13 +24,17 @@ const usePatients = (): Patient[] => {
   return useMemo(() => {
     return appointments.map((appointment) => ({
       id: appointment._id,
-      queueNo: appointment.queueNumber || 0,
+      queueNo: appointment.bookedAppointment?.queueNumber || 0,
       name: appointment.patient.name,
       email: appointment.patient.email,
       phone: appointment.patient.contactNumber,
       age: appointment.patient.age,
-      date: new Date(appointment.appointmentDate).toLocaleDateString(),
-      status: appointment.followUpSubStatus || "Unknown",
+      date: new Date(appointment.followUpDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            }),
+      status: appointment.followUpStatus || "Unknown",
     }));
   }, [appointments]);
 };

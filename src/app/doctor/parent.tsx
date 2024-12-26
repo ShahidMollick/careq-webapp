@@ -4,6 +4,7 @@ import {
   fetchAppointmentsByDoctor,
   fetchTodayAppointmentsByDoctor,
   selectAllAppointments,
+  fetchFollowUpAppointmentsByDoctor
 } from "../redux/appointmentSlice";
 import { AppDispatch } from "../redux/store";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,6 +19,7 @@ const ParentComponent: React.FC<ParentComponentProps> = ({ children }) => {
 useEffect(() => {
     dispatch(fetchAppointmentsByDoctor());
     dispatch(fetchTodayAppointmentsByDoctor());
+    dispatch(fetchFollowUpAppointmentsByDoctor());
     console.log("fetching appointments");
 }, []);
 
