@@ -24,6 +24,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -79,6 +80,9 @@ const DashboardPage: React.FC = () => {
     to: "17:00",
     appointmentFee: 500,
   });
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -268,6 +272,27 @@ const DashboardPage: React.FC = () => {
     return `${hours.padStart(2, "0")}:${minutes}`;
   };
 
+  const handlePasswordChange = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+
+    try {
+      const doctorId = localStorage.getItem("doctorId");
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`,
+        { password: newPassword }
+      );
+      toast.success("Password updated successfully");
+      setIsPasswordDialogOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error("Failed to update password");
+    }
+  };
+
   return (
     <div className="w-full">
       <Toaster />
@@ -285,15 +310,44 @@ const DashboardPage: React.FC = () => {
           <div className="mb-6 flex gap-8">
             <div className="flex flex-col gap-4 w-1/3">
               <p className="font-semibold text-sm">Personal Information</p>
-              <Button
-                variant="outline"
-                className="w-fit bg-transparent border-primary text-primary hover:text-primary hover:bg-primary-accent"
+              <Dialog
+                open={isPasswordDialogOpen}
+                onOpenChange={setIsPasswordDialogOpen}
               >
-                <span>
-                  <Lock />
-                </span>
-                Set new password
-              </Button>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-fit bg-transparent border-primary text-primary hover:text-primary hover:bg-primary-accent"
+                  >
+                    <Lock className="mr-2" />
+                    Set new password
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Set New Password</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <Input
+                      type="password"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handlePasswordChange}>
+                      Update Password
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="grid grid-cols-2 gap-4 w-2/3">
