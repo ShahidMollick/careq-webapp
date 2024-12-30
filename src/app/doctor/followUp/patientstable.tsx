@@ -71,7 +71,7 @@ import {
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/app/redux/store";
 import usePatients from "./usePatients";
-import { fetchAppointments } from "@/app/redux/appointmentSlice";
+import { fetchAppointments, fetchFollowUpAppointmentsByDoctor } from "@/app/redux/appointmentSlice";
 
 type Patient = {
   id: number;
@@ -560,8 +560,8 @@ export function PatientsTable() {
   console.log("Patients", patients);
 
   useEffect(() => {
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-  }, [dispatch]);
+    dispatch(fetchFollowUpAppointmentsByDoctor());
+  }, []);
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);

@@ -2,6 +2,7 @@
 import Sidebar from "./app-siderbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Toaster } from "@/components/ui/toaster";
 
 
 export default function SettingLayout({ children }: { children: React.ReactNode }) {

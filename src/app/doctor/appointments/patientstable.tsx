@@ -683,8 +683,19 @@ export function PatientsTable() {
           sex: appointment.patient.sex,
           date: formattedDate,
           status: appointment.queueStatus.toLowerCase(),
+          timestamp: appointmentDate.getTime()
         };
+      })
+      .sort((a, b) => {
+        // First sort by date
+        const dateDiff = b.timestamp - a.timestamp;
+        if (dateDiff !== 0) return dateDiff;
+ 
+        // Then by status priority
+        const statusPriority = { serving: 0, waiting: 1, completed: 2 };
+        return statusPriority[a.status] - statusPriority[b.status];
       });
+
       setPatients(mappedPatients);
     }
   }, [appointments]);
