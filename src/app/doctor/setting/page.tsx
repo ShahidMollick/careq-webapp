@@ -72,15 +72,15 @@ const DashboardPage: React.FC = () => {
 
   // State for profile data and tracking changes
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    specialization: "",
-    experience: 0,
-    about: "",
-    contactNumber: "",
-    qualification: "",
-    licenseNumber: "",
-    address: "",
+    firstName: initialValues?.name?.split(" ")[0] || "",
+    lastName: initialValues?.name?.split(" ")[1] || "",
+    specialization: initialValues?.specialization || "",
+    experience: initialValues?.experience || 0,
+    about: initialValues?.about || "",
+    contactNumber: initialValues?.contactNumber || "",
+    qualification: initialValues?.qualification || "",
+    licenseNumber: initialValues?.licenseNumber || "",
+    address: initialValues?.address || "",
   });
   const [languages, setLanguages] = useState<string[]>([
     "Hindi",
@@ -164,7 +164,7 @@ const DashboardPage: React.FC = () => {
   const handleSave = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Convert images to base64
       const profilePictureBase64 = profileImage
@@ -292,20 +292,21 @@ const DashboardPage: React.FC = () => {
                     <ul className="list-disc pl-4 text-sm">
                       {isModified && (
                         <>
-                          {formData.firstName !== initialValues.firstName && (
-                            <li>First Name: {formData.firstName}</li>
-                          )}
-                          {formData.lastName !== initialValues.lastName && (
-                            <li>Last Name: {formData.lastName}</li>
+                          {`${formData.firstName} ${formData.lastName}` !==
+                            initialValues?.name && (
+                            <li>
+                              Name: {formData.firstName} {formData.lastName}
+                            </li>
                           )}
                           {formData.specialization !==
-                            initialValues.specialization && (
+                            initialValues?.specialization && (
                             <li>Specialization: {formData.specialization}</li>
                           )}
-                          {formData.experience !== initialValues.experience && (
+                          {formData.experience !==
+                            initialValues?.experience && (
                             <li>Experience: {formData.experience} years</li>
                           )}
-                          {formData.about !== initialValues.about && (
+                          {formData.about !== initialValues?.about && (
                             <li>About: {formData.about}</li>
                           )}
                         </>
@@ -320,7 +321,7 @@ const DashboardPage: React.FC = () => {
                           Cancel
                         </Button>
                       </DialogClose>
-                      <Button onClick={handleSave} disabled={isLoading} >
+                      <Button onClick={handleSave} disabled={isLoading}>
                         {isLoading ? "Saving..." : "Confirm Save"}
                       </Button>
                     </DialogFooter>
