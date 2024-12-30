@@ -5,10 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { AppDispatch } from "../redux/store";
 import {
   fetchAppointments,
-  selectAppointments,
-  selectTotalAppointments,
-  selectTotalConsulted,
-  selectTotalWaiting,
+  selectAllAppointments,
 } from "../redux/appointmentSlice";
 import { RootState } from "../redux/store";
 import { Button } from "@/components/ui/button";
@@ -25,10 +22,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PatientGraph } from "@/components/ui/graph-card1";
 const DashboardPage: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
-  const appointments = useSelector(selectAppointments);
-  const totalAppointments = useSelector(selectTotalAppointments);
-  const totalWaiting = useSelector(selectTotalWaiting);
-  const totalConsulted = useSelector(selectTotalConsulted);
+  const appointments = useSelector(selectAllAppointments);
+  const totalAppointments = 46
+  const totalWaiting = 12
+  const totalConsulted = 34
   const [selectedDay, setSelectedDay] = useState("Today");
 
   const doctors = [
@@ -93,8 +90,11 @@ const DashboardPage: React.FC = () => {
   );
 
   useEffect(() => {
-    dispatch(fetchAppointments("6756a4e490c807765b6f4be0"));
-  }, [dispatch]);
+      const doctorId = "67684d21509a946844805041";
+      const hospitalId = "67680c40dc41628884bddfeb";
+      localStorage.setItem("doctorId", doctorId);
+      localStorage.setItem("hospitalId", hospitalId);
+    }, []);
 
   return (
     <div className="h-[100%] w-[100%]">
