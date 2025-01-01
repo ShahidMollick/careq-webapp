@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -69,6 +70,7 @@ interface DoctorProfile {
 
 const DashboardPage: React.FC = () => {
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Loading state for skeletons
   const [selectedClinic, setSelectedClinic] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [schedules, setSchedules] = useState<{ [key: string]: TimeSlot[] }>({});
@@ -102,6 +104,8 @@ const DashboardPage: React.FC = () => {
         }
       } catch (error) {
         toast.error("Failed to fetch profile");
+      }finally {
+        setIsLoading(false); // Set loading to false after fetching
       }
     };
     fetchProfile();
@@ -351,21 +355,24 @@ const DashboardPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4 w-2/3">
+            {isLoading ? <Skeleton className="h-9 bg-gray-100 w-full" />:
               <Input
                 disabled
                 value={profile?.email || ""}
                 placeholder="Email"
-              />
+              />}
+              {isLoading ? <Skeleton className="h-9 bg-gray-100 w-full" />:
               <Input
                 disabled
                 value={profile?.licenseNumber || ""}
                 placeholder="License Number"
-              />
+              />}
+              {isLoading ? <Skeleton className="h-9 bg-gray-100 w-full" />:
               <Input
                 disabled
                 value={profile?.contactNumber || ""}
                 placeholder="Mobile Number"
-              />
+              />}
             </div>
           </div>
 
@@ -374,7 +381,8 @@ const DashboardPage: React.FC = () => {
           <div className="flex gap-8">
             <div className="flex flex-col gap-4 w-1/3">
               <p className="text-sm font-semibold">Clinics and Schedule</p>
-              <Dialog>
+              {/* fututre update of adding clinic*/}
+              {/* <Dialog>
                 <DialogTrigger asChild>
                   <Button
                     variant="outline"
@@ -422,10 +430,35 @@ const DashboardPage: React.FC = () => {
                     </Command>
                   </DialogDescription>
                 </DialogContent>
-              </Dialog>
+              </Dialog> */}
             </div>
-
-            {currentHospital && (
+            {isLoading ? (
+                <div className="flex flex-col">
+                <div className="flex flex-row">
+                  <div>
+                    <Skeleton className="rounded-full h-14 w-14 bg-gray-200" />
+                  </div>
+                  <div className="flex ml-4 flex-col">
+                    <Skeleton className="h-8 w-64 bg-gray-100 " />
+                    <Skeleton className="h-4 w-96 mt-2 bg-gray-100" />
+                  </div>
+                </div>
+                  <div className="mt-4 flex flex-row">
+                  <Skeleton className="h-8 w-32 ml-2 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-4 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-2 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-2 bg-gray-100 " />
+                </div>
+                <div className="mt-4 flex flex-row">
+                  <Skeleton className="h-8 w-32 ml-2 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-4 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-2 bg-gray-100 " />
+                  <Skeleton className="h-8 w-20 ml-2 bg-gray-100 " />
+                </div>
+                  
+                </div>
+              ) :
+            (
               <div className="w-2/3">
                 <div className="mb-4 flex flex-row gap-4 items-center">
                   <Image
@@ -447,6 +480,7 @@ const DashboardPage: React.FC = () => {
                 <div className="flex flex-col gap-4">
                   {currentHospital.availableTime.map((slot, index) => (
                     <div key={index} className="flex items-center gap-4">
+                      
                       <Input
                         value={currentHospital.availableDays[0]}
                         disabled

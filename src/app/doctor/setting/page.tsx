@@ -1,4 +1,5 @@
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Card,
   CardContent,
@@ -69,6 +70,8 @@ const DashboardPage: React.FC = () => {
   const [initialValues, setInitialValues] = useState<DoctorProfile | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(true); // Track loading state
+
 
   // State for profile data and tracking changes
   const [formData, setFormData] = useState({
@@ -93,7 +96,7 @@ const DashboardPage: React.FC = () => {
   const [isModified, setIsModified] = useState(false);
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadings, setIsLoadings] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Function to convert File to base64
@@ -162,7 +165,7 @@ const DashboardPage: React.FC = () => {
 
   // Function to save changes
   const handleSave = async () => {
-    setIsLoading(true);
+    setIsLoadings(true);
     setError(null);
 
     try {
@@ -206,14 +209,14 @@ const DashboardPage: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
-      setIsLoading(false);
+      setIsLoadings(false);
     }
   };
 
   useEffect(() => {
     const fetchDoctorProfile = async () => {
       try {
-        const doctorId = localStorage.getItem("doctorId"); // Replace with actual doctor ID
+        const doctorId = localStorage.getItem("doctorId");
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctor/${doctorId}/profile`
         );
@@ -221,7 +224,6 @@ const DashboardPage: React.FC = () => {
 
         // Split name into first and last name
         const [firstName = "", lastName = ""] = (profile.name || "").split(" ");
-
         setInitialValues(profile);
         setFormData({
           firstName,
@@ -236,20 +238,17 @@ const DashboardPage: React.FC = () => {
         });
         setLanguages(profile.languages || []);
         setProfileImage(profile.profilePicture || null);
-        // Convert base64 images to File objects if needed
-        if (profile.images?.length) {
-          // Implementation for converting base64 to File objects
-          // This depends on your backend image format
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch profile"
-        );
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false); // Set loading state to false after fetching
       }
     };
 
     fetchDoctorProfile();
   }, []);
+  console.log(isLoading);
+ 
 
   // Error display component
   const ErrorMessage = () =>
@@ -370,21 +369,24 @@ const DashboardPage: React.FC = () => {
                 <div className="flex gap-4 w-full">
                   <div className="flex flex-col gap-2 w-1/2">
                     <Label htmlFor="firstName">First Name</Label>
+                    {isLoading?<Skeleton className=" bg-gray-100 h-8 w-full" />:
                     <Input
                       id="firstName"
                       placeholder="Enter your first name"
                       value={formData.firstName}
                       onChange={handleInputChange}
                     />
+}
                   </div>
                   <div className="flex flex-col gap-2 w-1/2">
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input
+                    {isLoading?<Skeleton className=" bg-gray-100 h-9 w-full" />:<Input
                       id="lastName"
                       placeholder="Enter your last name"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                    />
+                    />}
+                    
                   </div>
                 </div>
               </div>
@@ -394,12 +396,13 @@ const DashboardPage: React.FC = () => {
               {/* Specialization */}
               <div className="w-full flex flex-col max-w-sm gap-2">
                 <Label htmlFor="specialization">Specialization</Label>
-                <Input
+                {isLoading?<Skeleton className=" bg-gray-100 h-9 w-full" />:<Input
                   id="specialization"
                   placeholder="e.g., Cardiologist, Dentist"
                   value={formData.specialization}
                   onChange={handleInputChange}
-                />
+                />}
+                
               </div>
 
               {/* Languages */}
@@ -433,7 +436,7 @@ const DashboardPage: React.FC = () => {
                     </DialogContent>
                   </Dialog>
                 </div>
-
+                {isLoading?<Skeleton className=" bg-gray-100 mt-2 h-5 w-full" />:
                 <div className="flex flex-wrap gap-2 mt-2">
                   {languages.map((language, index) => (
                     <Badge variant="outline" key={index}>
@@ -441,11 +444,13 @@ const DashboardPage: React.FC = () => {
                     </Badge>
                   ))}
                 </div>
+}
               </div>
 
               {/* Experience */}
               <div>
                 <Label htmlFor="experience">Years of Experience</Label>
+                {isLoading?<Skeleton className=" bg-gray-100 h-9 w-full" />:
                 <Input
                   id="experience"
                   placeholder="Enter your total years of experience"
@@ -453,12 +458,14 @@ const DashboardPage: React.FC = () => {
                   value={formData.experience}
                   onChange={handleInputChange}
                 />
+}
               </div>
             </div>
 
             {/* About Yourself */}
             <div>
               <Label htmlFor="about">About You</Label>
+              {isLoading?<Skeleton className=" bg-gray-100 min-h-40 w-full" />:
               <Textarea
                 id="about"
                 placeholder="Share your professional journey, your specialties, and what drives you as a healthcare professional."
@@ -466,6 +473,7 @@ const DashboardPage: React.FC = () => {
                 onChange={handleTextareaChange}
                 className="h-full min-h-40"
               />
+}
             </div>
 
             {/* Upload Images */}
