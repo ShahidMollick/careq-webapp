@@ -83,11 +83,18 @@ export default {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+			  'bounce': {
+				"0%, 80%, 100%": { transform: "scale(0)" },
+				"40%": { transform: "scale(1)" },
+			  },
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+			'spin-fast': 'spin 0.5s ease-in-out infinite', // Custom fast spin
+			'bounce': "bounce 1.5s infinite",
+			 
   		},
   		screens: {
   			'custom-lg': '1200px'

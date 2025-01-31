@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,7 +36,7 @@ interface SidebarItemProps {
 const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
   const pathname = usePathname();
   const isActive = pathname === href;
-
+  
   return (
     <Button
       variant="ghost"
@@ -55,6 +55,17 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
 };
 
 const Sidebar: React.FC = () => {
+  const router = useRouter();
+  const handleLogout = () => {
+    // Clear the token from localStorage
+    localStorage.removeItem("accessToken");
+
+    // Optionally, clear other user-related data here
+
+     // Redirect to the login page
+     router.push("/");
+    
+  };
 
 
   return (
@@ -77,7 +88,7 @@ const Sidebar: React.FC = () => {
           <Dialog >
             <DialogTrigger asChild>
               <Button variant={"ghost"} size={"icon"}>
-                <LogOut size={24} className="text-white font-bold" />
+                <LogOut  size={24} className="text-white font-bold" />
               </Button>
             </DialogTrigger>
 
@@ -94,9 +105,9 @@ const Sidebar: React.FC = () => {
                 <DialogClose>
                   <Button variant="outline">Cancel</Button>
                 </DialogClose>
-                <Link href='/' passHref><Button variant="destructive">
+               <Button onClick={handleLogout} variant="destructive">
                   Log out
-                </Button></Link>
+                </Button>
                 
               </DialogFooter>
             </DialogContent>

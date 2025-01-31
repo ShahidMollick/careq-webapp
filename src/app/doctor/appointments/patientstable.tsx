@@ -82,7 +82,6 @@ type Patient = {
   id: string;
   queueNo: number;
   name: string;
-  email: string;
   phone: string;
   age: number;
   sex: string;
@@ -453,10 +452,7 @@ export const columns: ColumnDef<Patient, any>[] = [
     accessorKey: "name",
     header: "Patient Name",
   },
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
+  
   {
     accessorKey: "phone",
     header: "Phone Number",
@@ -643,7 +639,7 @@ export function PatientsTable() {
   const [rowSelection, setRowSelection] = useState({});
   const [newPatient, setNewPatient] = useState({
     name: "",
-    email: "",
+    
     phone: "",
     age: "",
     sex: "",
@@ -677,7 +673,7 @@ export function PatientsTable() {
           id: appointment._id,
           queueNo: appointment.queueNumber,
           name: appointment.patient.name,
-          email: appointment.patient.email,
+          
           phone: appointment.patient.contactNumber,
           age: appointment.patient.age,
           sex: appointment.patient.sex,
@@ -730,14 +726,13 @@ export function PatientsTable() {
         !newPatient.name ||
         !newPatient.age ||
         !newPatient.sex ||
-        !newPatient.phone ||
-        !newPatient.email
+        !newPatient.phone
       ) {
         console.log("Please fill in all required fields");
         return;
       }
 
-      console.log("Booking appointment...");
+      console.log("Booking appointments...");
 
       // Prepare the request body
       const appointmentData = {
@@ -745,7 +740,7 @@ export function PatientsTable() {
         age: Number(newPatient.age),
         sex: newPatient.sex,
         phone: newPatient.phone,
-        email: newPatient.email,
+        
         doctorId,
         hospitalId,
         paymentMethod: "Card",
@@ -753,7 +748,7 @@ export function PatientsTable() {
 
       // Make the API call to book appointment
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointment`,
         {
           method: "POST",
           headers: {
@@ -794,7 +789,7 @@ export function PatientsTable() {
       ]);
 
       // Clear the form
-      setNewPatient({ name: "", email: "", phone: "", age: "", sex: "" });
+      setNewPatient({ name: "", phone: "", age: "", sex: "" });
 
       // Refetch appointments to sync with server
       dispatch(fetchAppointmentsByDoctor());
@@ -975,13 +970,6 @@ export function PatientsTable() {
                   value={newPatient.phone}
                   onChange={(e) =>
                     setNewPatient({ ...newPatient, phone: e.target.value })
-                  }
-                />
-                <Input
-                  placeholder="Email"
-                  value={newPatient.email}
-                  onChange={(e) =>
-                    setNewPatient({ ...newPatient, email: e.target.value })
                   }
                 />
               </div>

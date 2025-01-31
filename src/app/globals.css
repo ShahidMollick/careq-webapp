@@ -124,3 +124,18 @@ body {
   font-weight: 700;
 }
 
+.dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  background-color: currentColor;
+  border-radius: 50%;
+}
+
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+.animation-delay-400 {
+  animation-delay: 0.4s;
+}

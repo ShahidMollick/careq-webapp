@@ -1,23 +1,58 @@
 "use client";
-import React from "react";
-import { useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { AppDispatch } from '../redux/store';
-import { useDispatch } from 'react-redux';
+import React, { useState } from "react";
+import { ArrowRight, Copy, PlusCircle, X } from "lucide-react";
+import regForm from "../regForm";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/popup";
+
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { AppDispatch } from "../redux/store";
+import { useDispatch } from "react-redux";
+import useAuth from "@/hooks/useAuth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface ScheduleRow {
+  id: string;
+  day: string;
+  fromTime: string;
+  toTime: string;
+}
 //import { fetchAppointments, selectAppointments, selectTotalAppointments, selectTotalConsulted, selectTotalWaiting } from '../redux/appointmentSlice';
-import { RootState } from '../redux/store';
+import { RootState } from "../redux/store";
 import { DataTableDemo } from "@/components/ui/history";
 import { ComboboxDemo } from "@/components/ui/combobox";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
+
 import MetricBox from "@/components/ui/metric-box";
 import MetricBoxCustom from "@/components/ui/metric-box-custom";
 import { PatientGraph } from "@/components/ui/graph-card1";
 import { GradientPatientGraph } from "@/components/ui/gradiant-chart";
-import { fetchAppointmentsByDoctor, selectAllAppointments } from "../redux/appointmentSlice";
+import {
+  fetchAppointmentsByDoctor,
+  selectAllAppointments,
+} from "../redux/appointmentSlice";
 
 const DashboardPage: React.FC = () => {
-
+  useAuth();
   /*const dispatch: AppDispatch = useDispatch();
   const appointments = useSelector(selectAppointments);
   const totalAppointments = useSelector(selectTotalAppointments);
@@ -31,20 +66,58 @@ const DashboardPage: React.FC = () => {
   const totalAppointments = 67;
   const totalWaiting = 53;
   const totalConsulted = 28;
+  const [isOpen, setIsOpen] = useState(true);
+  const [step, setStep] = useState(1); // Current step state
 
-  
+  const [schedules, setSchedules] = useState<ScheduleRow[]>([
+    { id: "1", day: "", fromTime: "", toTime: "" },
+  ]);
 
+  const addScheduleRow = () => {
+    const newRow: ScheduleRow = {
+      id: Date.now().toString(),
+      day: "",
+      fromTime: "",
+      toTime: "",
+    };
+    setSchedules([...schedules, newRow]);
+  };
+
+  const removeScheduleRow = (id: string) => {
+    setSchedules(schedules.filter((schedule) => schedule.id !== id));
+  };
+
+  const updateSchedule = (
+    id: string,
+    field: keyof ScheduleRow,
+    value: string
+  ) => {
+    setSchedules(
+      schedules.map((schedule) =>
+        schedule.id === id ? { ...schedule, [field]: value } : schedule
+      )
+    );
+  };
+
+  // Function to handle "Next" and "Back" navigation
+  const handleNext = () => {
+    if (step < 3) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
 
   useEffect(() => {
-    const doctorId = "67684d21509a946844805041";
-    const hospitalId = "67680c40dc41628884bddfeb";
-    localStorage.setItem("doctorId", doctorId);
-    localStorage.setItem("hospitalId", hospitalId);
+    // const doctorId = "67684d21509a946844805041";
+    // const hospitalId = "67680c40dc41628884bddfeb";
+    // localStorage.setItem("doctorId", doctorId);
+    // localStorage.setItem("hospitalId", hospitalId);
   }, []);
 
-  
   return (
     <div className="h-[100%] w-[100%]">
+      
 
       <div className="h-[50px] w-[100%] flex bg-[#e7f5f0] items-center gap-[22px] px-6 justify-between text-sm  py-4">
         <div className="flex items-center gap-2">
