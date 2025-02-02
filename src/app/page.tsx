@@ -38,34 +38,42 @@ export default function LoginPage() {
       const { accessToken } = response.data;
       const decodedToken = jwtDecode(accessToken);
       console.log(decodedToken);
-  
+      Cookies.set("userEmail", String(decodedToken?.email));
+      localStorage.setItem("userEmail", String(decodedToken?.email));
+
       const userID = String(decodedToken.sub);
       console.log(`UserID received`);
-  
+
       // Store token securely
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("userID", userID);
-  
+
       // Fetch user roles
       const roles = await apiClient.get(`/user-facility-roles/${userID}`);
       const data = roles.data;
       console.log(`Roles received: ${JSON.stringify(data, null, 2)}`);
       console.log("Length of facility", data.length);
-  
+
       if (data.length > 0) {
         // Store roles in Redux
         dispatch(setUserRoles(data));
-  
+
         // Inside handleLogin function after user logs in:
         const selectedFacility = data[0].facility;
+        console.log("Complete facility data:", selectedFacility);
+        console.log("Schedules:", selectedFacility.schedules);
         const selectedRole = data[0].role.name;
-        // Store in cookies
-        Cookies.set("selectedFacility", JSON.stringify(selectedFacility));
+        // Store in cookies - stringify the complete facility object
+        Cookies.set("selectedFacility", JSON.stringify(selectedFacility), {
+          // Ensure we're not truncating the data
+          secure: true,
+          sameSite: "strict",
+        });
         Cookies.set("selectedRole", selectedRole);
-  
+
         const primaryRole = data[0].role.name; // Assume the first role is primary
         console.log(primaryRole);
-  
+
         if (primaryRole === "Admin") {
           router.push("/admin");
         } else if (primaryRole === "Doctor") {
@@ -75,17 +83,19 @@ export default function LoginPage() {
         }
       } else {
         // Handle the case where no roles are assigned
-  
+
         router.push("/facility-reg");
       }
     } catch (err) {
       // This will only catch network-related or unexpected errors
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      setError(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
     } finally {
       setLoading(false); // Hide loading state
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col items-center p-5 justify-between bg-[url('/CareQ.png')]">
       <div className="flex-grow flex items-center justify-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,23 +13,40 @@ import {
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 
-const ClinicTimings: React.FC = () => {
+interface Schedule {
+  id: string;
+  dayOfWeek: number;
+  fromTime: string;
+  toTime: string;
+}
+
+interface ClinicTimingsProps {
+  schedules: Schedule[];
+}
+
+const ClinicTimings: React.FC<ClinicTimingsProps> = ({ schedules }) => {
   const [timings, setTimings] = useState<
     { day: string; start: string; end: string }[]
-  >([
-    { day: "Monday", start: "09:00", end: "17:00" },
-    { day: "Tuesday", start: "07:00", end: "20:00" },
-    { day: "Wednesday", start: "17:00", end: "23:00" },
-  ]);
+  >([]);
+
+  useEffect(() => {
+    // Convert incoming schedules to the format used by the component
+    const convertedTimings = schedules.map((schedule) => ({
+      day: daysOfWeek[schedule.dayOfWeek],
+      start: schedule.fromTime.substring(0, 5), // Convert "HH:mm:ss" to "HH:mm"
+      end: schedule.toTime.substring(0, 5),
+    }));
+    setTimings(convertedTimings);
+  }, [schedules]);
 
   const daysOfWeek = [
+    "Sunday",
     "Monday",
     "Tuesday",
     "Wednesday",
     "Thursday",
     "Friday",
     "Saturday",
-    "Sunday",
   ];
 
   const addTimingRow = () => {
@@ -57,10 +74,7 @@ const ClinicTimings: React.FC = () => {
       <Label>Clinic Timings</Label>
       <div className="flex flex-col gap-4">
         {timings.map((timing, index) => (
-          <div
-            key={index}
-            className="group flex items-center gap-4 relative"
-          >
+          <div key={index} className="group flex items-center gap-4 relative">
             {/* Select Component for Day */}
             <Select
               onValueChange={(value) => handleChange(index, "day", value)}
@@ -94,12 +108,12 @@ const ClinicTimings: React.FC = () => {
               className="w-28"
             />
 
-            {/* Trash Button (appears on hover) */}
+            {/* Trash Button */}
             <Button
               onClick={() => removeTimingRow(index)}
               variant="outline"
               size="sm"
-              className="hidden group-hover:flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-600 border-red-600"
+              className="flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-600 border-red-600"
             >
               <Trash2 className="w-4 h-4" />
             </Button>

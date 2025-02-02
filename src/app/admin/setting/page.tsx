@@ -13,28 +13,62 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useState } from "react";
 import { Upload, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Pencil } from "lucide-react";
+import local from "next/font/local";
+import Cookies from "js-cookie";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+interface FormData {
+  clinicName: string;
+  address: string;
+  operatingHours: string;
+  phone: string;
+  email: string;
+  website: string;
+  about: string;
+  schedules: Array<{
+    id: string;
+    dayOfWeek: number;
+    fromTime: string;
+    toTime: string;
+  }>;
+}
 
 const ClinicProfilePage: React.FC = () => {
-  const initialValues = {
-    clinicName: "",
-    address: "",
+  const userEmail = localStorage.getItem("userEmail");
+  const clinic = JSON.parse(localStorage.getItem("selectedFacility") || "{}");
+  console.log(clinic);
+  const initialValues: FormData = {
+    clinicName: clinic?.name || "",
+    address: clinic?.streetAddress || "",
     operatingHours: "",
-    specialization: [],
-    fee: "",
-    languages: ["English", "Hindi"],
-    phone: "",
-    email: "",
-    website: "",
-    about: "",
+    phone: clinic?.phoneNumber || "",
+    email: userEmail || "",
+    website: clinic?.website || "",
+    about: clinic?.description || "",
+    schedules: clinic?.schedules || [],
   };
 
   const [formData, setFormData] = useState(initialValues);
-  const [specializationInput, setSpecializationInput] = useState<string>("");
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,8 +82,11 @@ const ClinicProfilePage: React.FC = () => {
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setUploadedImages((prev) => [...prev, ...Array.from(event.target.files)]);
+    if (event.target.files && event.target.files.length > 0) {
+      setUploadedImages((prev) => [
+        ...prev,
+        ...Array.from(event.target.files!),
+      ]);
     }
   };
 
@@ -57,14 +94,28 @@ const ClinicProfilePage: React.FC = () => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const addSpecialization = () => {
-    if (specializationInput && !formData.specialization.includes(specializationInput)) {
-      setFormData((prev) => ({
-        ...prev,
-        specialization: [...prev.specialization, specializationInput],
-      }));
-      setSpecializationInput("");
-    }
+  const getDayName = (dayNumber: number): string => {
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    return days[dayNumber] || "";
+  };
+
+  const formatTime = (time: string): string => {
+    const [hours, minutes] = time.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hours), parseInt(minutes));
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    });
   };
 
   return (
@@ -72,7 +123,9 @@ const ClinicProfilePage: React.FC = () => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-lg">Clinic Profile Settings</CardTitle>
-          <CardDescription>Update clinic details for better patient accessibility.</CardDescription>
+          <CardDescription>
+            Update clinic details for better patient accessibility.
+          </CardDescription>
           <Separator className="my-4" />
         </CardHeader>
         <CardContent>
@@ -97,27 +150,7 @@ const ClinicProfilePage: React.FC = () => {
               />
             </div>
             <div>
-            <ClinicTimings />
-            </div>
-
-            {/* Specializations */}
-            <div>
-              <Label>Specializations</Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  placeholder="Add specialization"
-                  value={specializationInput}
-                  onChange={(e) => setSpecializationInput(e.target.value)}
-                />
-                <Button onClick={addSpecialization}>Add</Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.specialization.map((specialization, index) => (
-                  <Badge key={index} variant="outline">
-                    {specialization}
-                  </Badge>
-                ))}
-              </div>
+              <ClinicTimings schedules={formData.schedules} />
             </div>
 
             {/* Contact Information */}
@@ -149,29 +182,6 @@ const ClinicProfilePage: React.FC = () => {
               />
             </div>
 
-            {/* Languages */}
-            <div>
-              <Label>Languages Spoken</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.languages.map((language, index) => (
-                  <Badge key={index} variant="outline">
-                    {language}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Consultation Fee */}
-            <div>
-              <Label htmlFor="fee">Consultation Fee</Label>
-              <Input
-                id="fee"
-                placeholder="Enter consultation fee"
-                value={formData.fee}
-                onChange={handleInputChange}
-              />
-            </div>
-
             {/* About Clinic */}
             <div>
               <Label htmlFor="about">About Clinic</Label>
@@ -186,7 +196,11 @@ const ClinicProfilePage: React.FC = () => {
             {/* Upload Clinic Images */}
             <div>
               <Label>Upload Clinic Images</Label>
-              <Button variant="outline" size="lg" className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex items-center gap-2"
+              >
                 <Upload className="w-5 h-5" />
                 <label htmlFor="image-upload" className="cursor-pointer">
                   Upload Images
