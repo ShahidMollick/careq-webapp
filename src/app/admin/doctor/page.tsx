@@ -68,7 +68,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type Doctor = {
   id: number;
   name: string;
-  speciality: string;
+  specialty: string;
   phone: string;
   email: string;
   description: string;
@@ -81,7 +81,7 @@ const initialDoctors: Doctor[] = [
   {
     id: 1,
     name: "Dr. Shahid Mollick",
-    speciality: "Cardiologist",
+    specialty: "Cardiologist",
     phone: "9987678896",
     email: "shahidmollick13@gmail.com",
     description:
@@ -96,7 +96,7 @@ const initialDoctors: Doctor[] = [
   {
     id: 2,
     name: "Dr. Anjali Mehta",
-    speciality: "Neurologist",
+    specialty: "Neurologist",
     phone: "9876543210",
     email: "anjali.mehta@gmail.com",
     description:
@@ -111,7 +111,7 @@ const initialDoctors: Doctor[] = [
   {
     id: 3,
     name: "Dr. Ravi Kapoor",
-    speciality: "Orthopedic",
+    specialty: "Orthopedic",
     phone: "9765432101",
     email: "ravi.kapoor@gmail.com",
     description:
@@ -152,8 +152,8 @@ interface HospitalSchedule {
 
 interface DoctorProfile {
   name?: string;
-  contactNumber?: string;
-  specialization?: string;
+  phoneNumber?: string;
+  specialty?: string;
   qualification?: string;
   licenseNumber?: string;
   address?: string;
@@ -164,6 +164,7 @@ interface DoctorProfile {
   about?: string;
   fees?: number;  
   hospitals?: HospitalSchedule[];
+  email?: string;
 }
 
 
@@ -201,14 +202,15 @@ export default function DoctorsTable() {
 const [formData, setFormData] = useState({
   firstName: initialValues?.name?.split(" ")[0] || "",
   LicenseNumber: initialValues?.name?.split(" ")[1] || "",
-  specialization: initialValues?.specialization || "",
+  specialty: initialValues?.specialty || "",
   experience: initialValues?.experience || 0,
   about: initialValues?.about || "",
-  contactNumber: initialValues?.contactNumber || "",
+  phoneNumber: initialValues?.phoneNumber || "",
   qualification: initialValues?.qualification || "",
   licenseNumber: initialValues?.licenseNumber || "",
   address: initialValues?.address || "",
   fees: initialValues?.fees || 0,
+  email: initialValues?.email || "",
 });
  
   
@@ -293,27 +295,33 @@ const [formData, setFormData] = useState({
 
   const handleAddDoctor = async () => {
     setIsLoadings(true);
-
+    setError(null);
+  
     try {
       const facilityId = localStorage.getItem("facilityId");
-
+  
+      if (!formData.email || !facilityId) {
+        throw new Error("Email and Facility ID are required.");
+      }
+  
       // Call the backend and log the full response
       const response = await apiClient.post("/doctor/validate", {
-        email,
-        facilityId: `${facilityId}`
+        email: formData.email,
+        facilityId,
       });
+  
       console.log("Full backend response:", response);
-
+  
       const status = response.data.status;
       console.log("Status:", status);
-
+  
       switch (status) {
         case "USER_NOT_FOUND":
           console.log("User not found");
           setShowDoctorForm(true);
           setStep(1);
           break;
-
+  
         case "USER_FOUND_BUT_NOT_DOCTOR":
           toast({
             title: "User found but not a doctor",
@@ -323,12 +331,12 @@ const [formData, setFormData] = useState({
           setShowDoctorForm(true);
           setStep(1);
           break;
-
+  
         case "EXISTING_DOCTOR":
           const doctorProfile = response.data.doctorProfile;
           console.log("doctorProfile:", doctorProfile);
           if (doctorProfile) {
-            if (doctorProfile.facility.id !== "your-facility-id") {
+            if (doctorProfile.facility.id !== facilityId) {
               toast({
                 title: "Doctor found in different facility",
                 description:
@@ -344,7 +352,7 @@ const [formData, setFormData] = useState({
             }
           }
           break;
-
+  
         default:
           toast({
             title: "Unknown error",
@@ -353,22 +361,27 @@ const [formData, setFormData] = useState({
           });
       }
     } catch (error) {
-      console.error("Error from server:", (error as any).response?.data || error);
+      if (axios.isAxiosError(error)) {
+        console.error("Error from server:", error.response?.data || error.message);
+      } else {
+        console.error("Error from server:", error);
+      }
       toast({
         title: "Error",
-        description: "Failed to validate the doctor. Please try again.",
+        description: (error as any).response?.data?.message || "Failed to validate the doctor. Please try again.",
         action: <ToastAction altText="Try again">Try again</ToastAction>,
       });
     } finally {
       setIsLoadings(false);
     }
-
-    if (email) {
+  
+    if (formData.email) {
       setShowDoctorForm(true);
       setStep(1);
       return;
     }
   };
+  
   
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,60 +395,54 @@ const [formData, setFormData] = useState({
   const handleSave = async () => {
     setIsLoadings(true);
     setError(null);
-    try {
-      // Convert images to base64
-      const profilePictureBase64 = profileImage
-        ? await fetch(profileImage)
-            .then((r) => r.blob())
-            .then((blob) => fileToBase64(blob as File))
-        : undefined;
-      const imagesBase64 = await Promise.all(
-        uploadedImages.map((file) => fileToBase64(file))
-      );
 
-      // Prepare data
+    try {
+      const email = formData.email;
       const facilityId = localStorage.getItem("facilityId");
-      const doctorData: DoctorProfile = {
+
+      if (!email || !facilityId) {
+        throw new Error("Email and Facility ID are required.");
+      }
+
+      // Prepare data according to CreateDoctorProfileDto
+      const doctorData = {
+        email: email,
         name: formData.firstName,
-        fees: formData.fees,
-        specialization: formData.specialization,
+        licenseNumber: formData.LicenseNumber, 
+        specialty: formData.specialty,
+        phoneNumber: formData.phoneNumber,
+        profilePhoto: profileImage, // Just pass the image URL directly
         about: formData.about,
-        profilePicture: profilePictureBase64,
-        images: imagesBase64,
-        contactNumber: formData.contactNumber,
-        qualification: formData.qualification,
-        licenseNumber: formData.LicenseNumber,
-        address: formData.address,
-        hospitals: initialValues?.hospitals,
+        facilityId: facilityId
       };
 
-      // Call backend to create profile & send email
-      const response = await apiClient.post(
-        "/doctor/create-profile",
-        {
-          ...doctorData,
-          email,
-          facilityId,
-        }
-        
-      );
-      console.log("Full backend response:", response);
+      console.log("Sending doctor data:", doctorData);
+
+      const response = await apiClient.post("doctor/create-profile", doctorData);
 
       if (response.status === 201 || response.status === 200) {
         setIsModified(false);
-        setOpenConfirmDialog(false);
+        setOpenConfirmDialog(false); 
         setInitialValues(response.data);
         toast({
           title: "Success",
-          description: "Profile created and email sent.",
+          description: "Doctor profile created successfully",
         });
       }
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create profile");
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Failed to create profile");
+        console.error("Error creating doctor profile:", err.response?.data);
+      } else {
+        setError("An unexpected error occurred");
+        console.error("Error:", err);
+      }
     } finally {
       setIsLoadings(false);
     }
   };
+  
 
 
   const toggleSelectDoctor = (id: number) => {
@@ -520,8 +527,9 @@ const [formData, setFormData] = useState({
       placeholder="Enter doctor's email"
       autoFocus
       className="flex-grow"
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
+      value={formData.email}
+      onChange={(e) => setFormData({ ...formData, email: e.target.value })}  // Correct way to update email in formData
+
     />
     <Button
       color="green"
@@ -614,13 +622,13 @@ const [formData, setFormData] = useState({
        </div>
      </div>
      <div className="w-full flex flex-row gap-2 items-center">
-     {/* Specialization */}
+     {/* specialty */}
      <div className="w-2/3 flex flex-col max-w-sm gap-2">
-       <Label htmlFor="specialization">Specialization</Label>
+       <Label htmlFor="specialty">specialty</Label>
        <Input
-         id="specialization"
+         id="specialty"
          placeholder="e.g. Dentist"
-         value={formData.specialization}
+         value={formData.specialty}
          onChange={handleInputChange}
        />
      </div>
@@ -631,9 +639,10 @@ const [formData, setFormData] = useState({
          <Label>Contact Number</Label>
        </div>
        <Input
-         id="contactNumber"
+         id="phoneNumber"
+         type="string"
          placeholder="Contact Number"
-         value={formData.contactNumber}
+         value={formData.phoneNumber}
          onChange={handleInputChange}
        />
      </div>
@@ -822,48 +831,52 @@ const [formData, setFormData] = useState({
 
                   {/* Confirmation Dialog */}
                   <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Confirm Changes</DialogTitle>
-                    </DialogHeader>
-                    <p className="mb-4 text-sm">
-                      You have made the following changes to your profile:
-                    </p>
-                    <ul className="list-disc pl-4 text-sm">
-                      {isModified && (
-                        <>
-                          {formData.firstName !== initialValues?.name && (
-                            <li>Name: {formData.firstName} </li>
-                          )}
-                          {formData.LicenseNumber !== initialValues?.name && (
-                            <li>License Number: {formData.LicenseNumber}</li>
-                          )}
-                          {formData.specialization !== initialValues?.specialization && (
-                            <li>Specialization: {formData.specialization}</li>
-                          )}
-                        
-                          {formData.contactNumber !== initialValues?.contactNumber && (
-                            <li>Contact Number: {formData.contactNumber}</li>
-                          )}
-                          {formData.fees !== initialValues?.fees && (
-                            <li>Fees: {formData.fees}</li>
-                          )}
-                        </>
-                      )}
-                    </ul>
-                    <DialogFooter>
-                      <DialogClose>
-                        <Button
-                          variant="outline"
-                          onClick={() => setOpenConfirmDialog(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </DialogClose>
-                      <Button onClick={handleSave} disabled={isLoading}>
-                        {isLoading ? "Saving..." : "Confirm Save"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
+  <DialogHeader>
+    <DialogTitle>Confirm Changes</DialogTitle>
+  </DialogHeader>
+  <p className="mb-4 text-sm">
+    You have made the following changes to your profile:
+  </p>
+  <ul className="list-disc pl-4 text-sm">
+    {isModified && (
+      <>
+        {formData.firstName !== initialValues?.name && (
+          <li>Name: {formData.firstName} </li>
+        )}
+        {formData.LicenseNumber !== initialValues?.name && (
+          <li>License Number: {formData.LicenseNumber}</li>
+        )}
+        {formData.specialty !== initialValues?.specialty && (
+          <li>specialty: {formData.specialty}</li>
+        )}
+        {formData.phoneNumber !== initialValues?.phoneNumber && (
+          <li>Contact Number: {formData.phoneNumber}</li>
+        )}
+        {formData.fees !== initialValues?.fees && <li>Fees: {formData.fees}</li>}
+        {formData.email !== initialValues?.email && <li>Email: {formData.email}</li>}
+
+      </>
+    )}
+  </ul>
+  <DialogFooter>
+    <DialogClose>
+      <Button
+        variant="outline"
+        onClick={() => setOpenConfirmDialog(false)}
+        disabled={isLoading} // Disable "Cancel" button while saving
+      >
+        Cancel
+      </Button>
+    </DialogClose>
+    <Button
+      onClick={handleSave}
+      disabled={!isLoading} // Disable the button when isLoading is true
+    >
+      {isLoading ? "Saving..." : "Confirm Save"} {/* Display loading or confirm text */}
+    </Button>
+  </DialogFooter>
+</DialogContent>
+
                 </Dialog>
               </div>
             )}
@@ -932,7 +945,7 @@ const [formData, setFormData] = useState({
           </TableHead>
           <TableHead>S No.</TableHead>
           <TableHead>Doctor Name</TableHead>
-          <TableHead>Speciality</TableHead>
+          <TableHead>Specialty</TableHead>
           <TableHead>Phone Number</TableHead>
           <TableHead>Email ID</TableHead>
           <TableHead>Status</TableHead>
@@ -960,7 +973,7 @@ const [formData, setFormData] = useState({
               />
               {doctor.name}
             </TableCell>
-            <TableCell>{doctor.speciality}</TableCell>
+            <TableCell>{doctor.specialty}</TableCell>
             <TableCell>{doctor.phone}</TableCell>
             <TableCell>{doctor.email}</TableCell>
             <TableCell>
