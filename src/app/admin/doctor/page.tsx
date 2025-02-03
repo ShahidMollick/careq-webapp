@@ -331,29 +331,31 @@ const [formData, setFormData] = useState({
           setShowDoctorForm(true);
           setStep(1);
           break;
-  
-        case "EXISTING_DOCTOR":
-          const doctorProfile = response.data.doctorProfile;
-          console.log("doctorProfile:", doctorProfile);
-          if (doctorProfile) {
-            if (doctorProfile.facility.id !== facilityId) {
-              toast({
-                title: "Doctor found in different facility",
-                description:
-                  "This doctor exists, but they are already assigned to a different facility.",
-                action: <ToastAction altText="Try again">Try again</ToastAction>,
-              });
-            } else {
-              toast({
-                title: "Doctor already exists in this facility",
-                description: "This doctor is already part of this facility.",
-                action: <ToastAction altText="Try again">Try again</ToastAction>,
-              });
-            }
-          }
-          break;
-  
-        default:
+  case "EXISTING_DOCTOR":
+    const doctorProfile = response.data.doctorProfile;
+    console.log("doctorProfile:", doctorProfile);
+    setInitialValues(doctorProfile);
+    setFormData({
+      about: doctorProfile?.about || "",
+      LicenseNumber: doctorProfile?.licenseNumber || "",
+      phoneNumber: doctorProfile?.phoneNumber || "",
+      profilePhoto: doctorProfile?.profilePhoto || "",
+      specialty: doctorProfile?.specialty || "",
+      fees: doctorProfile?.fees || 500,
+    });
+    setShowDoctorForm(true);
+    setStep(1);
+    break;
+
+        // case "USER_FOUND_AND_DOCTOR_FOUND_IN_SAME_FACILITY":
+        //   toast({
+        //     title: "Doctor already exists",
+        //     description: "This doctor is already part of this facility.",
+        //     action: <ToastAction altText="Try again">Doctor Already exists at the same clinic</ToastAction>,
+        //   });
+        //   break;
+      
+          default:
           toast({
             title: "Unknown error",
             description: "An unknown error occurred while validating the doctor.",
@@ -375,11 +377,7 @@ const [formData, setFormData] = useState({
       setIsLoadings(false);
     }
   
-    if (formData.email) {
-      setShowDoctorForm(true);
-      setStep(1);
-      return;
-    }
+
   };
   
   
@@ -634,18 +632,18 @@ const [formData, setFormData] = useState({
      </div>
 
      {/* Languages */}
-     <div className="w-3/4 flex flex-col max-w-sm gap-2">
-       <div className="flex gap-4 max-w-md justify-between items-center">
-         <Label>Contact Number</Label>
-       </div>
-       <Input
-         id="phoneNumber"
-         type="string"
-         placeholder="Contact Number"
-         value={formData.phoneNumber}
-         onChange={handleInputChange}
-       />
-     </div>
+    <div className="w-3/4 flex flex-col max-w-sm gap-2">
+      <div className="flex gap-4 max-w-md justify-between items-center">
+        <Label>Contact Number</Label>
+      </div>
+      <Input
+        id="phoneNumber"
+        type="string"
+        placeholder="Contact Number"
+        value={formData.phoneNumber.startsWith("+91") ? formData.phoneNumber : `+91${formData.phoneNumber}`}
+        onChange={handleInputChange}
+      />
+    </div>
 
      {/* Fee */}
      <div className="w-2/3 flex flex-col max-w-sm gap-2">
@@ -773,28 +771,30 @@ const [formData, setFormData] = useState({
                     <div className="flex-1 ">
                       <Label htmlFor={`from-${schedule.id}`}>From</Label>
                       <Input
-                        type="time"
-                        id={`from-${schedule.id}`}
-                        value={schedule.fromTime}
-                        onChange={(e) =>
-                          updateSchedule(
-                            schedule.id,
-                            "fromTime",
-                            e.target.value
-                          )
-                        }
-                        className="mt-2"
+                      type="time"
+                      id={`from-${schedule.id}`}
+                      value={schedule.fromTime}
+                      onClick={(e) => (e.target as HTMLInputElement).showPicker()}
+                      onChange={(e) =>
+                        updateSchedule(
+                        schedule.id,
+                        "fromTime",
+                        e.target.value
+                        )
+                      }
+                      className="mt-2"
                       />
                     </div>
                     <div className="flex-1 ">
                       <Label htmlFor={`to-${schedule.id}`}>To</Label>
                       <Input
-                        type="time"
-                        id={`to-${schedule.id}`}
-                        value={schedule.toTime}
-                        onChange={(e) =>
-                          updateSchedule(schedule.id, "toTime", e.target.value)
-                        }
+                      type="time"
+                      id={`to-${schedule.id}`}
+                      value={schedule.toTime}
+                      onClick={(e) => (e.target as HTMLInputElement).showPicker()}
+                      onChange={(e) =>
+                        updateSchedule(schedule.id, "toTime", e.target.value)
+                      }
                       />
                     </div>
                     {index > 0 && (
