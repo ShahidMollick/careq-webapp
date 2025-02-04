@@ -57,11 +57,12 @@ export default function LoginPage() {
       if (data.length > 0) {
         // Store roles in Redux
         dispatch(setUserRoles(data));
-
         // Inside handleLogin function after user logs in:
         const selectedFacility = data[0].facility;
+        localStorage.setItem("selectedFacilityId",selectedFacility.id)
         console.log("Complete facility data:", selectedFacility);
         console.log("Schedules:", selectedFacility.schedules);
+
         const selectedRole = data[0].role.name;
         // Store in cookies - stringify the complete facility object
         Cookies.set("selectedFacility", JSON.stringify(selectedFacility), {
