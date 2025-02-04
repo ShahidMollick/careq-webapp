@@ -339,9 +339,9 @@ const [formData, setFormData] = useState({
       about: doctorProfile?.about || "",
       LicenseNumber: doctorProfile?.licenseNumber || "",
       phoneNumber: doctorProfile?.phoneNumber || "",
-      profilePhoto: doctorProfile?.profilePhoto || "",
       specialty: doctorProfile?.specialty || "",
       fees: doctorProfile?.fees || 500,
+      profilePhoto: doctorProfile?.profilePhoto || "",
     });
     setShowDoctorForm(true);
     setStep(1);

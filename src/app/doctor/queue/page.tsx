@@ -19,88 +19,144 @@ import {
 } from "@/components/ui/accordion";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-//import data from "./appointments.json";
+import data from "./appointments.json";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
 import { Save } from "lucide-react";
 import { FileText } from "lucide-react";
 import { Download } from "lucide-react";
 import { ScheduleBtn } from "@/components/ui/schedule-up-btn";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch } from "@/app/redux/store";
-//import { fetchAppointments, selectAppointments, selectError, selectLoading, selectTotalAppointments } from "@/app/redux/appointmentSlice";
-import groupAppointmentsByStatus from "./groupAppointmentsByStatus";
-import {
-  callNextPatient,
-  completeConsultation,
-  fetchTodayAppointmentsByDoctor,
-  selectTodayAppointments,
-} from "@/app/redux/appointmentSlice";
+// import { useDispatch, useSelector } from "react-redux";
+// import { AppDispatch } from "@/app/redux/store";
+// import { fetchAppointments, selectAppointments, selectError, selectLoading, selectTotalAppointments } from "@/app/redux/appointmentSlice";
+// import groupAppointmentsByStatus from "./groupAppointmentsByStatus";
+// import {
+//   callNextPatient,
+//   completeConsultation,
+//   fetchTodayAppointmentsByDoctor,
+//   selectTodayAppointments,
+// } from "@/app/redux/appointmentSlice";
 
 const AppointmentPage: React.FC = () => {
-  const dispatch: AppDispatch = useDispatch();
 
-  // Fetch appointments from Redux
-  const appointments = useSelector(selectTodayAppointments);
-  const lastTicketNumber = appointments.length;
+  
+  // const dispatch: AppDispatch = useDispatch();
+
+  // // Fetch appointments from Redux
+  // const appointments = useSelector(selectTodayAppointments);
+  // const lastTicketNumber = appointments.length;
   //const loading = useSelector(selectLoading);
   //const error = useSelector(selectError);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [appointments, setAppointments] = useState(data);
 
-  console.log("appointments fetched in queue page: ", appointments);
+  // console.log("appointments fetched in queue page: ", appointments);
 
   // Transform the appointments into the desired JSON structure
-  const data = groupAppointmentsByStatus(appointments);
+  // const data = groupAppointmentsByStatus(appointments);
   console.log("data: ", data);
+  const lastTicketNumber = appointments.completed.length;
+
 
   const firstTicketNumber =
     data.serving.length > 0 ? data.serving[0].ticketNumber : null;
 
-  const filterData = (sectionData) =>
-    sectionData.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+    const filterData = (sectionData) =>
+      sectionData.filter((item) =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+ 
+  // const filteredServing = filterData(data.serving);
+  // console.log("filteredServing: ", filteredServing);
+  // console.log("servingid", filteredServing[0]?.id);
+  // const filteredWaiting = filterData(data.waiting);
+  // const filteredCompleted = filterData(data.completed);4
   const filteredServing = filterData(data.serving);
-  console.log("filteredServing: ", filteredServing);
-  console.log("servingid", filteredServing[0]?.id);
-  const filteredWaiting = filterData(data.waiting);
-  const filteredCompleted = filterData(data.completed);
+const filteredWaiting = filterData(data.waiting);
+const filteredCompleted = filterData(data.completed);
+
+
+  // const handleCallNext = () => {
+  //   dispatch(callNextPatient())
+  //     .unwrap()
+  //     .then(() => {
+  //       toast.success("Next patient called successfully");
+  //       console.log("Successfully called next patient");
+  //       dispatch(fetchTodayAppointmentsByDoctor());
+  //     })
+  //     .catch((error) => {
+  //       toast.error("Failed to call next patient");
+  //       console.error("Failed to call next patient:", error);
+  //     });
+  // };
+
+  
+  
+  // const finishConsultation = () => {
+  //   dispatch(completeConsultation())
+  //     .unwrap()
+  //     .then(() => {
+  //       toast.success("Consultation completed successfully");
+  //       console.log("Successfully finished consultation");
+  //       dispatch(fetchTodayAppointmentsByDoctor());
+  //     })
+  //     .catch((error) => {
+  //       toast.error("Failed to finish consultation");
+  //       console.error("Failed to finish consultation:", error);
+  //     });
+  // };
+
+  // useEffect(() => {
+  //     dispatch(fetchTodayAppointmentsByDoctor());
+  // }, []);
 
   const handleCallNext = () => {
-    dispatch(callNextPatient())
-      .unwrap()
-      .then(() => {
-        toast.success("Next patient called successfully");
-        console.log("Successfully called next patient");
-        dispatch(fetchTodayAppointmentsByDoctor());
-      })
-      .catch((error) => {
-        toast.error("Failed to call next patient");
-        console.error("Failed to call next patient:", error);
+    if (appointments.waiting.length > 0) {
+      // If there's a patient being served, move them to completed
+      const currentServing = appointments.serving[0];
+      const nextPatient = appointments.waiting[0];
+      const newCompleted = currentServing ? [...appointments.completed, currentServing] : [...appointments.completed];
+      
+      setAppointments({
+        ...appointments,
+        serving: [nextPatient],
+        waiting: appointments.waiting.slice(1),
+        completed: newCompleted,
       });
+      toast.success("Next patient called successfully");
+    } else {
+      toast.error("No patients in the waiting list.");
+    }
   };
 
+  // Finish consultation function: Move the current serving patient to completed and update the serving section
   const finishConsultation = () => {
-    dispatch(completeConsultation())
-      .unwrap()
-      .then(() => {
-        toast.success("Consultation completed successfully");
-        console.log("Successfully finished consultation");
-        dispatch(fetchTodayAppointmentsByDoctor());
-      })
-      .catch((error) => {
-        toast.error("Failed to finish consultation");
-        console.error("Failed to finish consultation:", error);
-      });
+    if (appointments.serving.length > 0) {
+      const completedPatient = appointments.serving[0];
+      const newCompleted = [...appointments.completed, completedPatient];
+      if (appointments.waiting.length > 0) {
+        const nextPatient = appointments.waiting[0];
+        setAppointments({
+          ...appointments,
+          serving: [nextPatient],
+          waiting: appointments.waiting.slice(1), // Remove the first patient from waiting
+          completed: newCompleted,
+        });
+      } else {
+        setAppointments({
+          ...appointments,
+          serving: [],
+          completed: newCompleted,
+        });
+      }
+      toast.success("Consultation completed successfully");
+    } else {
+      toast.error("No patient is currently being served.");
+    }
   };
-
-  useEffect(() => {
-      dispatch(fetchTodayAppointmentsByDoctor());
-  }, []);
 
   return (
     <div className="main-container">
@@ -108,134 +164,93 @@ const AppointmentPage: React.FC = () => {
       <div className="right-body">
         <div className="content">
           <div className="accord">
-            <div className="flex flex-row gap-2 w-full">
-              <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37] ...">
-                Current Queue : {firstTicketNumber}
-              </div>
-              <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37] ...">
-                Total Patients : {lastTicketNumber}
-              </div>
+      <div className="flex flex-row gap-2 w-full">
+      <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37]">
+  Current Queue: {filteredServing.length > 0 ? filteredServing[0].ticketNumber : "N/A"}
+</div>
+
+<div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37]">
+  Total Consulted: {lastTicketNumber}
+</div>
+
+      </div>
+
+      {/* Search Bar */}
+      <div className="search-bar flex items-center mt-4 mb-2 relative">
+        <input
+          type="text"
+          placeholder="Search by patient name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border border-gray-300 p-2 pl-10 rounded-lg w-full text-sm bg-transparent"
+        />
+        <Search
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+          width={16}
+          height={16}
+        />
+      </div>
+
+      <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className="w-full">
+  {/* Serving Section */}
+  <AccordionItem value="item-1">
+    <AccordionTrigger className="font-bold text-secondary">Serving</AccordionTrigger>
+    <AccordionContent>
+      {filteredServing.map((item, index) => (
+        <div key={index} className="card-list" style={{ background: "rgba(23, 194, 123, 0.08)", borderRadius: "0.5rem" }}>
+          <Image src={item.photoUrl} alt={item.name} width={50} height={50} />
+          <div className="patient">
+            <div className="patient-detail">
+              <h3 className="font-bold">{item.name}</h3>
+              <p>Sex: {item.sex} Age: {item.age}</p>
             </div>
-
-            {/* Search Bar */}
-            <div className="search-bar flex items-center mt-4 mb-2 relative">
-              <input
-                type="text"
-                placeholder="Search by patient name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="border border-gray-300 p-2 pl-10 rounded-lg w-full text-sm bg-transparent"
-              />
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                width={16}
-                height={16}
-              />
-            </div>
-
-            <Accordion
-              type="multiple"
-              defaultValue={["item-1", "item-2"]}
-              className="w-full"
-            >
-              {/* Serving Section */}
-              <AccordionItem value="item-1">
-                <AccordionTrigger className="font-bold text-secondary">
-                  Serving
-                </AccordionTrigger>
-                <AccordionContent>
-                  {filteredServing.map((item, index) => (
-                    <div
-                      key={index}
-                      className="card-list"
-                      style={{
-                        background: "rgba(23, 194, 123, 0.08)",
-                        borderRadius: "0.5rem",
-                      }}
-                    >
-                      <Image
-                        src={item.photoUrl}
-                        alt={item.name}
-                        width={50}
-                        height={50}
-                      />
-                      <div className="patient">
-                        <div className="patient-detail">
-                          <h3 className="font-bold">{item.name}</h3>
-                          <p>
-                            Sex: {item.sex} Age: {item.age}
-                          </p>
-                        </div>
-                        <div className="border p-2 rounded-md">
-                          {item.ticketNumber}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Waiting Section */}
-              <AccordionItem value="item-2">
-                <AccordionTrigger className="font-bold text-secondary">
-                  Waiting
-                </AccordionTrigger>
-                <AccordionContent>
-                  {filteredWaiting.map((item, index) => (
-                    <div key={index} className="card-list">
-                      <Image
-                        src={item.photoUrl}
-                        alt={item.name}
-                        width={50}
-                        height={50}
-                      />
-                      <div className="patient">
-                        <div className="patient-detail">
-                          <h3 className="font-bold">{item.name}</h3>
-                          <p>
-                            Sex: {item.sex} Age: {item.age}
-                          </p>
-                        </div>
-                        <div className="border p-2 rounded-md">
-                          {item.ticketNumber}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Completed Section */}
-              <AccordionItem value="item-3">
-                <AccordionTrigger className="font-bold text-secondary">
-                  Completed
-                </AccordionTrigger>
-                <AccordionContent>
-                  {filteredCompleted.map((item, index) => (
-                    <div key={index} className="card-list">
-                      <Image
-                        src={item.photoUrl}
-                        alt={item.name}
-                        width={50}
-                        height={50}
-                      />
-                      <div className="patient">
-                        <div className="patient-detail">
-                          <h3 className="font-bold">{item.name}</h3>
-                          <p>
-                            Sex: {item.sex} Age: {item.age}
-                          </p>
-                        </div>
-                        <div className="border p-2 rounded-md">
-                          {item.ticketNumber}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+            <div className="border p-2 rounded-md">{item.ticketNumber}</div>
           </div>
+        </div>
+      ))}
+    </AccordionContent>
+  </AccordionItem>
+
+  {/* Waiting Section */}
+  <AccordionItem value="item-2">
+    <AccordionTrigger className="font-bold text-secondary">Waiting</AccordionTrigger>
+    <AccordionContent>
+      {filteredWaiting.map((item, index) => (
+        <div key={index} className="card-list">
+          <Image src={item.photoUrl} alt={item.name} width={50} height={50} />
+          <div className="patient">
+            <div className="patient-detail">
+              <h3 className="font-bold">{item.name}</h3>
+              <p>Sex: {item.sex} Age: {item.age}</p>
+            </div>
+            <div className="border p-2 rounded-md">{item.ticketNumber}</div>
+          </div>
+        </div>
+      ))}
+    </AccordionContent>
+  </AccordionItem>
+
+  {/* Completed Section */}
+  <AccordionItem value="item-3">
+    <AccordionTrigger className="font-bold text-secondary">Completed</AccordionTrigger>
+    <AccordionContent>
+      {filteredCompleted.map((item, index) => (
+        <div key={index} className="card-list">
+          <Image src={item.photoUrl} alt={item.name} width={50} height={50} />
+          <div className="patient">
+            <div className="patient-detail">
+              <h3 className="font-bold">{item.name}</h3>
+              <p>Sex: {item.sex} Age: {item.age}</p>
+            </div>
+            <div className="border p-2 rounded-md">{item.ticketNumber}</div>
+          </div>
+        </div>
+      ))}
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
+
+    </div>
 
           <div className="h-full w-full p-4 pb-[10%]">
             <div className="flex flex-row justify-between items-center mb-4">
