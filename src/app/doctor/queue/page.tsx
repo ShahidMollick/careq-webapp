@@ -52,6 +52,9 @@ const AppointmentPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [appointments, setAppointments] = useState(data);
+  const [totalConsulted, setTotalConsulted] = useState(appointments.completed.length);  // Track total consulted
+  const [consultationFinished, setConsultationFinished] = useState(false); // Track if consultation is finished
+
 
   // console.log("appointments fetched in queue page: ", appointments);
 
@@ -68,56 +71,111 @@ const AppointmentPage: React.FC = () => {
       sectionData.filter((item) =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    
  
+  // const filteredServing = filterData(data.serving);
+  // console.log("filteredServing: ", filteredServing);
+  // console.log("servingid", filteredServing[0]?.id);
+  // const filteredWaiting = filterData(data.waiting);
+  // const filteredCompleted = filterData(data.completed);4
+  const filteredServing = filterData(appointments.serving);
+  const filteredWaiting = filterData(appointments.waiting);
+  const filteredCompleted = filterData(appointments.completed);
+  
 
-  const filteredServing = filterData(data.serving);
-const filteredWaiting = filterData(data.waiting);
-const filteredCompleted = filterData(data.completed);
+
+  // const handleCallNext = () => {
+  //   dispatch(callNextPatient())
+  //     .unwrap()
+  //     .then(() => {
+  //       toast.success("Next patient called successfully");
+  //       console.log("Successfully called next patient");
+  //       dispatch(fetchTodayAppointmentsByDoctor());
+  //     })
+  //     .catch((error) => {
+  //       toast.error("Failed to call next patient");
+  //       console.error("Failed to call next patient:", error);
+  //     });
+  // };
+
+  
+  
+  // const finishConsultation = () => {
+  //   dispatch(completeConsultation())
+  //     .unwrap()
+  //     .then(() => {
+  //       toast.success("Consultation completed successfully");
+  //       console.log("Successfully finished consultation");
+  //       dispatch(fetchTodayAppointmentsByDoctor());
+  //     })
+  //     .catch((error) => {
+  //       toast.error("Failed to finish consultation");
+  //       console.error("Failed to finish consultation:", error);
+  //     });
+  // };
+
+  // useEffect(() => {
+  //     dispatch(fetchTodayAppointmentsByDoctor());
+  // }, []);
 
   const handleCallNext = () => {
     if (appointments.waiting.length > 0) {
-      // If there's a patient being served, move them to completed
-      const currentServing = appointments.serving[0];
-      const nextPatient = appointments.waiting[0];
+      const currentServing = appointments.serving[0]; // Get the current patient from serving
+      const nextPatient = appointments.waiting[0]; // Get the next patient from waiting
       const newCompleted = currentServing ? [...appointments.completed, currentServing] : [...appointments.completed];
-      
+  
+      // Move the next patient from waiting to serving and add the current serving patient to completed
       setAppointments({
         ...appointments,
-        serving: [nextPatient],
-        waiting: appointments.waiting.slice(1),
-        completed: newCompleted,
+        serving: [nextPatient], // Move the next patient to serving
+        waiting: appointments.waiting.slice(1), // Remove the first patient from waiting
+        completed: newCompleted, // Add the current serving patient to completed list
       });
+  
+      setConsultationFinished(false);  // Reset consultationFinished to false when calling next patient
       toast.success("Next patient called successfully");
     } else {
       toast.error("No patients in the waiting list.");
     }
   };
+  
+  
+  // Disable the "Next Patient" button if there's a patient in serving
+  const isNextPatientButtonDisabled = appointments.serving.length > 0;
+  
+  
+  
+  
+  
+  
+  
+  
 
   // Finish consultation function: Move the current serving patient to completed and update the serving section
   const finishConsultation = () => {
     if (appointments.serving.length > 0) {
-      const completedPatient = appointments.serving[0];
-      const newCompleted = [...appointments.completed, completedPatient];
-      if (appointments.waiting.length > 0) {
-        const nextPatient = appointments.waiting[0];
-        setAppointments({
-          ...appointments,
-          serving: [nextPatient],
-          waiting: appointments.waiting.slice(1), // Remove the first patient from waiting
-          completed: newCompleted,
-        });
-      } else {
-        setAppointments({
-          ...appointments,
-          serving: [],
-          completed: newCompleted,
-        });
-      }
+      const completedPatient = appointments.serving[0]; // Get the first patient from serving
+      const newCompleted = [...appointments.completed, completedPatient]; // Move patient to completed
+  
+      // Empty the serving list
+      setAppointments({
+        ...appointments,
+        serving: [], // Empty the serving list
+        completed: newCompleted, // Add the completed patient to completed list
+      });
+  
+      setTotalConsulted(totalConsulted + 1); // Increment totalConsulted by 1
+      setConsultationFinished(true); // Mark consultation as finished
       toast.success("Consultation completed successfully");
     } else {
       toast.error("No patient is currently being served.");
     }
   };
+  
+  
+  
+  
+  
 
   return (
     <div className="main-container">
@@ -131,7 +189,7 @@ const filteredCompleted = filterData(data.completed);
 </div>
 
 <div className="md text-sm w-full text-black text-center font-bold p-2 border border-solid rounded-lg border-slate-500/[0.37]">
-  Total Consulted: {lastTicketNumber}
+  Total Consulted: {totalConsulted} {/* Display totalConsulted */}
 </div>
 
       </div>
@@ -380,11 +438,16 @@ const filteredCompleted = filterData(data.completed);
                 Finish Consultation
               </Button>
               <Button
-                className="bg-[#16477240] w-[150px]"
-                onClick={handleCallNext}
-              >
-                Next Patient
+  className={`w-[150px] ${consultationFinished && appointments.waiting.length > 0 ? 'bg-[#164772]' : 'bg-[#16477240]'}`}
+  onClick={handleCallNext}
+  disabled={isNextPatientButtonDisabled} // Disable the button if serving list is not empty
+>
+  Next Patient
               </Button>
+
+
+
+
             </div>
           </div>
         </div>
