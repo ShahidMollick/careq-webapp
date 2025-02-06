@@ -69,49 +69,10 @@ const AppointmentPage: React.FC = () => {
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
  
-  // const filteredServing = filterData(data.serving);
-  // console.log("filteredServing: ", filteredServing);
-  // console.log("servingid", filteredServing[0]?.id);
-  // const filteredWaiting = filterData(data.waiting);
-  // const filteredCompleted = filterData(data.completed);4
+
   const filteredServing = filterData(data.serving);
 const filteredWaiting = filterData(data.waiting);
 const filteredCompleted = filterData(data.completed);
-
-
-  // const handleCallNext = () => {
-  //   dispatch(callNextPatient())
-  //     .unwrap()
-  //     .then(() => {
-  //       toast.success("Next patient called successfully");
-  //       console.log("Successfully called next patient");
-  //       dispatch(fetchTodayAppointmentsByDoctor());
-  //     })
-  //     .catch((error) => {
-  //       toast.error("Failed to call next patient");
-  //       console.error("Failed to call next patient:", error);
-  //     });
-  // };
-
-  
-  
-  // const finishConsultation = () => {
-  //   dispatch(completeConsultation())
-  //     .unwrap()
-  //     .then(() => {
-  //       toast.success("Consultation completed successfully");
-  //       console.log("Successfully finished consultation");
-  //       dispatch(fetchTodayAppointmentsByDoctor());
-  //     })
-  //     .catch((error) => {
-  //       toast.error("Failed to finish consultation");
-  //       console.error("Failed to finish consultation:", error);
-  //     });
-  // };
-
-  // useEffect(() => {
-  //     dispatch(fetchTodayAppointmentsByDoctor());
-  // }, []);
 
   const handleCallNext = () => {
     if (appointments.waiting.length > 0) {
