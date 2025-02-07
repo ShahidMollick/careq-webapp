@@ -5,7 +5,7 @@ import { useToast } from "@/components/hooks/use-toast";
 
 import { toast } from "sonner";
 import { ToastAction } from "@/components/ui/toast";
-import { useState } from "react";
+import { useState ,useEffect} from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +62,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+
   CardFooter,
   CardHeader,
   CardTitle,
@@ -69,65 +70,30 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// type Doctor = {
+//   id: number;
+//   name: string;
+//   specialty: string;
+//   phone: string;
+//   email: string;
+//   about:
+//  string;
+//   schedule: { day: string; timings: string; amount: string }[];
+//   status: "Not yet started" | "Consulting" | "Break";
+//   profilePic: string;
+// };
 type Doctor = {
-  id: number;
+  id: string; // Change from `number` to `string` if the backend uses string IDs
   name: string;
   specialty: string;
-  phone: string;
+  phoneNumber: string;
   email: string;
-  description: string;
-  schedule: { day: string; timings: string; amount: string }[];
+  fees: number;
+  about: string;  
+  schedule: ScheduleRow[];
   status: "Not yet started" | "Consulting" | "Break";
-  profilePic: string;
+  profilePhoto: string;
 };
-
-const initialDoctors: Doctor[] = [
-  {
-    id: 1,
-    name: "Dr. Shahid Mollick",
-    specialty: "Cardiologist",
-    phone: "9987678896",
-    email: "shahidmollick13@gmail.com",
-    description:
-      "Dr. Shahid is an experienced cardiologist with over 15 years of expertise in treating heart diseases.",
-    schedule: [
-      { day: "Mon", timings: "9AM - 12PM", amount: "Rs. 500" },
-      { day: "Wed", timings: "2PM - 5PM", amount: "Rs. 450" },
-    ],
-    status: "Consulting",
-    profilePic: "/doctor.svg",
-  },
-  {
-    id: 2,
-    name: "Dr. Anjali Mehta",
-    specialty: "Neurologist",
-    phone: "9876543210",
-    email: "anjali.mehta@gmail.com",
-    description:
-      "Dr. Anjali specializes in neurology and has successfully treated complex brain disorders.",
-    schedule: [
-      { day: "Tue", timings: "10AM - 1PM", amount: "Rs. 600" },
-      { day: "Thu", timings: "3PM - 6PM", amount: "Rs. 550" },
-    ],
-    status: "Not yet started",
-    profilePic: "/doctor.svg",
-  },
-  {
-    id: 3,
-    name: "Dr. Ravi Kapoor",
-    specialty: "Orthopedic",
-    phone: "9765432101",
-    email: "ravi.kapoor@gmail.com",
-    description:
-      "Dr. Ravi is a skilled orthopedic surgeon with a focus on bone injuries and joint replacement.",
-    schedule: [
-      { day: "Fri", timings: "9AM - 11AM", amount: "Rs. 700" },
-      { day: "Sat", timings: "11AM - 2PM", amount: "Rs. 650" },
-    ],
-    status: "Break",
-    profilePic: "/doctor.svg",
-  },
-];
 
 interface ScheduleRow {
   id: string;
@@ -163,7 +129,7 @@ interface DoctorProfile {
   address?: string;
   languages?: string[];
   experience?: number;
-  profilePicture?: string;
+  profilePhoto?: string;
   images?: string[];
   about?: string;
   fees?: number;
@@ -175,9 +141,10 @@ export default function DoctorsTable() {
   const [showDoctorForm, setShowDoctorForm] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   const [cases, setCase] = useState(false);
-  const [doctors, setDoctors] = useState(initialDoctors);
+  
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState("");
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctors, setSelectedDoctors] = useState<number[]>([]);
   const [selectedDay, setSelectedDay] = useState<string>("All");
   const { toast } = useToast();
@@ -205,27 +172,55 @@ export default function DoctorsTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     firstName: initialValues?.name?.split(" ")[0] || "",
-    LicenseNumber: initialValues?.name?.split(" ")[1] || "",
+    licenseNumber: initialValues?.name?.split(" ")[1] || "",
     specialty: initialValues?.specialty || "",
     experience: initialValues?.experience || 0,
     about: initialValues?.about || "",
     phoneNumber: initialValues?.phoneNumber || "",
     qualification: initialValues?.qualification || "",
-    licenseNumber: initialValues?.licenseNumber || "",
     address: initialValues?.address || "",
     fees: initialValues?.fees || 0,
     email: initialValues?.email || "",
+    profilePhoto: initialValues?.profilePhoto || "",
   });
 
+  const fetchDoctors = async () => {
+    try {
+      const facilityId = localStorage.getItem("selectedFacilityId");
+      if (!facilityId) {
+        throw new Error("Facility ID not found");
+      }
+
+      const response = await apiClient.get(`/doctor/facility/${facilityId}`);
+      setDoctors(response.data);
+    } catch (err) {
+      setError("Failed to fetch doctors");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  fetchDoctors();
   const [error, setError] = useState<string | null>(null);
 
+  // const filteredDoctors = doctors.filter((doctor) => {
+  //   const doctorName = doctor.name || "";
+  //   const matchesSearch = doctorName
+  //     .toLowerCase()
+  //     .includes(search.toLowerCase());
+  //   const matchesDay =
+  //     selectedDay === "All" ||
+  //     (doctor.schedule && doctor.schedule.some((schedule) => schedule.day === selectedDay));
+  //   return matchesSearch && matchesDay;
+  // });
+
   const filteredDoctors = doctors.filter((doctor) => {
-    const matchesSearch = doctor.name
+    const matchesSearch = (doctor.name || "")
       .toLowerCase()
       .includes(search.toLowerCase());
     const matchesDay =
       selectedDay === "All" ||
-      doctor.schedule.some((schedule) => schedule.day === selectedDay);
+      (doctor.schedule && doctor.schedule.some((schedule) => schedule.day === selectedDay));
     return matchesSearch && matchesDay;
   });
 
@@ -329,7 +324,8 @@ export default function DoctorsTable() {
         case "USER_FOUND_BUT_NOT_DOCTOR":
           toast({
             title: "User found but not a doctor",
-            description: "The user exists, but no doctor profile found.",
+            about:
+             "The user exists, but no doctor profile found.",
             action: (
               <ToastAction altText="Proceed to create profile">
                 Proceed
@@ -360,12 +356,13 @@ export default function DoctorsTable() {
           setFormData({
             firstName: response.data?.name || "",
             about: doctorProfile?.about || "",
-            LicenseNumber: doctorProfile?.licenseNumber || "",
             phoneNumber: doctorProfile?.phoneNumber || "",
-            profilePhoto: doctorProfile?.profilePhoto || "",
-            specialty: doctorProfile?.specialty || "",
+            qualification: doctorProfile?.qualification || "",
+            address: doctorProfile?.address || "",
             fees: doctorProfile?.fees || 500,
-          });
+            email: doctorProfile?.email || "",
+            profilePhoto: doctorProfile?.profilePhoto || "",
+            });
           setShowDoctorForm(true);
           setStep(1);
           setCardHeaderText("Doctor Profile Found");
@@ -376,7 +373,8 @@ export default function DoctorsTable() {
         default:
           toast({
             title: "Unknown error",
-            description:
+            about:
+
               "An unknown error occurred while validating the doctor.",
             action: <ToastAction altText="Try again">Try again</ToastAction>,
           });
@@ -395,7 +393,8 @@ export default function DoctorsTable() {
       }
       toast({
         title: "Error",
-        description:
+        about:
+
           (error as any).response?.data?.message ||
           "Failed to validate the doctor. Please try again.",
         action: <ToastAction altText="Try again">Try again</ToastAction>,
@@ -430,7 +429,7 @@ export default function DoctorsTable() {
       const doctorData = {
         email: email,
         name: formData.firstName,
-        licenseNumber: formData.LicenseNumber,
+        licenseNumber: formData.licenseNumber,
         specialty: formData.specialty,
         phoneNumber: formData.phoneNumber,
         profilePhoto: profileImage, // Just pass the image URL directly
@@ -451,7 +450,8 @@ export default function DoctorsTable() {
         setInitialValues(response.data);
         toast({
           title: "Success",
-          description: "Doctor profile created successfully",
+          about:
+           "Doctor profile created successfully",
         });
       }
     } catch (err) {
@@ -490,7 +490,7 @@ export default function DoctorsTable() {
     if (selectedDoctors.length === filteredDoctors.length) {
       setSelectedDoctors([]);
     } else {
-      setSelectedDoctors(filteredDoctors.map((doctor) => doctor.id));
+      setSelectedDoctors(filteredDoctors.map((doctor) => Number(doctor.id)));
     }
   };
 
@@ -500,13 +500,13 @@ export default function DoctorsTable() {
 
   const handleDeleteSelected = () => {
     setDoctors((prev) =>
-      prev.filter((doctor) => !selectedDoctors.includes(doctor.id))
+      prev.filter((doctor) => !selectedDoctors.includes(Number(doctor.id)))
     );
     setSelectedDoctors([]);
   };
 
   const handleDeleteDoctor = (id: number) => {
-    setDoctors((prev) => prev.filter((doctor) => doctor.id !== id));
+    setDoctors((prev) => prev.filter((doctor) => doctor.id !== String(id)));
   };
 
   const ErrorMessage = () =>
@@ -958,11 +958,11 @@ export default function DoctorsTable() {
                                         initialValues?.name && (
                                         <li>Name: {formData.firstName} </li>
                                       )}
-                                      {formData.LicenseNumber !==
+                                      {formData.licenseNumber !==
                                         initialValues?.name && (
                                         <li>
                                           License Number:{" "}
-                                          {formData.LicenseNumber}
+                                          {formData.licenseNumber}
                                         </li>
                                       )}
                                       {formData.specialty !==
@@ -1092,14 +1092,14 @@ export default function DoctorsTable() {
                 <TableCell>
                   <Checkbox
                     aria-label={`Select ${doctor.name}`}
-                    checked={selectedDoctors.includes(doctor.id)}
-                    onCheckedChange={() => toggleSelectDoctor(doctor.id)}
+                    checked={selectedDoctors.includes(Number(doctor.id))}
+                    onCheckedChange={() => toggleSelectDoctor(Number(doctor.id))}
                   />
                 </TableCell>
                 <TableCell>{index + 1}</TableCell>
                 <TableCell className="flex items-center gap-2">
                   <Image
-                    src={doctor.profilePic}
+                    src={doctor.profilePhoto}
                     alt={doctor.name}
                     width={30}
                     height={30}
@@ -1108,7 +1108,7 @@ export default function DoctorsTable() {
                   {doctor.name}
                 </TableCell>
                 <TableCell>{doctor.specialty}</TableCell>
-                <TableCell>{doctor.phone}</TableCell>
+                <TableCell>{doctor.phoneNumber}</TableCell>
                 <TableCell>{doctor.email}</TableCell>
                 <TableCell>
                   <span
@@ -1144,18 +1144,19 @@ export default function DoctorsTable() {
                           </SheetHeader>
                           <div className="flex flex-col my-4 w-full items-center">
                             <Image
-                              src={doctor.profilePic}
+                              src={doctor.profilePhoto}
                               alt={doctor.name}
                               width={200}
                               height={200}
                               className="rounded-full mb-2"
                             />
                             <p className="text-sm text-center mb-4">
-                              {doctor.description}
+                              {doctor.about}
+
                             </p>
                             <div className="text-sm mb-4">
                               <p>
-                                <strong>Phone:</strong> {doctor.phone}
+                                <strong>Phone:</strong> {doctor.phoneNumber}
                               </p>
                               <p>
                                 <strong>Email:</strong> {doctor.email}
@@ -1176,25 +1177,25 @@ export default function DoctorsTable() {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {doctor.schedule.map((item, index) => (
+                                  {/* {doctor.schedule.map((item, index) => (
                                     <TableRow key={index}>
                                       <TableCell>{item.day}</TableCell>
                                       <TableCell>{item.timings}</TableCell>
                                       <TableCell>{item.amount}</TableCell>
                                     </TableRow>
-                                  ))}
+                                  ))} */}
                                 </TableBody>
                               </Table>
                             </div>
                           </div>
                         </SheetContent>
                       </Sheet>
-                      <Button
+                        <Button
                         variant="destructive"
-                        onClick={() => handleDeleteDoctor(doctor.id)}
-                      >
+                        onClick={() => handleDeleteDoctor(Number(doctor.id))}
+                        >
                         Delete
-                      </Button>
+                        </Button>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
