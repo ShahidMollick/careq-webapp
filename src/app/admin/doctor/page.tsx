@@ -198,17 +198,6 @@ export default function DoctorsTable() {
   fetchDoctors();
   const [error, setError] = useState<string | null>(null);
 
-  // const filteredDoctors = doctors.filter((doctor) => {
-  //   const doctorName = doctor.name || "";
-  //   const matchesSearch = doctorName
-  //     .toLowerCase()
-  //     .includes(search.toLowerCase());
-  //   const matchesDay =
-  //     selectedDay === "All" ||
-  //     (doctor.schedule && doctor.schedule.some((schedule) => schedule.day === selectedDay));
-  //   return matchesSearch && matchesDay;
-  // });
-
   const filteredDoctors = doctors.filter((doctor) => {
     const matchesSearch = (doctor.name || "")
       .toLowerCase()
@@ -269,25 +258,6 @@ export default function DoctorsTable() {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
     setIsModified(true); // Mark as modified
   };
-
-// const fetchDoctors = async () => {
-//   try {
-//     const facilityId = localStorage.getItem("selectedFacilityId");
-//     if (!facilityId) {
-//       throw new Error("Facility ID not found");
-//     }
-
-//     const response = await apiClient.get(`/doctor/facility/${facilityId}`);
-//     setDoctors(response.data);
-//   } catch (err) {
-//     setError("Failed to fetch doctors");
-//     console.error(err);
-//   } finally {
-//     setIsLoading(false);
-//   }
-// };
-
-
 
   const handleAddDoctor = async () => {
     setIsLoadings(true);
@@ -635,11 +605,11 @@ export default function DoctorsTable() {
                                   />
                                 </div>
                                 <div className="flex flex-col gap-2 w-1/2">
-                                  <Label htmlFor="LicenseNumber">
+                                  <Label htmlFor="licenseNumber">
                                     License Number
                                   </Label>
                                   <Input
-                                    id="LicenseNumber"
+                                    id="licenseNumber"
                                     placeholder="Enter your License Number"
                                     value={formData.licenseNumber}
                               
@@ -1039,11 +1009,11 @@ export default function DoctorsTable() {
                 <TableCell>{index + 1}</TableCell>
                 <TableCell className="flex items-center gap-2">
                   <Image
-                    src={doctor.profilePhoto}
-                    alt={doctor.name}
-                    width={30}
-                    height={30}
-                    className="rounded-full"
+                  src="/doctor.svg"
+                  alt={doctor.name}
+                  width={30}
+                  height={30}
+                  className="rounded-full"
                   />
                   {doctor.name}
                 </TableCell>
@@ -1075,23 +1045,23 @@ export default function DoctorsTable() {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <Sheet>
-                        <SheetTrigger>
-                          <Button variant="ghost">View profile</Button>
-                        </SheetTrigger>
-                        <SheetContent>
-                          <SheetHeader>
-                            <SheetTitle>{doctor.name}'s Profile</SheetTitle>
-                          </SheetHeader>
-                          <div className="flex flex-col my-4 w-full items-center">
-                            <Image
-                              src={doctor.profilePhoto}
-                              alt={doctor.name}
-                              width={200}
-                              height={200}
-                              className="rounded-full mb-2"
-                            />
-                            <p className="text-sm text-center mb-4">
-                              {doctor.about}
+                                              <SheetTrigger asChild>
+                                                <Button variant="ghost">View profile</Button>
+                                              </SheetTrigger>
+                                              <SheetContent>
+                                                <SheetHeader>
+                                                  <SheetTitle>{doctor.name}'s Profile</SheetTitle>
+                                                </SheetHeader>
+                                                <div className="flex flex-col my-4 w-full items-center">
+                                                  <Image
+                                                    src="/doctor.svg"
+                                                    alt={doctor.name}
+                                                    width={200}
+                                                    height={200}
+                                                    className="rounded-full mb-2"
+                                                  />
+                                                  <p className="text-sm text-center mb-4">
+                                                    {doctor.about}
 
                             </p>
                             <div className="text-sm mb-4">
