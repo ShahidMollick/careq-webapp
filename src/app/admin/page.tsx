@@ -156,7 +156,8 @@ export default function QueueManagement() {
           gender: "male", // Default gender
           dateOfBirth: "",
         });
-        setVerifiedPatient(newPatient);
+        const i= newPatient;
+        setVerifiedPatient(i);
       }
     } catch (error) {
       setError("Error verifying patient. Please try again.");
