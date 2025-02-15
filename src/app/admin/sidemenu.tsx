@@ -41,14 +41,14 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
   return (
     <Button
       variant="ghost"
-      className={`flex justify-start px-2 py-[6px] w-full ${
+      className={`flex justify-start items-center p-2 ${
         isActive ? "bg-white/10" : "hover:bg-white/5"
       }`}
+      size="icon"
     >
       <Link href={href} passHref>
-        <div className="dashboardIcons flex items-center">
+        <div className="flex justify-center items-center">
           {icon}
-          <p className="text-white text-sm ">{label}</p>
         </div>
       </Link>
     </Button>
@@ -57,7 +57,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-[250px] justify-between px-2 py-4 pb-6 flex flex-col gap-8 ">
+    <div className="w-[70px] justify-between align-middle items-center px-2 py-4 pb-6 flex flex-col gap-8 ">
       <div className="flex flex-col gap-8 ">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-row items-center">
@@ -65,93 +65,47 @@ const Sidebar: React.FC = () => {
               src="/circle-logo.svg"
               alt="icon"
               className="mr-2"
-              width={28}
-              height={28}
+              width={32}
+              height={32}
             />
-            <div className=" text-white font-black text-2xl">
-              Care<span className="text-2xl text-primary">Q</span>
-            </div>
           </div>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant={"ghost"} size={"icon"}>
-                <LogOut size={24} className="text-white font-bold" />
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Are you sure you want to log out?</DialogTitle>
-                <DialogDescription>
-                  You will be signed out and returned to the login page. Any
-                  unsaved work might be lost.
-                </DialogDescription>
-              </DialogHeader>
-
-              <DialogFooter>
-                <DialogClose>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Link href="/" passHref>
-                  <Button variant="destructive">Log out</Button>
-                </Link>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Menu options */}
         <div className="flex flex-col w-full">
           <SidebarItem
             href="/admin"
-            icon={<Home size={24} className="text-white w-24" />}
-            label="Dashboard"
-          />
-          <SidebarItem
-            href="/admin/analytics"
-            icon={<ChartLine size={24} className="text-white" />}
-            label="Analytics"
-          />
-
-          <div className="text-[13px] cursor-default text-white text-opacity-70 font-bold my-2 ">
-            Patient Management
-          </div>
-
-
-          <SidebarItem
-            href="/admin/appointments"
-            icon={<Stethoscope size={24} className="text-white" />}
-            label="All Appointments"
-          />
-          <SidebarItem
-            href="/admin/followUp"
-            icon={<Calendar size={24} className="text-white" />}
-            label="Follow Up Patients"
-          />
-          <div className="text-[13px] cursor-default text-white text-opacity-70 font-bold my-2 ">
-            Staff Management
-          </div>
-          <SidebarItem
-            href="/admin/doctor"
-            icon={<Calendar size={24} className="text-white" />}
-            label="Doctor"
-          />
-          <SidebarItem
-            href="/admin/receptionist"
-            icon={<Calendar size={24} className="text-white" />}
-            label="Receptionist"
+            icon={<Home width={32} height={32} className="text-white w-full" />}
+            label=""
           />
         </div>
       </div>
-      <div>
-        <Separator className="bg-white bg-opacity-20 mb-2" />
-        <SidebarItem
-          href="/admin/setting"
-          icon={<Settings size={24} className="text-white" />}
-          label="Settings"
-        />
-      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant={"ghost"} size="icon" >
+            <LogOut size={32} className="text-white font-bold" />
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure you want to log out?</DialogTitle>
+            <DialogDescription>
+              You will be signed out and returned to the login page. Any unsaved
+              work might be lost.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <DialogClose>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Link href="/" passHref>
+              <Button variant="destructive">Log out</Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -4,10 +4,13 @@
 @tailwind utilities;
 
 body {
-  font-family: Inter;
+  font-family: "Poppins";
   font-size: medium;
 }
-
+*{
+  font-family: "Poppins";
+  font-size: medium;
+}
 @layer base {
   :root {
     --green-gradient:  linear-gradient(174deg, rgba(23, 194, 123, 0.48) -66.43%, #FFF 90.89%);

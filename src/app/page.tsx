@@ -2,98 +2,75 @@
 import Cookies from "js-cookie";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import apiClient from "@/utils/apiClient"; // Import the API client
-import { fetchUserRoles } from "@/utils/apiClient";
-import Link from "next/link";
+import apiClient from "@/utils/apiClient"; // Import API client
+import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
 import { setUserRoles } from "@/app/redux/userRolesSlice";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { jwtDecode } from "jwt-decode";
-import { Popover } from "@/components/ui/popover";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
-import { Dialog } from "@radix-ui/react-dialog";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const dispatch = useDispatch();
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(""); // Clear previous errors
     setLoading(true);
+
     try {
+      console.log("🔄 Attempting login...");
       const response = await apiClient.post("/auth/login", { email, password });
-      const { accessToken } = response.data;
-      const decodedToken = jwtDecode(accessToken);
-      console.log(decodedToken);
-      Cookies.set("userEmail", String(decodedToken?.email));
-      localStorage.setItem("userEmail", String(decodedToken?.email));
 
-      const userID = String(decodedToken.sub);
-      console.log(`UserID received`);
-
-      // Store token securely
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("userID", userID);
-
-      // Fetch user roles
-      const roles = await apiClient.get(`/user-facility-roles/${userID}`);
-      const data = roles.data;
-      console.log(`Roles received: ${JSON.stringify(data, null, 2)}`);
-      console.log("Length of facility", data.length);
-
-      if (data.length > 0) {
-        // Store roles in Redux
-        dispatch(setUserRoles(data));
-        // Inside handleLogin function after user logs in:
-        const selectedFacility = data[0].facility;
-        localStorage.setItem("selectedFacilityId",selectedFacility.id)
-        console.log("Complete facility data:", selectedFacility);
-        console.log("Schedules:", selectedFacility.schedules);
-
-        const selectedRole = data[0].role.name;
-        // Store in cookies - stringify the complete facility object
-        Cookies.set("selectedFacility", JSON.stringify(selectedFacility), {
-          // Ensure we're not truncating the data
-          secure: true,
-          sameSite: "strict",
-        });
-        Cookies.set("selectedRole", selectedRole);
-
-        const primaryRole = data[0].role.name; // Assume the first role is primary
-        console.log(primaryRole);
-
-        if (primaryRole === "Admin") {
-          router.push("/admin");
-        } else if (primaryRole === "Doctor") {
-          router.push("/doctor");
-        } else {
-          router.push("/other-role"); // Handle other roles
-        }
-      } else {
-        // Handle the case where no roles are assigned
-
-        router.push("/facility-reg");
+      if (!response.data || !response.data.access_token) {
+        throw new Error("Invalid response from server");
       }
-    } catch (err) {
-      // This will only catch network-related or unexpected errors
-      setError(
-        err.response?.data?.message || "Login failed. Please try again."
-      );
+
+      const accessToken = response.data.access_token;
+      console.log("✅ Token received:", accessToken);
+
+      // Decode token to extract user details
+      const decodedToken = jwtDecode(accessToken);
+      console.log("🔍 Decoded Token:", decodedToken);
+
+      // Extract user details safely
+      const userID = decodedToken.id || "";
+      console.log(`✅ UserID received: ${userID}`);
+
+      // Store JWT securely in HTTP-only cookie
+      Cookies.set("accessToken", accessToken, { expires: 1, secure: true });
+
+      // Store user ID securely in Redux state
+      dispatch(setUserRoles({ userID, email }));
+
+      console.log("✅ Login successful! Redirecting...");
+
+      // Redirect to dashboard or panel
+      router.push("/admin");
+
+    } catch (err: any) {
+      console.error("❌ Login Error:", err);
+
+      // Handle error messages properly
+      const errorMessage =
+        err.response?.data?.message ||
+        "Login failed. Please check your credentials and try again.";
+
+      setError(errorMessage);
     } finally {
-      setLoading(false); // Hide loading state
+      setLoading(false);
     }
   };
 
@@ -102,16 +79,15 @@ export default function LoginPage() {
       <div className="flex-grow flex items-center justify-center">
         <Card className="w-[400px] mt-3">
           <CardHeader>
-            <CardTitle className="text-lg text-secondary text-center">
+            <CardTitle className="text-lg text-secondary">
               Login to Your Clinic
             </CardTitle>
-            <CardDescription className="text-center text-black">
+            <CardDescription className="text-black">
               Enter your email and password to access your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              // Show loader while authenticating
               <div className="flex flex-col justify-center items-center h-40">
                 <div className="animate-spin-fast rounded-full mb-1 h-10 w-10 border-t-2 border-b-2 border-primary"></div>
                 <div>Authenticating...</div>
@@ -160,23 +136,11 @@ export default function LoginPage() {
               </form>
             )}
           </CardContent>
-          <CardFooter className="flex flex-col ">
-            <div className="text-sm text-center">
-              Don't have your clinic registered?{" "}
-              <Link
-                href="/create-account"
-                className="text-primary font-bold hover:underline"
-              >
-                Create account
-              </Link>
-            </div>
-          </CardFooter>
         </Card>
       </div>
       <footer className="w-full flex items-center justify-center py-4">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-600">© 2025 </span>
-
           <img src="/logo.png" alt="Company Logo" className="h-7" />
           <span className="text-sm text-gray-600">All rights reserved.</span>
         </div>

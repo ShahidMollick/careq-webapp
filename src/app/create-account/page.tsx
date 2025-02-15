@@ -1,42 +1,58 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+"use client"
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
+import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Loader2 } from "lucide-react"; // For loading animation
 
-export default function EmailForm() {
+export default function CreateDoctorAccount() {
   const router = useRouter();
+  const [doctorName, setDoctorName] = useState("");
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [clinicSchedule, setClinicSchedule] = useState([
+    { clinicName: "", clinicAddress: "", day: "Monday", from: "", to: "", fees: "" }
+  ]);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState("register"); // Steps: 'register', 'otp'
 
+  const handleScheduleChange = (index, field, value) => {
+    const updatedSchedule = [...clinicSchedule];
+    updatedSchedule[index][field] = value;
+    setClinicSchedule(updatedSchedule);
+  };
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  const handleAddSchedule = () => {
+    setClinicSchedule([
+      ...clinicSchedule,
+      { clinicName: "", clinicAddress: "", day: "Monday", from: "", to: "", fees: "" }
+    ]);
+  };
+
+  const handleRemoveSchedule = (index) => {
+    const updatedSchedule = clinicSchedule.filter((_, i) => i !== index);
+    setClinicSchedule(updatedSchedule);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    setError("");
+    setError(""); // Reset errors
     setLoading(true);
+
+    // Prepare data in the expected structure
+    const doctorData = {
+      name: doctorName,
+      email: email,
+      mobileNumber: mobileNumber,
+      password: password,
+      specialization: specialization,
+      schedules: clinicSchedule
+    };
 
     try {
       const response = await fetch("http://localhost:5002/auth/register", {
@@ -44,11 +60,7 @@ export default function EmailForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          name: fullName,
-          password,
-        }),
+        body: JSON.stringify(doctorData),
       });
 
       if (!response.ok) {
@@ -57,66 +69,9 @@ export default function EmailForm() {
       }
 
       const data = await response.json();
-      setSuccessMessage(
-        data.message ||
-          "Registration successful! Enter the OTP sent to your email."
-      );
-      setStep("otp"); // Move to OTP step
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    setError("");
-    setLoading(true);
-
-    try {
-      const otpResponse = await fetch(
-        "http://localhost:5002/auth/verify-email",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            otp,
-          }),
-        }
-      );
-
-      if (!otpResponse.ok) {
-        const otpErrorData = await otpResponse.json();
-        throw new Error(otpErrorData.message || "OTP verification failed");
-      }
-
-      // OTP verification success, now login the user
-      const loginResponse = await fetch("http://localhost:5002/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password, // Use the password entered during registration
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        const loginErrorData = await loginResponse.json();
-        throw new Error(loginErrorData.message || "Login failed");
-      }
-
-      const loginData = await loginResponse.json();
-      localStorage.setItem("accessToken", loginData.accessToken); // Store the token
-      setSuccessMessage("OTP verified and logged in successfully!");
-      router.push("/doctor"); // Redirect to the dashboard or desired page
-    } catch (err: any) {
+      alert("Doctor account created successfully!");
+      router.push("/admin"); // Redirect to doctor dashboard or success page
+    } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -125,160 +80,172 @@ export default function EmailForm() {
 
   return (
     <div className="min-h-screen flex flex-col items-center p-5 justify-center bg-[url('/CareQ.png')]">
-      <Card className="w-[400px]">
+      <Card className="w-[600px]">
         <CardHeader>
-          <CardTitle>
-            {step === "register" ? "Create Account" : "Verify Email"}
-          </CardTitle>
-          <CardDescription>
-            {step === "register"
-              ? "Fill in your details to get started"
-              : "Enter the OTP sent to your email to verify your account"}
-          </CardDescription>
+          <CardTitle className="text-xl font-semibold">Create Doctor Account</CardTitle>
+          <CardDescription className="text-sm text-gray-600">Please fill out your details below to get started.</CardDescription>
         </CardHeader>
         <CardContent>
-          {step === "register" ? (
-            <form onSubmit={handleRegisterSubmit}>
-              <div className="space-y-4">
-                {/* Email */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="email"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Email
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Full Name */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="fullName"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Full Name
-                  </label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Your Full Name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="password"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Password
-                  </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Confirm Password
-                  </label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Re-enter your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Error Message */}
-                {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              {/* Doctor Name */}
+              <div className="space-y-2">
+                <label htmlFor="doctorName" className="text-sm font-medium text-gray-700">Doctor Name</label>
+                <Input
+                  id="doctorName"
+                  type="text"
+                  placeholder="Dr. John Doe"
+                  value={doctorName}
+                  onChange={(e) => setDoctorName(e.target.value)}
+                  required
+                />
               </div>
-              <CardFooter className="px-0 flex-1 flex-col pt-4 pb-0">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      Creating Account
-                      <div className="flex space-x-1 ml-2">
-                        <span className="dot animate-bounce"></span>
-                        <span className="dot animate-bounce animation-delay-200"></span>
-                        <span className="dot animate-bounce animation-delay-400"></span>
-                      </div>
-                    </div>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          ) : (
-            <form onSubmit={handleOtpSubmit}>
-              <div className="space-y-4">
-                {/* OTP Input */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="otp"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    OTP
-                  </label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
-                  />
-                </div>
 
-                {/* Error Message */}
-                {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-                {successMessage && (
-                  <p className="text-green-600 text-sm mt-2">
-                    {successMessage}
-                  </p>
+              {/* Email Address */}
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Mobile Number */}
+              <div className="space-y-2">
+                <label htmlFor="mobileNumber" className="text-sm font-medium text-gray-700">Mobile Number</label>
+                <Input
+                  id="mobileNumber"
+                  type="tel"
+                  placeholder="Enter your mobile number"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-gray-700">Password</label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Create a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Specialization */}
+              <div className="space-y-2">
+                <label htmlFor="specialization" className="text-sm font-medium text-gray-700">Specialization</label>
+                <Input
+                  id="specialization"
+                  type="text"
+                  placeholder="e.g., Cardiologist"
+                  value={specialization}
+                  onChange={(e) => setSpecialization(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Clinic Schedule */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-700">Clinic Schedule</h3>
+                {clinicSchedule.map((schedule, index) => (
+                  <div key={index} className="flex flex-col space-y-2">
+                    <div className="flex space-x-2">
+                      <Input
+                        type="text"
+                        placeholder="Clinic Name"
+                        value={schedule.clinicName}
+                        onChange={(e) => handleScheduleChange(index, "clinicName", e.target.value)}
+                        className="w-1/2"
+                      />
+                      <Input
+                        type="text"
+                        placeholder="Clinic Address"
+                        value={schedule.clinicAddress}
+                        onChange={(e) => handleScheduleChange(index, "clinicAddress", e.target.value)}
+                        className="w-1/2"
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Select
+                        value={schedule.day}
+                        onValueChange={(value) => handleScheduleChange(index, "day", value)}
+                        className="w-1/4"
+                      >
+                        <SelectTrigger>
+                          <span>{schedule.day}</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monday">Monday</SelectItem>
+                          <SelectItem value="Tuesday">Tuesday</SelectItem>
+                          <SelectItem value="Wednesday">Wednesday</SelectItem>
+                          <SelectItem value="Thursday">Thursday</SelectItem>
+                          <SelectItem value="Friday">Friday</SelectItem>
+                          <SelectItem value="Saturday">Saturday</SelectItem>
+                          <SelectItem value="Sunday">Sunday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="time"
+                        value={schedule.from}
+                        onChange={(e) => handleScheduleChange(index, "from", e.target.value)}
+                        className="w-1/4"
+                      />
+                      <Input
+                        type="time"
+                        value={schedule.to}
+                        onChange={(e) => handleScheduleChange(index, "to", e.target.value)}
+                        className="w-1/4"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Fees"
+                        value={schedule.fees}
+                        onChange={(e) => handleScheduleChange(index, "fees", e.target.value)}
+                        className="w-1/4"
+                      />
+                    </div>
+
+                    {/* Remove Schedule */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSchedule(index)}
+                      className="text-red-600 hover:text-red-800 mt-2"
+                    >
+                      Remove Schedule
+                    </button>
+                  </div>
+                ))}
+                <Button type="button" onClick={handleAddSchedule} className="w-full mt-4">
+                  Add Another Schedule
+                </Button>
+              </div>
+
+              {/* Error Message */}
+              {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+            </div>
+
+            <CardFooter className="px-0 flex-1 flex-col pt-4 pb-0">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="animate-spin mr-2" />
+                    Creating Account...
+                  </div>
+                ) : (
+                  "Create Account"
                 )}
-              </div>
-              <CardFooter className="px-0 flex-1 flex-col pt-4 pb-0">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? (
-                    <div className="flex items-center justify-center">
-                      Verifying
-                      <div className="flex space-x-1 ml-2">
-                        <span className="dot animate-bounce"></span>
-                        <span className="dot animate-bounce animation-delay-200"></span>
-                        <span className="dot animate-bounce animation-delay-400"></span>
-                      </div>
-                    </div>
-                  ) : (
-                    "Verify Email"
-                  )}
-                </Button>
-              </CardFooter>
-            </form>
-          )}
+              </Button>
+            </CardFooter>
+          </form>
         </CardContent>
       </Card>
     </div>

@@ -2,12 +2,9 @@
 
 import * as React from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { selectFacilityRole } from "@/app/redux/userRolesSlice";
-import { RootState } from "@/app/redux/store"; // Ensure you have the correct path
-
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 import {
   Command,
   CommandEmpty,
@@ -23,24 +20,18 @@ import {
 } from "@/components/ui/popover";
 
 export function ComboboxDemo() {
-  const dispatch = useDispatch();
-  
-  // Get facilities & selected values from Redux
-  const facilities = useSelector((state: RootState) => state.userRoles.roles);
-  const selectedFacility = useSelector((state: RootState) => state.userRoles.selectedFacility);
-  const selectedRole = useSelector((state: RootState) => state.userRoles.selectedRole);
-
   const [open, setOpen] = React.useState(false);
 
-  // Set default facility if not already selected
-  React.useEffect(() => {
-    if (!selectedFacility && facilities.length > 0) {
-      const defaultFacility = facilities[0].facility;
-      const defaultRole = facilities[0].role.name;
+  // Sample clinics (Replace this with backend data later)
+  const sampleClinics = [
+    { id: "1", name: "Heart Care Clinic", role: "Cardiologist" },
+    { id: "2", name: "Downtown Medical Center", role: "General Practitioner" },
+    { id: "3", name: "Sunrise Dental", role: "Dentist" },
+    { id: "4", name: "Neuro Clinic", role: "Neurologist" },
+  ];
 
-      dispatch(selectFacilityRole({ facility: defaultFacility, role: defaultRole }));
-    }
-  }, [facilities, selectedFacility, dispatch]);
+  // Default selected clinic
+  const [selectedClinic, setSelectedClinic] = React.useState(sampleClinics[0]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,7 +42,7 @@ export function ComboboxDemo() {
           aria-expanded={open}
           className="w-[200px] justify-between flex-row flex-nowrap"
         >
-          {selectedFacility ? selectedFacility.name : "Select Clinic"}
+          {selectedClinic ? selectedClinic.name : "Select Clinic"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -61,20 +52,20 @@ export function ComboboxDemo() {
           <CommandList>
             <CommandEmpty>No clinic found.</CommandEmpty>
             <CommandGroup>
-              {facilities.map(({ facility, role }) => (
+              {sampleClinics.map((clinic) => (
                 <CommandItem
-                  key={facility.id}
-                  value={facility.id}
+                  key={clinic.id}
+                  value={clinic.id}
                   onSelect={() => {
-                    dispatch(selectFacilityRole({ facility, role: role.name }));
+                    setSelectedClinic(clinic);
                     setOpen(false);
                   }}
                 >
-                  {facility.name}
+                  {clinic.name}
                   <Check
                     className={cn(
                       "ml-auto",
-                      selectedFacility?.id === facility.id ? "opacity-100" : "opacity-0"
+                      selectedClinic?.id === clinic.id ? "opacity-100" : "opacity-0"
                     )}
                   />
                 </CommandItem>

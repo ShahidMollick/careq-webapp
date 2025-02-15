@@ -1,384 +1,557 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useSelector, useDispatch } from "react-redux";
-import { AppDispatch } from "../redux/store";
-import { ArrowRight } from "lucide-react";
-import ClinicRegistrationDialog from "@/common/ui/ClinicRegistrationDialog";
-import {
-  selectAllAppointments,
-} from "../redux/appointmentSlice";
-import { RootState } from "../redux/store";
-import { Button } from "@/components/ui/button";
-import MetricBoxCustom from "@/components/ui/metric-box-custom";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardDescription,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { PatientGraph } from "@/components/ui/graph-card1";
+"use client"
 
-// Utility function to get the next 7 days dynamically
-const getNextSevenDays = () => {
-  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const today = new Date();
-  return Array.from({ length: 7 }).map((_, index) => {
-    const date = new Date();
-    date.setDate(today.getDate() + index);
-    const dayShort = daysOfWeek[date.getDay()];
-    const dayFull = date.toLocaleDateString("en-US", { weekday: "long" });
-    return {
-      short: dayShort,
-      full: dayFull,
-      date: date,
-      label: index === 0 ? "Today" : dayShort,
-    };
-  });
-};
+import { useState } from "react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Search, Settings2, X } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Patient, QueueSettings } from "./types"
 
-// Utility function to format time difference
-const formatTimeDifference = (milliseconds) => {
-  const totalMinutes = Math.floor(milliseconds / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  let formatted = "";
-  if (hours > 0) formatted += `${hours}h `;
-  if (minutes > 0) formatted += `${minutes}m`;
-  return formatted.trim();
-};
+export default function QueueManagement() {
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [currentPatient, setCurrentPatient] = useState<Patient | null>(null)
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [selectedPatientForCancel, setSelectedPatientForCancel] = useState<Patient | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [currentTab, setCurrentTab] = useState("live")
+  const [nextQueueNumber, setNextQueueNumber] = useState(1)
+  const [settings, setSettings] = useState<QueueSettings>({
+    scheduleStart: "17:00",
+    scheduleEnd: "22:00",
+    bookingStart: "17:00",
+    bookingEnd: "22:00",
+    onlineAppointments: true,
+  })
+  const [newPatient, setNewPatient] = useState({
+    phone: "",
+    name: "",
+    gender: "male",
+    dateOfBirth: "",
+  })
 
-const DashboardPage: React.FC = () => {
-  const dispatch: AppDispatch = useDispatch();
-  const appointments = useSelector(selectAllAppointments);
-  const totalAppointments = 46;
-  const totalWaiting = 12;
-  const totalConsulted = 34;
-  const [selectedDay, setSelectedDay] = useState("Today");
-  const [dayList, setDayList] = useState(getNextSevenDays());
-  
-  const doctors = [
-    {
-      name: "Dr. Shahid Mollick",
-      time: "09:00-11:00",
-      isOnLeave: false,
-      days: ["Today", "Mon", "Tue"],
-    },
-    {
-      name: "Dr. Aysha Khan",
-      time: "14:00-16:00",
-      isOnLeave: true,
-      days: ["Wed", "Thu"],
-    },
-    {
-      name: "Dr. Harsh Swami",
-      time: "04:00-22:00",
-      isOnLeave: false,
-      days: ["Fri", "Sat"],
-    },
-    {
-      name: "Dr. Irfan Ali",
-      time: "04:00-15:00",
-      isOnLeave: false,
-      days: ["Today", "Fri", "Sat"],
-    },
-    {
-      name: "Dr. Arushi Sharma",
-      time: "12:00-15:00",
-      isOnLeave: false,
-      days: ["Today", "Wed", "Thu"],
-    },
-  ];
+  const filteredPatients = patients.filter((patient) => {
+    const matchesSearch =
+      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || patient.phone.includes(searchQuery)
+    const matchesTab = {
+      live: ["waiting", "serving"],
+      skipped: ["skipped"],
+      completed: ["completed"],
+    }[currentTab]?.includes(patient.status)
 
-  // Helper function to get the next available consultation time
-  const getNextAvailable = (doctor) => {
-    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const today = new Date();
-    const currentDayIndex = today.getDay();
-    const currentTime = today.getTime();
-    
-    // Iterate through the next 7 days to find the next available day
-    for (let i = 0; i < 7; i++) {
-      const dayIndex = (currentDayIndex + i) % 7;
-      const dayLabel = i === 0 ? "Today" : daysOfWeek[dayIndex];
-      if (doctor.days.includes(dayLabel)) {
-        const targetDate = new Date();
-        targetDate.setDate(today.getDate() + i);
-        const [start, end] = doctor.time.split("-");
-        const startTime = new Date(targetDate);
-        const [startHours, startMinutes] = start.split(":");
-        startTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+    return matchesSearch && matchesTab
+  })
 
-        if (i === 0 && startTime.getTime() > currentTime) {
-          const timeDiff = startTime.getTime() - currentTime;
-          return `Next consultation in ${formatTimeDifference(timeDiff)}`;
-        } else {
-          const availableDayFull = targetDate.toLocaleDateString("en-US", {
-            weekday: "long",
-          });
-          const availableTime = start;
-          return `Next consultation at ${availableDayFull} at ${availableTime}`;
-        }
-      }
+  const addPatient = () => {
+    const patient: Patient = {
+      id: Math.random().toString(36).substr(2, 9),
+      queueNumber: nextQueueNumber,
+      name: newPatient.name,
+      phone: newPatient.phone,
+      age: calculateAge(newPatient.dateOfBirth),
+      gender: newPatient.gender as "male" | "female" | "other",
+      status: "waiting",
+      dateOfBirth: newPatient.dateOfBirth,
+      timeAdded: new Date(),
     }
 
-    return "No upcoming availability";
-  };
+    setPatients((prev) => [...prev, patient])
+    setNextQueueNumber((prev) => prev + 1)
+    setNewPatient({
+      phone: "",
+      name: "",
+      gender: "male",
+      dateOfBirth: "",
+    })
+  }
 
-  // Helper function to get current status based on current time
-  const getCurrentStatus = (doctor) => {
-    if (doctor.isOnLeave) {
-      return {
-        status: "Unavailable",
-        color: "bg-red-100 text-red-700",
-        type: "badge",
-        isActive: false,
-      };
+  const calculateAge = (dob: string) => {
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  const skipPatient = () => {
+    if (currentPatient) {
+      setPatients((prev) => prev.map((p) => (p.id === currentPatient.id ? { ...p, status: "skipped" } : p)))
+      setCurrentPatient(null)
+    }
+  }
+  const cancelAppointment = (patient: Patient) => {
+    setSelectedPatientForCancel(patient)
+    setCancelDialogOpen(true)
+  }
+
+  const confirmCancel = () => {
+    if (selectedPatientForCancel) {
+      setPatients((prev) =>
+        prev.filter((p) => p.id !== selectedPatientForCancel.id)
+      )
+    }
+    setCancelDialogOpen(false)
+    setSelectedPatientForCancel(null)
+  }
+
+  const autoSchedulePatient = (patient: Patient) => {
+    setPatients((prev) =>
+      prev.map((p) => (p.id === patient.id ? { ...p, status: "waiting" } : p))
+    )
+  }
+  const finishConsultation = () => {
+    if (currentPatient) {
+      setPatients((prev) =>
+        prev.map((p) => (p.id === currentPatient.id ? { ...p, status: "completed", timeCompleted: new Date() } : p)),
+      )
+      setCurrentPatient(null)
+    }
+  }
+
+  const callNextPatient = () => {
+    if (currentPatient) {
+      finishConsultation()
     }
 
-    const today = new Date();
-    const dayLabel = today.toLocaleDateString("en-US", { weekday: "short" });
-    const isTodayAvailable =
-      doctor.days.includes("Today") || doctor.days.includes(dayLabel);
-
-    if (!isTodayAvailable) {
-      const nextAvailable = getNextAvailable(doctor);
-      return { status: nextAvailable, color: "", type: "text", isActive: false };
+    const nextPatient = patients.find((p) => p.status === "waiting")
+    if (nextPatient) {
+      setPatients((prev) =>
+        prev.map((p) => (p.id === nextPatient.id ? { ...p, status: "serving", timeStarted: new Date() } : p)),
+      )
+      setCurrentPatient({ ...nextPatient, status: "serving", timeStarted: new Date() })
     }
+  }
+  // Determine the "Current Queue" number
+  const lastCompletedPatient = [...patients]
+    .filter((p) => p.status === "completed")
+    .sort((a, b) => (b.timeCompleted as any) - (a.timeCompleted as any))[0]
 
-    // Doctor is available today
-    const [start, end] = doctor.time.split("-");
-
-    const startTime = new Date();
-    const [startHours, startMinutes] = start.split(":");
-    startTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
-
-    const endTime = new Date();
-    const [endHours, endMinutes] = end.split(":");
-    endTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
-
-    const currentTime = today.getTime();
-
-    if (currentTime < startTime.getTime()) {
-      const timeDiff = startTime.getTime() - currentTime;
-      return {
-        status: `Yet to Start`,
-        color: "",
-        type: "text",
-        isActive: false,
-        next: `Next consultation in ${formatTimeDifference(timeDiff)}`,
-      };
-    } else if (
-      currentTime >= startTime.getTime() &&
-      currentTime <= endTime.getTime()
-    ) {
-      // During consultation hours
-      // Here, implement actual logic to determine if the doctor is on break
-      // For demonstration, we'll simulate with a fixed condition
-      const isOnBreak = false; // Replace with actual logic if available
-      if (isOnBreak) {
-        return {
-          status: "In Break",
-          color: "bg-yellow-200 text-yellow-800",
-          type: "badge",
-          isActive: true,
-        };
-      }
-      return {
-        status: "In Consultation",
-        color: "bg-green-200 text-green-800",
-        type: "badge",
-        isActive: true,
-      };
-    } else {
-      // After consultation hours, find next available
-      const nextAvailable = getNextAvailable(doctor);
-      return { status: nextAvailable, color: "", type: "text", isActive: false };
-    }
-  };
-
-  // Dynamic filtering based on selectedDay
-  const filteredDoctors = doctors.filter((doctor) =>
-    selectedDay === "Today"
-      ? doctor.days.includes("Today")
-      : doctor.days.includes(selectedDay)
-  );
-
-  // useEffect(() => {
-  //   const doctorId = "67684d21509a946844805041";
-  //   const hospitalId = "67680c40dc41628884bddfeb";
-  //   localStorage.setItem("doctorId", doctorId);
-  //   localStorage.setItem("hospitalId", hospitalId);
-  // }, []);
-  const roles = useSelector((state: RootState) => state.userRoles.roles);
-  const hasClinics = roles.length > 0;
-  console.log(roles);
-  console.log("the clinic lenght: ",roles.length);
-  
-
+  const currentQueueNumber = currentPatient
+    ? currentPatient.queueNumber // If serving, show current patient queue number
+    : lastCompletedPatient
+    ? lastCompletedPatient.queueNumber // If no one is serving, show last completed patient
+    : "-" // If no patients have been served yet, show "-"
   return (
-    <div className="h-full w-full">
-      {!hasClinics && <ClinicRegistrationDialog />}
-      {hasClinics && 
-      <div className="p-4 flex flex-col overflow-hidden w-full gap-4">
-        {/* Metrics Section */}
-        <div className="flex flex-row gap-3 w-full">
-          <MetricBoxCustom
-            number={totalAppointments}
-            heading="Total Appointments"
-            description="Total appointments your patients have booked for today"
-          />
-          <MetricBoxCustom
-            number={totalWaiting}
-            heading="Total Patient Waiting"
-            description="Total patients waiting for your consultation today"
-          />
-          <MetricBoxCustom
-            number={totalConsulted}
-            heading="Total Patients Consulted"
-            description="Total patients you have consulted today"
-          />
-          <MetricBoxCustom
-            number={
-              totalAppointments *
-              (appointments[0]?.doctor?.appointmentFee ?? 0)
-            }
-            heading="Total Revenue"
-            description="Total revenue you have earned today"
-          />
+    <div className="min-h-screen  overflow-x-hidden">
+
+      <div className="flex h-[calc(100vh-73px)]">
+
+        {/* Main Content */}
+        <div className="flex-1 flex">
+          <div className="flex-1 p-6">
+          <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-md font-bold text-primary">Patient Queue</h2>
+                <p className="text-sm text-muted-foreground">Information Information Information Information</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="text-sm">
+                  Current Queue <span className="font-medium">{currentQueueNumber}</span>
+                </div>
+                <div className="text-sm">
+                  Total Queue <span className="font-medium">{patients.length}</span>
+                </div>
+                <div className="text-sm">
+                  Waiting <span className="font-medium">{patients.filter((p) => p.status === "waiting").length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  className="pl-9"
+                  placeholder="Search patients..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-x-2">
+                <TabsList>
+                  <TabsTrigger value="live" className="bg-primary text-primary-foreground">
+                    Live Queue
+                  </TabsTrigger>
+                  <TabsTrigger value="skipped">Skipped Patients</TabsTrigger>
+                  <TabsTrigger value="completed">Completed</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <div className="space-y-4">
+              {currentTab === "live" && (
+                <>
+                  {currentPatient && (
+                    <Accordion type="single" collapsible className="w-full" defaultValue="serving">
+                      <AccordionItem value="serving">
+                        <AccordionTrigger className="text-sm">
+                          Currently Serving (1)
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="bg-primary-accent p-2 rounded-lg">
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                                {currentPatient.queueNumber}
+                              </div>
+                              <div className="flex-1 text-sm grid grid-cols-4">
+                                <div className="text-sm">{currentPatient.name}</div>
+                                <div className="text-sm">Phone: {currentPatient.phone}</div>
+                                <div className="text-sm">Age: {currentPatient.age}</div>
+                                <div className="text-sm">Gender: {currentPatient.gender}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+
+<Accordion type="single" collapsible className="w-full" defaultValue="waiting">
+  <AccordionItem value="waiting">
+    <AccordionTrigger className="text-sm">
+      Waiting ({filteredPatients.filter(p => p.status === "waiting").length})
+    </AccordionTrigger>
+    <AccordionContent>
+      {filteredPatients.filter(p => p.status === "waiting").length > 0 ? (
+        <div className="space-y-2">
+          {filteredPatients
+            .filter(p => p.status === "waiting")
+            .map((patient) => (
+              <div key={patient.id} className="p-2 rounded-lg grid grid-cols-6 gap-4">
+                <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                  {patient.queueNumber}
+                </div>
+                <div className="text-sm">{patient.name}</div>
+                <div className="text-sm">Phone: {patient.phone}</div>
+                <div className="text-sm">Age: {patient.age}</div>
+                <div className="text-sm">Gender: {patient.gender}</div>
+
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => cancelAppointment(patient)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
         </div>
-
-        {/* Overview Section */}
-        <div className="text-xl font-bold text-secondary">Overview</div>
-        <div className="flex flex-row gap-3 justify-around w-full h-full flex-wrap lg:flex-nowrap">
-          <PatientGraph />
-          <Card className="w-[70%] h-full overflow-hidden opacity-95">
-            {/* Card Header */}
-            <CardHeader className="flex flex-row justify-between items-center">
-              <div>
-                <CardTitle className="mb-1">Doctors</CardTitle>
-                <CardDescription>
-                  Quickly see current consultation status
-                </CardDescription>
-              </div>
-              <div>
-                <Link href="/admin/doctor" passHref>
-                  <Button variant="outline">Manage Doctors
-                  <ArrowRight className=""/>
-                  </Button>
-                  
-                </Link>
-              </div>
-            </CardHeader>
-
-            {/* Card Content */}
-            <CardContent>
-              {/* Dynamic Day Tabs */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {dayList.map((day) => (
-                  <Button
-                    key={day.label}
-                    variant={selectedDay === day.label ? "default" : "outline"}
-                    size="sm"
-                    className="text-sm rounded-full py-1 px-4"
-                    onClick={() => setSelectedDay(day.label)}
-                  >
-                    {day.label}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Doctors List */}
-              {filteredDoctors.length > 0 ? (
-                filteredDoctors.map((doctor, index) => {
-                  const { status, color, type, isActive, next } =
-                    getCurrentStatus(doctor);
-                  // Determine opacity based on whether the doctor is active
-                  const opacityClass = isActive ? "opacity-100" : "opacity-45";
-
-                  return (
-                    <CardContent
-                      key={index}
-                      className={`flex items-center mt-0 w-full justify-between px-0 mb-1 bg-white rounded-lg `}
-                      // Removed inline style for opacity
-                    >
-                      {/* Doctor Info */}
-                      <div className={`flex items-center w-48 space-x-3 ${opacityClass}`}>
-                        <Avatar>
-                          <AvatarImage
-                            src="/placeholder.png"
-                            alt="Doctor Image"
-                          />
-                          <AvatarFallback>
-                            {doctor.name
-                              .split(" ")
-                              .slice(1)
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-bold text-sm">{doctor.name}</p>
-                          <p className="text-sm text-gray-500">Cardiologist</p>
-                        </div>
-                      </div>
-
-                      {/* Doctor Time */}
-                      <p className={`text-sm text-gray-700 ${opacityClass}`}>{doctor.time}</p>
-
-                      {/* Status Display */}
-                      {type === "badge" ? (
-                        <Badge
-                          className={`justify-center rounded-full w-40 px-3 py-1 ${color}`}
-                        >
-                          {status}
-                        </Badge>
-                      ) : (
-                        <p className="text-sm italic w-40 text-center text-wrap text-gray-700">
-                          {status === "Yet to Start" && next ? (
-                            <>
-                              {status}{" "}
-                              <span className="font-bold text-wrap text-primary">
-                                {next.replace("Next consultation in ", "")}
-                              </span>
-                            </>
-                          ) : status.startsWith("Next consultation in") ? (
-                            <>
-                              Next consultation in{" "}
-                              <span className="font-bold text-wrap text-primary">
-                                {status.split("Next consultation in ")[1]}
-                              </span>
-                            </>
-                          ) : status.startsWith("Next consultation at") ? (
-                            <>
-                              Next consultation at{" "}
-                              <span className="font-bold text-wrap text-primary">
-                                {status.split("Next consultation at ")[1]}
-                              </span>
-                            </>
-                          ) : (
-                            status
-                          )}
-                        </p>
-                      )}
-                    </CardContent>
-                  );
-                })
-              ) : (
-                <p className="text-gray-500">
-                  No doctors available for {selectedDay}
-                </p>
+      ) : (
+        <div className="text-center py-4 text-muted-foreground">
+          No patients waiting in queue
+        </div>
+      )}
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
+                </>
               )}
-            </CardContent>
-          </Card>
+
+              {currentTab === "skipped" && (
+                <div>
+                  {filteredPatients.length > 0 ? (
+                    <div className="space-y-2">
+                      {filteredPatients.map((patient) => (
+                        <div key={patient.id} className="p-2 rounded-lg border flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                              {patient.queueNumber}
+                            </div>
+                            <div className="flex-1 text-sm grid grid-cols-4">
+                              <div className="text-sm">{patient.name}</div>
+                              <div className="text-sm">Phone: {patient.phone}</div>
+                              <div className="text-sm">Age: {patient.age}</div>
+                              <div className="text-sm">Gender: {patient.gender}</div>
+                            </div>
+                          </div>
+                          <Button 
+                            variant="default" 
+                            onClick={() => autoSchedulePatient(patient)}>
+                            Auto Schedule
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No skipped patients
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {currentTab === "completed" && (
+                <div>
+                  {filteredPatients.length > 0 ? (
+                    <div className="space-y-2">
+                      {filteredPatients.map((patient) => (
+                        <div key={patient.id} className="p-2 rounded-lg border">
+                          <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                              {patient.queueNumber}
+                            </div>
+                            <div className="flex-1 text-sm grid grid-cols-4">
+                              <div className="text-sm">{patient.name}</div>
+                              <div className="text-sm">Phone: {patient.phone}</div>
+                              <div className="text-sm">Age: {patient.age}</div>
+                              <div className="text-sm">Gender: {patient.gender}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No completed consultations
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Confirmation Dialog for Cancel */}
+            <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancel Appointment</DialogTitle>
+                  <DialogDescription>Are you sure you want to cancel this patient's appointment?</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Cancel</Button>
+                  <Button variant="default" onClick={confirmCancel}>Confirm</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Bottom Action Bar */}
+            <div className="fixed bottom-0 left-[72px] right-0 p-4 bg-background border-t flex items-center justify-between">
+              {currentPatient ? (
+                <>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+                      {currentPatient.queueNumber}
+                    </div>
+                    <div>
+                      <div className="font-medium">{currentPatient.name}</div>
+                      <div className="text-sm text-primary">Serving</div>
+                      <div className="text-sm text-muted-foreground">Phone Number: {currentPatient.phone}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={skipPatient}>
+                      Skip
+                    </Button>
+                    <Button variant="outline" onClick={finishConsultation}>
+                      Finish Consultation
+                    </Button>
+                    <Button variant="default" onClick={callNextPatient}>
+                      Next Patient
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full flex justify-center">
+                <Button 
+                    variant="default" 
+                    onClick={callNextPatient}
+                    disabled={!patients.some(p => p.status === "waiting")}
+                >
+                    Call Next Patient
+                </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="w-[400px] border-l p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-md font-bold text-primary">Add Patient</h2>
+                <p className="text-sm text-muted-foreground">Information Information Information Information</p>
+              </div>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Settings2 className="w-5 h-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Settings</SheetTitle>
+                  </SheetHeader>
+                  <div className="space-y-6 mt-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Schedule Window</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Information Information Information Information
+                      </p>
+                      <div className="flex gap-4">
+                        <Input
+                          type="time"
+                          value={settings.scheduleStart}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              scheduleStart: e.target.value,
+                            }))
+                          }
+                        />
+                        <span className="flex items-center">-</span>
+                        <Input
+                          type="time"
+                          value={settings.scheduleEnd}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              scheduleEnd: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Booking Window</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Information Information Information Information
+                      </p>
+                      <div className="flex gap-4">
+                        <Input
+                          type="time"
+                          value={settings.bookingStart}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              bookingStart: e.target.value,
+                            }))
+                          }
+                        />
+                        <span className="flex items-center">-</span>
+                        <Input
+                          type="time"
+                          value={settings.bookingEnd}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              bookingEnd: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Online Appointment Status</h3>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            Information Information Information Information
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.onlineAppointments}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              onlineAppointments: checked,
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium">Phone Number</label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    placeholder="+91"
+                    value={newPatient.phone}
+                    onChange={(e) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                  />
+                  <Button>Verify</Button>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <Input
+                  className="mt-1"
+                  placeholder="Enter Patient's Name"
+                  value={newPatient.name}
+                  onChange={(e) =>
+                    setNewPatient((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Gender</label>
+                  <Select
+                    value={newPatient.gender}
+                    onValueChange={(value) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        gender: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Date Of Birth</label>
+                  <Input
+                    className="mt-1"
+                    type="date"
+                    value={newPatient.dateOfBirth}
+                    onChange={(e) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        dateOfBirth: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button
+              className="w-full mt-6"
+              variant="default"
+              onClick={addPatient}
+              disabled={!newPatient.name || !newPatient.phone}
+            >
+              Add Patient
+            </Button>
+          </div>
         </div>
       </div>
-}
     </div>
-  );
-};
+  )
+}
 
-export default DashboardPage;
