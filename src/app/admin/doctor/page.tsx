@@ -2,8 +2,11 @@
 import axios from "axios";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/hooks/use-toast";
+
+import { toast } from "sonner";
 import { ToastAction } from "@/components/ui/toast";
 import { useState ,useEffect} from "react";
+
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +20,7 @@ import Image from "next/image";
 import { OctagonAlert } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { ArrowRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -136,7 +140,16 @@ interface DoctorProfile {
 
 export default function DoctorsTable() {
   const [showDoctorForm, setShowDoctorForm] = useState(false);
-  // const [doctors, setDoctors] = useState(initialDoctors);
+  const [prefilled, setPrefilled] = useState(false);
+  const [cases, setCase] = useState(false);
+
+
+  const [isClient, setIsClient] = useState(false)
+ 
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState("");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -259,9 +272,26 @@ export default function DoctorsTable() {
     setIsModified(true); // Mark as modified
   };
 
+  // const handleAddDoctor = () => {
+  //   if (email) {
+  //     setShowDoctorForm(true);
+  //     setStep(1);  // Reset to first step when adding a new doctor
+  //   } else {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please enter an email address.",
+  //       action: <ToastAction altText="Try again">Try again</ToastAction>,
+  //     });
+  //   }
+  // };
+
+  const [cardHeading, setCardHeading] = useState("Create Doctor Profile");
+
+  const [cardHeaderText, setCardHeaderText] = useState("Create Doctor Profile");
+
   const handleAddDoctor = async () => {
     setIsLoadings(true);
-    setError(null)
+    setError(null);
     try {
       const facilityId = localStorage.getItem("selectedFacilityId");
       console.log(`facility is ${facilityId}`);
@@ -285,6 +315,7 @@ export default function DoctorsTable() {
           console.log("User not found");
           setShowDoctorForm(true);
           setStep(1);
+          setCardHeaderText("Invite Doctor to Your Clinic");
           break;
 
         case "USER_FOUND_BUT_NOT_DOCTOR":
@@ -298,28 +329,55 @@ export default function DoctorsTable() {
               </ToastAction>
             ),
           });
+          
+          setFormData({
+            firstName: response.data?.name || "",
+            licenseNumber: "",
+            specialty: "",
+            experience: 0,
+            about: "",
+            phoneNumber: "",
+            qualification: "",
+            address: "",
+            fees: 500,
+            email: "",
+            profilePhoto: "",
+          });
+          setCase(false);
+          setPrefilled(true);
           setShowDoctorForm(true);
           setStep(1);
+          setCardHeaderText("Create Doctor Profile");
           break;
-        case "EXISTING_DOCTOR":
-          const doctorProfile = response.data.doctorProfile;
-          console.log("doctorProfile:", doctorProfile);
-          setInitialValues(doctorProfile);
+
+          case "EXISTING_DOCTOR":
+            const doctorProfile = response.data.doctorProfile;
+            console.log("doctorProfile:", doctorProfile);
+            setInitialValues(doctorProfile);
             setFormData({
-            firstName: doctorProfile?.name?.split(" ")[0] || "",
-            licenseNumber: doctorProfile?.licenseNumber || "",
-            specialty: doctorProfile?.specialty || "",
-            experience: doctorProfile?.experience || 0,
-            about: doctorProfile?.about || "",
-            phoneNumber: doctorProfile?.phoneNumber || "",
-            qualification: doctorProfile?.qualification || "",
-            address: doctorProfile?.address || "",
-            fees: doctorProfile?.fees || 500,
-            email: doctorProfile?.email || "",
-            profilePhoto: doctorProfile?.profilePhoto || "",
+              firstName: response.data?.name || "",
+              licenseNumber: doctorProfile?.licenseNumber || "",
+              specialty: doctorProfile?.specialty || "",
+              experience: doctorProfile?.experience || 0,
+              about: doctorProfile?.about || "",
+              phoneNumber: doctorProfile?.phoneNumber || "",
+              qualification: doctorProfile?.qualification || "",
+              address: doctorProfile?.address || "",
+              fees: doctorProfile?.fees || 500,
+              email: doctorProfile?.email || "",
+              profilePhoto: doctorProfile?.profilePhoto || "",
             });
+            setShowDoctorForm(true);
+            setStep(1);
+            setCardHeaderText("Doctor Profile Found");
+            setPrefilled(true);
+            setCase(true);
+            break;
           setShowDoctorForm(true);
           setStep(1);
+          setCardHeaderText("Doctor Profile Found");
+          setPrefilled(true);
+          setCase(true);
           break;
 
         default:
@@ -337,12 +395,10 @@ export default function DoctorsTable() {
           "Error from server:",
           error.response?.data || error.message
         );
-        // Check if the error has a message or response
         const errorMessage = error.response?.data?.message || error.message;
-        setError(errorMessage); // Set error state to display in the UI
+        setError(errorMessage);
       } else {
         console.error("Error from server:", error);
-        // Set a generic error message for UI
         setError("An unexpected error occurred. Please try again.");
       }
       toast({
@@ -372,8 +428,9 @@ export default function DoctorsTable() {
 
     try {
       const email = formData.email;
-      const facilityId = localStorage.getItem("facilityId");
-
+      const facilityId = localStorage.getItem("selectedFacilityId");
+      console.log(formData);
+      
       if (!email || !facilityId) {
         throw new Error("Email and Facility ID are required.");
       }
@@ -388,8 +445,8 @@ export default function DoctorsTable() {
         profilePhoto: profileImage, // Just pass the image URL directly
         about: formData.about,
         facilityId: facilityId,
+        fees: formData.fees
       };
-
       console.log("Sending doctor data:", doctorData);
 
       const response = await apiClient.post(
@@ -463,11 +520,14 @@ export default function DoctorsTable() {
   };
 
   const ErrorMessage = () =>
-    error ? <div className="text-red-500 text-sm flex flex-row gap-2 items-center mt-2">
-      <div>
-     < OctagonAlert size={20}/>
+    error ? (
+      <div className="text-red-500 text-sm flex flex-row gap-2 items-center mt-2">
+        <div>
+          <OctagonAlert size={20} />
+        </div>
+        {error}
       </div>
-      {error}</div> : null;
+    ) : null;
 
   return (
     <div className="w-full p-4">
@@ -477,6 +537,7 @@ export default function DoctorsTable() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-1/3"
+          
         />
         <Dialog>
           <DialogTrigger>
@@ -498,10 +559,9 @@ export default function DoctorsTable() {
             )}
 
             {!showDoctorForm && (
-              <form 
-              className="flex flex-row justify-content-center items-center rounded-md" 
-              onSubmit={
-                (e) => {
+              <form
+                className="flex flex-row justify-content-center items-center rounded-md"
+                onSubmit={(e) => {
                   e.preventDefault();
                   handleAddDoctor();
                 }}
@@ -516,6 +576,7 @@ export default function DoctorsTable() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   } // Correct way to update email in formData
+                  
                 />
                 <Button
                   color="green"
@@ -539,34 +600,51 @@ export default function DoctorsTable() {
                 </Button>
               </form>
             )}
-            {!showDoctorForm&&(
-              <ErrorMessage />
-            )
-            }
+            {!showDoctorForm && <ErrorMessage />}
 
             {showDoctorForm && (
               <div>
                 <Toaster />
 
                 <div className="w-full p-0 m-0 shadow-none outline-none border-0 ">
-                  <CardHeader className="flex items-center font-bold">
-                    {step === 1 ? "Create Doctor Profile" : "Add Schedule"}
+                  <CardHeader className="flex p-0 py-4  font-bold">
+                    {step === 1 ? (
+                      <DialogHeader className="flex flex-col align-items-center p-0 justify-content-center">
+                        <DialogTitle className="text-secondary">{cardHeaderText}</DialogTitle>{" "}
+                        {/* Dynamic header */}
+                        <p className="text-sm font-normal ">
+                          {cardHeaderText === "Invite Doctor to Your Clinic" &&
+                            "It looks the doctor isn't registered yet. Don't worry! Just send an invite and they can join your clinic right away"}
+                          {cardHeaderText === "Create Doctor Profile" &&
+                            "The user doesn’t have a doctor profile yet.Create their doctor profile so they can start practicing in your clinic."}
+                          {cardHeaderText === "Doctor Profile Found" &&
+                            "Review the profile and invite them to start practicing in your clinic!"}
+                        </p>
+                      </DialogHeader>
+                    ) : (
+                      <DialogHeader className="flex justify-start  p-0 text-start ">
+                        <DialogTitle className=" flex justify-start text-secondary text-start">
+                            Add Schedule
+                        </DialogTitle>
+              
+                      </DialogHeader>
+                    )}
                   </CardHeader>
                   <div>
                     {step === 1 && (
-                      <div className="flex items-center flex-col gap-6">
-                        <div className="w-full h-40 -z-20 absolute top-0 bg-[#0A3E6B20] rounded-b-3xl">
-
-                        </div>
+                      <form action="">
+                        <div className="flex items-center flex-col gap-6">
+                        <div className="w-full h-44 -z-20 absolute top-0 bg-[#0A3E6B20] rounded-b-3xl"></div>
                         {/* Profile Picture */}
                         <div className="flex justify-center items-end gap-4 p-0 pt-0">
-                        <div className="h-30 w-30 relative rounded-full">
+                          <div className="h-30 w-30 relative rounded-full">
                             <Image
                               src={profileImage || "/doctor.svg"}
                               alt="profile"
                               height={120}
                               width={120}
                               className="rounded-full border-8 border-white border-spacing-0 z-10"
+                              
                             />
                             <Button
                               variant="outline"
@@ -586,10 +664,10 @@ export default function DoctorsTable() {
                             type="file"
                             className="hidden"
                             onChange={handleProfileImageUpload}
+                            required
                           />
                         </div>
                         <div className="flex items-end gap-4 p-0">
-                         
                           {/* Name Fields */}
                           <div className="flex flex-col gap-4 w-full">
                             <div className="w-full pl-0 flex flex-col">
@@ -600,8 +678,11 @@ export default function DoctorsTable() {
                                     id="firstName"
                                     placeholder="Enter Name"
                                     value={formData.firstName}
-                                    
                                     onChange={handleInputChange}
+                                    readOnly={prefilled}
+                                    style={{
+                                      backgroundColor: prefilled? '#f3f4f6': '', // Light gray background when prefilled
+                                    }}
                                   />
                                 </div>
                                 <div className="flex flex-col gap-2 w-1/2">
@@ -612,8 +693,11 @@ export default function DoctorsTable() {
                                     id="licenseNumber"
                                     placeholder="Enter your License Number"
                                     value={formData.licenseNumber}
-                              
                                     onChange={handleInputChange}
+                                    readOnly={cases && prefilled}
+                                    style={{
+                                      backgroundColor: cases && prefilled ? '#f3f4f6' : '', // Light gray background when prefilled
+                                    }}
                                   />
                                 </div>
                               </div>
@@ -627,10 +711,13 @@ export default function DoctorsTable() {
                                   placeholder="e.g. Dentist"
                                   value={formData.specialty}
                                   onChange={handleInputChange}
+                                  readOnly={cases && prefilled}
+                                  style={{
+                                    backgroundColor: cases && prefilled ? '#f3f4f6' : '', // Light gray background when prefilled
+                                  }}
                                 />
                               </div>
 
-                              {/* Languages */}
                               <div className="w-3/4 flex flex-col max-w-sm gap-2">
                                 <div className="flex gap-4 max-w-md justify-between items-center">
                                   <Label>Contact Number</Label>
@@ -645,6 +732,10 @@ export default function DoctorsTable() {
                                       : `+91${formData.phoneNumber}`
                                   }
                                   onChange={handleInputChange}
+                                  readOnly={cases && prefilled}
+                                  style={{
+                                    backgroundColor: cases && prefilled ? '#f3f4f6' : '', // Light gray background when prefilled
+                                  }}
                                 />
                               </div>
 
@@ -657,6 +748,7 @@ export default function DoctorsTable() {
                                   type="number"
                                   value={formData.fees}
                                   onChange={handleInputChange}
+                                  
                                 />
                               </div>
                             </div>
@@ -672,6 +764,10 @@ export default function DoctorsTable() {
                             value={formData.about}
                             onChange={handleTextareaChange}
                             className="h-full mt-2 w-full min-w-full min-h-20"
+                            readOnly={cases && prefilled}
+                            style={{
+                              backgroundColor: cases && prefilled ? '#f3f4f6' : '', // Light gray background when prefilled
+                            }}
                           />
                         </div>
 
@@ -680,7 +776,7 @@ export default function DoctorsTable() {
                           <div className="flex flex-row items-center justify-between">
                             <div className="flex flex-col gap-0.5">
                               <Label>Upload Images</Label>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm w-[95%] text-gray-500">
                                 Help patients get to know you better by
                                 uploading any relevant images
                               </p>
@@ -688,15 +784,15 @@ export default function DoctorsTable() {
 
                             <Button
                               variant="outline"
-                              size="lg"
-                              className="flex items-center gap-2"
+                              
+                              className="flex justify-center items-center"
                             >
-                              <Upload className="w-5 h-5" />
+                              <Upload className="flex items-center" />
                               <label
                                 htmlFor="image-upload"
                                 className="cursor-pointer"
                               >
-                                Upload Images
+                                
                               </label>
                             </Button>
                           </div>
@@ -732,6 +828,8 @@ export default function DoctorsTable() {
                           </div>
                         </div>
                       </div>
+                      </form>
+                      
                     )}
 
                     {step === 2 && (
@@ -943,7 +1041,9 @@ export default function DoctorsTable() {
                         step < 2 ? setStep((prev) => prev + 1) : handleSave()
                       }
                     >
-                      {step === 1 ? "Go Next" : "Submit"}
+                      {step === 1 ? "Add Schedule"
+                      : "Submit"}
+                      <div><ArrowRight></ArrowRight></div>
                     </Button>
                   </div>
                 </div>
