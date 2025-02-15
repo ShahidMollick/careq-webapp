@@ -1,5 +1,5 @@
 "use client"
-
+import axios from "axios"
 import { useState } from "react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,10 +11,24 @@ import { Switch } from "@/components/ui/switch"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Search, Settings2, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Patient, QueueSettings } from "./types"
+import type {  QueueSettings } from "./types"
+
+interface Patient {
+  id: string;
+  queueNumber: number;
+  name: string;
+  phone: string;
+  age: number;
+  gender: "male" | "female" | "other";
+  status: "waiting" | "skipped" | "serving" | "completed";
+  dateOfBirth: string;
+  timeAdded: Date;
+  timeStarted?: Date;
+  timeCompleted?: Date;
+}
 
 export default function QueueManagement() {
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [Patients, setPatients] = useState<Patient[]>([])
   const [currentPatient, setCurrentPatient] = useState<Patient | null>(null)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [selectedPatientForCancel, setSelectedPatientForCancel] = useState<Patient | null>(null)
@@ -35,7 +49,7 @@ export default function QueueManagement() {
     dateOfBirth: "",
   })
 
-  const filteredPatients = patients.filter((patient) => {
+  const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || patient.phone.includes(searchQuery)
     const matchesTab = {
@@ -47,8 +61,8 @@ export default function QueueManagement() {
     return matchesSearch && matchesTab
   })
 
-  const addPatient = () => {
-    const patient: Patient = {
+  const addPatient = async () => {
+    const patientData: Patient = {
       id: Math.random().toString(36).substr(2, 9),
       queueNumber: nextQueueNumber,
       name: newPatient.name,
@@ -58,17 +72,28 @@ export default function QueueManagement() {
       status: "waiting",
       dateOfBirth: newPatient.dateOfBirth,
       timeAdded: new Date(),
-    }
+    };
 
-    setPatients((prev) => [...prev, patient])
-    setNextQueueNumber((prev) => prev + 1)
-    setNewPatient({
-      phone: "",
-      name: "",
-      gender: "male",
-      dateOfBirth: "",
-    })
-  }
+    try {
+      // Send data to the backend
+      await axios.post('/api/patients', patientData);
+
+      // Update state with the new patient after successful addition
+      setPatients((prev) => [...prev, patientData]);
+      setNextQueueNumber((prev) => prev + 1);
+
+      // Reset the input fields
+      setNewPatient({
+        phone: '',
+        name: '',
+        gender: 'male',
+        dateOfBirth: '',
+      });
+    } catch (error) {
+      console.error("Error adding patient:", error);
+      alert("Failed to add patient.");
+    }
+  };
 
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob)
@@ -121,7 +146,7 @@ export default function QueueManagement() {
       finishConsultation()
     }
 
-    const nextPatient = patients.find((p) => p.status === "waiting")
+    const nextPatient = Patients.find((p) => p.status === "waiting")
     if (nextPatient) {
       setPatients((prev) =>
         prev.map((p) => (p.id === nextPatient.id ? { ...p, status: "serving", timeStarted: new Date() } : p)),
@@ -130,7 +155,7 @@ export default function QueueManagement() {
     }
   }
   // Determine the "Current Queue" number
-  const lastCompletedPatient = [...patients]
+  const lastCompletedPatient = [...Patients]
     .filter((p) => p.status === "completed")
     .sort((a, b) => (b.timeCompleted as any) - (a.timeCompleted as any))[0]
 
@@ -157,10 +182,10 @@ export default function QueueManagement() {
                   Current Queue <span className="font-medium">{currentQueueNumber}</span>
                 </div>
                 <div className="text-sm">
-                  Total Queue <span className="font-medium">{patients.length}</span>
+                  Total Queue <span className="font-medium">{Patients.length}</span>
                 </div>
                 <div className="text-sm">
-                  Waiting <span className="font-medium">{patients.filter((p) => p.status === "waiting").length}</span>
+                  Waiting <span className="font-medium">{Patients.filter((p) => p.status === "waiting").length}</span>
                 </div>
               </div>
             </div>
@@ -170,7 +195,7 @@ export default function QueueManagement() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   className="pl-9"
-                  placeholder="Search patients..."
+                  placeholder="Search Patients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -361,7 +386,7 @@ export default function QueueManagement() {
                 <Button 
                     variant="default" 
                     onClick={callNextPatient}
-                    disabled={!patients.some(p => p.status === "waiting")}
+                    disabled={!Patients.some(p => p.status === "waiting")}
                 >
                     Call Next Patient
                 </Button>
