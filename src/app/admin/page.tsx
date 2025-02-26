@@ -1,12 +1,13 @@
 "use client";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
@@ -37,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { QueueSettings } from "./types";
+import { log } from "console";
 
 interface Patient {
   id: string;
@@ -56,7 +58,7 @@ export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
-
+  const [verifiedPatients, setVerifiedPatients] = useState(false);
   const [Patients, setPatients] = useState<Patient[]>([]);
   const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -74,6 +76,7 @@ export default function QueueManagement() {
   });
   const [newPatient, setNewPatient] = useState({
     phone: "",
+
     name: "",
     gender: "male",
     dateOfBirth: "",
@@ -92,45 +95,67 @@ export default function QueueManagement() {
     return matchesSearch && matchesTab;
   });
 
-  const addPatient = async () => {
-    const patientData: Patient = {
-      id: Math.random().toString(36).substr(2, 9),
-      queueNumber: nextQueueNumber,
-      name: newPatient.name,
-      phone: newPatient.phone,
-      age: calculateAge(newPatient.dateOfBirth),
-      gender: newPatient.gender as "male" | "female" | "other",
-      status: "waiting",
-      dateOfBirth: newPatient.dateOfBirth,
-      timeAdded: new Date(),
-    };
+  
+    const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
+    const { patients: livePatients } = useWebSocket(scheduleId); 
+   // Sync WebSocket data with Patients state
+   useEffect(() => {
+    setPatients(livePatients);
+  }, [livePatients]);
+
+  
+
+  const fetchAppointments = async (scheduleId: string) => {
+    setLoading(true);
+    setError("");
 
     try {
-      // Send data to the backend
-      await axios.post("/api/patients", patientData);
+      console.log("Fetching appointments for scheduleId:", scheduleId);
+      const response = await axios.get(
+        `http://localhost:5002/appointments/${scheduleId}`
+      );
 
-      // Update state with the new patient after successful addition
-      setPatients((prev) => [...prev, patientData]);
-      setNextQueueNumber((prev) => prev + 1);
+      // Ensure the response contains valid data
+      if (response.data && Array.isArray(response.data)) {
+        console.log("Appointments fetched:", response.data);
 
-      // Reset the input fields
-      setNewPatient({
-        phone: "",
-        name: "",
-        gender: "male",
-        dateOfBirth: "",
-      });
+        // Map the response to match the Patient type
+        const formattedPatients = response.data.map((appointment: any) => ({
+          id: appointment.patient.id,
+          queueNumber: appointment.queueNumber,
+          name: appointment.patient.name,
+          phone: appointment.patient.phone,
+          age: calculateAge(appointment.patient.dateOfBirth),
+          gender: appointment.patient.gender,
+          status: appointment.status,
+          dateOfBirth: appointment.patient.dateOfBirth,
+          timeAdded: appointment.createdAt,
+          timeStarted: appointment.timeStarted || null,
+          timeCompleted: appointment.timeCompleted || null,
+        }));
+
+        setPatients(formattedPatients);
+      } else {
+        console.error("Invalid data received:", response.data);
+        setError("Failed to fetch appointments.");
+      }
     } catch (error) {
-      console.error("Error adding patient:", error);
-      alert("Failed to add patient.");
+      console.error("Error fetching appointments:", error);
+      setError("Error fetching appointments. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const verifyPatient = async () => {
     setLoading(true);
     setError(""); // Reset error
+    setVerifiedPatients(true);
+
+    console.log("Verifying patient with phone:", newPatient.phone);
 
     try {
+      console.log("Sending verification request to server...");
       const response = await axios.post(
         "http://localhost:5002/patients/verify",
         { phone: newPatient.phone }
@@ -138,31 +163,108 @@ export default function QueueManagement() {
 
       if (response.data.message === "Patient exists") {
         const patient = response.data.patient;
+        console.log("Patient exists:", patient);
+
         setVerifiedPatient(patient);
+
+        // Check if DOB is available and format it; otherwise, assign a default value
+        const formattedDob = patient.dob ? patient.dob.split("T")[0] : ""; // Default to empty string if dob is null
+
+        // Set new patient data based on the verified patient response
         setNewPatient({
           ...newPatient,
           name: patient.name,
           gender: patient.gender,
-          dateOfBirth: patient.dob.split("T")[0], // Format the date as "yyyy-mm-dd"
+          dateOfBirth: formattedDob,
         });
       } else {
-        setVerifiedPatient(null); // Patient not found, so clear verification state
+        console.log("Patient not found with phone:", newPatient.phone);
+
+        setVerifiedPatient(null); // Clear verification state
         setError(
           "Patient not found. Please enter details to create an appointment."
         );
+
         setNewPatient({
           phone: newPatient.phone, // Retain the entered phone number
           name: "",
           gender: "male", // Default gender
           dateOfBirth: "",
         });
-        const i= newPatient;
-        setVerifiedPatient(i);
       }
     } catch (error) {
+      console.error("Error occurred during patient verification:", error);
       setError("Error verifying patient. Please try again.");
     } finally {
       setLoading(false);
+      console.log("Verification process complete. Loading state set to false.");
+    }
+  };
+
+  const addPatient = async () => {
+    const patientData = {
+      phone: newPatient.phone,
+
+      name: newPatient.name,
+      gender: newPatient.gender,
+      dateOfBirth: newPatient.dateOfBirth,
+    };
+
+    try {
+      let patient;
+      console.log(verifiedPatient);
+
+      // Step 1: Check if the patient exists, if not create the patient
+      if (verifiedPatient) {
+        patient = verifiedPatient; // Use the verified patient
+      } else {
+        console.log("sending patient data: ", patientData);
+
+        const patientResponse = await axios.post(
+          "http://localhost:5002/patients/create-patient",
+          patientData
+        );
+        patient = patientResponse.data;
+      }
+
+      // Step 2: Create an appointment and add the patient to the queue
+      const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Retrieve schedule ID (e.g., from state or context)
+      const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
+      console.log("patientId :", patient.id);
+
+      const appointmentResponse = await axios.post(
+        "http://localhost:5002/appointments/book",
+        {
+          scheduleId: scheduleId,
+          patientId: patient.id,
+          source: source,
+        }
+      );
+
+      // Step 3: Get the updated appointment data
+      const appointment = appointmentResponse.data.appointment;
+
+      // Update the UI with the new appointment and patient
+      setPatients((prev) => [...prev, { ...patient, appointment }]);
+      setNextQueueNumber((prev) => prev + 1);
+
+      // Reset the input fields
+      setNewPatient({
+        phone: "",
+        name: "",
+
+        gender: "male",
+        dateOfBirth: "",
+      });
+
+      alert("Patient successfully added and appointment booked.");
+    } catch (error) {
+      console.error("Error adding patient:", error);
+      alert("Failed to add patient.");
+    } finally {
+      setError("");
+      setVerifiedPatient(null);
+      setVerifiedPatients(true);
     }
   };
 
@@ -665,97 +767,96 @@ export default function QueueManagement() {
             </div>
 
             <div className="space-y-6">
-            <div>
-  <label className="text-sm font-medium">Phone Number</label>
-  <div className="flex gap-2 mt-1">
-    <Input
-      placeholder="+91"
-      value={newPatient.phone}
-      onChange={(e) =>
-        setNewPatient((prev) => ({
-          ...prev,
-          phone: e.target.value,
-        }))
-      }
-    />
-    <Button onClick={verifyPatient} disabled={loading}>
-      {loading ? <div className="spinner"></div> : 'Verify'}
-    </Button>
-  </div>
-</div>
+              <div>
+                <label className="text-sm font-medium">Phone Number</label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    placeholder="+91"
+                    value={newPatient.phone}
+                    onChange={(e) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                  />
+                  <Button onClick={verifyPatient} disabled={loading}>
+                    {loading ? <div className="spinner"></div> : "Verify"}
+                  </Button>
+                </div>
+              </div>
 
-{error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && <p className="text-red-500 text-sm">{error}</p>}
 
-{/* Render the form fields */}
-<div>
-  <label className="text-sm font-medium">Full Name</label>
-  <Input
-    className="mt-1"
-    placeholder="Enter Patient's Name"
-    value={newPatient.name}
-    onChange={(e) =>
-      setNewPatient((prev) => ({
-        ...prev,
-        name: e.target.value,
-      }))
-    }
-    disabled={!verifiedPatient} // Disable if patient is verified
-  />
-</div>
+              {/* Render the form fields */}
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <Input
+                  className="mt-1"
+                  placeholder="Enter Patient's Name"
+                  value={newPatient.name}
+                  onChange={(e) =>
+                    setNewPatient((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  disabled={!verifiedPatients} // Disable if patient is verified
+                />
+              </div>
 
-<div className="grid grid-cols-2 gap-4">
-  <div>
-    <label className="text-sm font-medium">Gender</label>
-    <Select
-      value={newPatient.gender}
-      onValueChange={(value) =>
-        setNewPatient((prev) => ({
-          ...prev,
-          gender: value,
-        }))
-      }
-      disabled={!verifiedPatient} // Disable if patient is verified
-    >
-      <SelectTrigger className="mt-1">
-        <SelectValue placeholder="Select gender" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="male">Male</SelectItem>
-        <SelectItem value="female">Female</SelectItem>
-        <SelectItem value="other">Other</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Gender</label>
+                  <Select
+                    value={newPatient.gender}
+                    onValueChange={(value) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        gender: value,
+                      }))
+                    }
+                    disabled={!verifiedPatients} // Disable if patient is verified
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-  <div>
-    <label className="text-sm font-medium">Date Of Birth</label>
-    <Input
-      className="mt-1"
-      type="date"
-      value={newPatient.dateOfBirth}
-      onChange={(e) =>
-        setNewPatient((prev) => ({
-          ...prev,
-          dateOfBirth: e.target.value,
-        }))
-      }
-      disabled={!verifiedPatient} // Disable if patient is verified
-    />
-  </div>
-</div>
+                <div>
+                  <label className="text-sm font-medium">Date Of Birth</label>
+                  <Input
+                    className="mt-1"
+                    type="date"
+                    value={newPatient.dateOfBirth}
+                    onChange={(e) =>
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        dateOfBirth: e.target.value,
+                      }))
+                    }
+                    disabled={!verifiedPatients} // Disable if patient is verified
+                  />
+                </div>
+              </div>
 
-<Button
-  className="w-full mt-6"
-  variant="default"
-  onClick={addPatient}
-  disabled={!verifiedPatient || !newPatient.name || !newPatient.phone}
->
-  Add Patient
-</Button>
-
+              <Button
+                className="w-full mt-6"
+                variant="default"
+                onClick={addPatient}
+                disabled={
+                  !verifiedPatients || !newPatient.name || !newPatient.phone
+                }
+              >
+                Add Patient
+              </Button>
             </div>
-
-            
           </div>
         </div>
       </div>
