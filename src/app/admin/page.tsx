@@ -39,10 +39,12 @@ import {
 } from "@/components/ui/select";
 import type { QueueSettings } from "./types";
 import { log } from "console";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Patient {
   id: string;
   queueNumber: number;
+  appointmentId: string;
   name: string;
   phone: string;
   age: number;
@@ -122,6 +124,7 @@ export default function QueueManagement() {
         // Map the response to match the Patient type
         const formattedPatients = response.data.map((appointment: any) => ({
           id: appointment.patient.id,
+          appointmentId: appointment.id,
           queueNumber: appointment.queueNumber,
           name: appointment.patient.name,
           phone: appointment.patient.phone,
@@ -322,13 +325,18 @@ export default function QueueManagement() {
 
   const handleStartServing = async (scheduleId: string) => {
     try {
+      // First mark the current patient as completed
+     
+      
+      // Then call the next patient
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${scheduleId}`
       );
+      
       // The server + WebSocket will update the state
     } catch (err) {
-      console.error("Error starting serving patient:", err);
-      setError("Failed to start serving the patient. Please try again.");
+      console.error("Error processing patients:", err);
+      setError("Failed to update patient status and call next patient. Please try again.");
     }
   };
 
@@ -347,7 +355,7 @@ export default function QueueManagement() {
   const handleFinish = async (scheduleId: string) => {
     try {
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${scheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -522,13 +530,27 @@ export default function QueueManagement() {
                                     Gender: {patient.gender}
                                   </div>
 
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => cancelAppointment(patient)}
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
+                                    <div className="flex items-center">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black">
+                                        <circle cx="12" cy="12" r="1" />
+                                        <circle cx="12" cy="5" r="1" />
+                                        <circle cx="12" cy="19" r="1" />
+                                        </svg>
+                                      </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                      <DropdownMenuItem onClick={() => cancelAppointment(patient)}>
+                                        Cancel Appointment
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => skipPatient(scheduleId, patient.appointmentId)}>
+                                        Skip Patient
+                                      </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    </div>
                                 </div>
                               ))}
                           </div>
@@ -657,14 +679,14 @@ export default function QueueManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => skipPatient(scheduleId, currentPatient?.id || "")}>
+                    <Button variant="outline" onClick={() => skipPatient(scheduleId, appointmentId || "")}>
                       Skip
                     </Button>
-                    <Button variant="outline" onClick={() => handleStartServing(scheduleId || "")}>
+                    <Button variant="outline" onClick={() => handleFinishServing(scheduleId || "")}>
                       Finish Consultation
                     </Button>
                     <Button variant="default" 
-                    onClick={() => handleFinishServing(scheduleId || "")}
+                    onClick={() => handleStartServing(scheduleId || "")}
                     >
                       Next Patient
                     </Button>
