@@ -60,7 +60,7 @@ export default function QueueManagement() {
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
   const [verifiedPatients, setVerifiedPatients] = useState(false);
   const [Patients, setPatients] = useState<Patient[]>([]);
-  const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
+  // const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPatientForCancel, setSelectedPatientForCancel] =
     useState<Patient | null>(null);
@@ -83,7 +83,7 @@ export default function QueueManagement() {
   });
 
   const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
-    const { patients: livePatients,socket } = useWebSocket(scheduleId); 
+    const { patients: livePatients,socket , isConnected,currentPatient } = useWebSocket(scheduleId); 
    // Sync WebSocket data with Patients state
    useEffect(() => {
     setPatients(livePatients);
@@ -380,6 +380,21 @@ export default function QueueManagement() {
                   Information Information Information Information
                 </p>
               </div>
+               {/* ✅ Show Queue Status */}
+            <div className="flex gap-2 items-center">
+              <div className={`text-sm font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}>
+                {isConnected ? "🟢 Live Queue" : "🔴 Disconnected"}
+              </div>
+
+              {!isConnected && (
+                <button 
+                  className="bg-red-500 text-white px-2 py-1 rounded-md text-xs"
+                  onClick={() => socket?.connect()} // ✅ Manually reconnect
+                >
+                  Retry Connection
+                </button>
+              )}
+            </div>
               <div className="flex gap-2">
                 <div className="text-sm">
                   Current Queue{" "}
