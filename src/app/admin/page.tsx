@@ -112,7 +112,7 @@ export default function QueueManagement() {
     try {
       console.log("Fetching appointments for scheduleId:", scheduleId);
       const response = await axios.get(
-        `http://localhost:5002/appointments/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/${scheduleId}`
       );
 
       // Ensure the response contains valid data
@@ -157,7 +157,7 @@ export default function QueueManagement() {
     try {
       console.log("Sending verification request to server...");
       const response = await axios.post(
-        "http://localhost:5002/patients/verify",
+        "https://9b94-203-110-242-40.ngrok-free.app/patients/verify",
         { phone: newPatient.phone }
       );
 
@@ -221,7 +221,7 @@ export default function QueueManagement() {
         console.log("sending patient data: ", patientData);
 
         const patientResponse = await axios.post(
-          "http://localhost:5002/patients/create-patient",
+          "https://9b94-203-110-242-40.ngrok-free.app/patients/create-patient",
           patientData
         );
         patient = patientResponse.data;
@@ -233,7 +233,7 @@ export default function QueueManagement() {
       console.log("patientId :", patient.id);
 
       const appointmentResponse = await axios.post(
-        "http://localhost:5002/appointments/book",
+        "https://9b94-203-110-242-40.ngrok-free.app/appointments/book",
         {
           scheduleId: scheduleId,
           patientId: patient.id,
@@ -313,7 +313,7 @@ export default function QueueManagement() {
   const skipPatient = async (scheduleId:string,appointmentId: string) => {
     try {
       await axios.patch(
-        `http://localhost:5002/appointments/skip/${scheduleId}/${appointmentId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/skip/${scheduleId}/${appointmentId}`
       );
     } catch (err) {
       console.error("Error skipping patient:", err);
@@ -323,7 +323,7 @@ export default function QueueManagement() {
   const handleStartServing = async (scheduleId: string) => {
     try {
       await axios.patch(
-        `http://localhost:5002/appointments/serve/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${scheduleId}`
       );
       // The server + WebSocket will update the state
     } catch (err) {
@@ -335,7 +335,7 @@ export default function QueueManagement() {
   const handleFinishServing = async (scheduleId: string) => {
     try {
       await axios.patch(
-        `http://localhost:5002/appointments/finish/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/finish/${scheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -347,7 +347,7 @@ export default function QueueManagement() {
   const handleFinish = async (scheduleId: string) => {
     try {
       await axios.patch(
-        `http://localhost:5002/appointments/callnextpatient/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${scheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {

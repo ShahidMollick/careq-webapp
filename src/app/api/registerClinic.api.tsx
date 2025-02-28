@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5002'; // Replace with your API base URL
+const API_BASE_URL = 'https://9b94-203-110-242-40.ngrok-free.app'; // Replace with your API base URL
 
 export const registerClinic = async (clinicData: any, userId: string) => {
   try {

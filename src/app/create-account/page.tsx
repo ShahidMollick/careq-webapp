@@ -55,7 +55,7 @@ export default function CreateDoctorAccount() {
     };
 
     try {
-      const response = await fetch("http://localhost:5002/auth/register", {
+      const response = await fetch("https://9b94-203-110-242-40.ngrok-free.app/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
