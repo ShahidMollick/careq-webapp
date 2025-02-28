@@ -288,16 +288,7 @@ export default function QueueManagement() {
     return age;
   };
 
-  const skipPatient = () => {
-    if (currentPatient) {
-      setPatients((prev) =>
-        prev.map((p) =>
-          p.id === currentPatient.id ? { ...p, status: "skipped" } : p
-        )
-      );
-      setCurrentPatient(null);
-    }
-  };
+ 
   const cancelAppointment = (patient: Patient) => {
     setSelectedPatientForCancel(patient);
     setCancelDialogOpen(true);
@@ -318,38 +309,50 @@ export default function QueueManagement() {
       prev.map((p) => (p.id === patient.id ? { ...p, status: "waiting" } : p))
     );
   };
-  const finishConsultation = () => {
-    if (currentPatient) {
-      setPatients((prev) =>
-        prev.map((p) =>
-          p.id === currentPatient.id
-            ? { ...p, status: "completed", timeCompleted: new Date() }
-            : p
-        )
+
+  const skipPatient = async (scheduleId:string,appointmentId: string) => {
+    try {
+      await axios.patch(
+        `http://localhost:5002/appointments/skip/${scheduleId}/${appointmentId}`
       );
-      setCurrentPatient(null);
+    } catch (err) {
+      console.error("Error skipping patient:", err);
     }
   };
 
-  const callNextPatient = () => {
-    if (currentPatient) {
-      finishConsultation();
-    }
-
-    const nextPatient = Patients.find((p) => p.status === "waiting");
-    if (nextPatient) {
-      setPatients((prev) =>
-        prev.map((p) =>
-          p.id === nextPatient.id
-            ? { ...p, status: "serving", timeStarted: new Date() }
-            : p
-        )
+  const handleStartServing = async (scheduleId: string) => {
+    try {
+      await axios.patch(
+        `http://localhost:5002/appointments/serve/${scheduleId}`
       );
-      setCurrentPatient({
-        ...nextPatient,
-        status: "serving",
-        timeStarted: new Date(),
-      });
+      // The server + WebSocket will update the state
+    } catch (err) {
+      console.error("Error starting serving patient:", err);
+      setError("Failed to start serving the patient. Please try again.");
+    }
+  };
+
+  const handleFinishServing = async (scheduleId: string) => {
+    try {
+      await axios.patch(
+        `http://localhost:5002/appointments/finish/${scheduleId}`
+      );
+      // The server auto-calls the next patient; WebSocket updates your UI
+    } catch (err) {
+      console.error("Error finishing serving patient:", err);
+      setError("Failed to finish serving the patient. Please try again.");
+    }
+  };
+
+  const handleFinish = async (scheduleId: string) => {
+    try {
+      await axios.patch(
+        `http://localhost:5002/appointments/callnextpatient/${scheduleId}`
+      );
+      // The server auto-calls the next patient; WebSocket updates your UI
+    } catch (err) {
+      console.error("Error calling next patient:", err);
+      setError("Failed to call the next patient. Please try again.");
     }
   };
   // Determine the "Current Queue" number
@@ -639,26 +642,28 @@ export default function QueueManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={skipPatient}>
+                    <Button variant="outline" onClick={() => skipPatient(scheduleId, currentPatient?.id || "")}>
                       Skip
                     </Button>
-                    <Button variant="outline" onClick={finishConsultation}>
+                    <Button variant="outline" onClick={() => handleStartServing(scheduleId || "")}>
                       Finish Consultation
                     </Button>
-                    <Button variant="default" onClick={callNextPatient}>
+                    <Button variant="default" 
+                    onClick={() => handleFinishServing(scheduleId || "")}
+                    >
                       Next Patient
                     </Button>
                   </div>
                 </>
               ) : (
                 <div className="w-full flex justify-center">
-                  <Button
-                    variant="default"
-                    onClick={callNextPatient}
-                    disabled={!Patients.some((p) => p.status === "waiting")}
-                  >
+                    <Button
+                    variant="default" 
+                    onClick={() =>  handleFinish(scheduleId || "")}
+                    // disabled={!Patients.some((p) => p.status === "waiting") || !currentPatient}
+                    >
                     Call Next Patient
-                  </Button>
+                    </Button>
                 </div>
               )}
             </div>
