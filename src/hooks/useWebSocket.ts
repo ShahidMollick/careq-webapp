@@ -28,6 +28,8 @@ export function useWebSocket(scheduleId: string) {
     const newSocket = io(SOCKET_URL, { transports: ["websocket"] });
     setSocket(newSocket);
 
+    console.log("📡 Connected to WebSocket");
+    
     // Fetch initial appointments when component mounts
     newSocket.emit("fetchAppointments", scheduleId);
 
@@ -60,6 +62,7 @@ export function useWebSocket(scheduleId: string) {
     });
 
     return () => {
+      console.log("❌ Disconnecting WebSocket");
       newSocket.disconnect(); // Clean up when component unmounts
     };
   }, [scheduleId]);

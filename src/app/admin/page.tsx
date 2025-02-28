@@ -82,6 +82,13 @@ export default function QueueManagement() {
     dateOfBirth: "",
   });
 
+  const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
+    const { patients: livePatients,socket } = useWebSocket(scheduleId); 
+   // Sync WebSocket data with Patients state
+   useEffect(() => {
+    setPatients(livePatients);
+  }, [livePatients]);
+
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -96,13 +103,6 @@ export default function QueueManagement() {
   });
 
   
-    const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
-    const { patients: livePatients } = useWebSocket(scheduleId); 
-   // Sync WebSocket data with Patients state
-   useEffect(() => {
-    setPatients(livePatients);
-  }, [livePatients]);
-
   
 
   const fetchAppointments = async (scheduleId: string) => {
@@ -241,31 +241,37 @@ export default function QueueManagement() {
         }
       );
 
-      // Step 3: Get the updated appointment data
-      const appointment = appointmentResponse.data.appointment;
+      console.log("📡 Emitting WebSocket update manually...");
+    socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
+  } catch (error) {
+    console.error("❌ Error adding patient:", error);
+  }
 
-      // Update the UI with the new appointment and patient
-      setPatients((prev) => [...prev, { ...patient, appointment }]);
-      setNextQueueNumber((prev) => prev + 1);
+    //   // Step 3: Get the updated appointment data
+    //   const appointment = appointmentResponse.data.appointment;
 
-      // Reset the input fields
-      setNewPatient({
-        phone: "",
-        name: "",
+    //   // Update the UI with the new appointment and patient
+    //   setPatients((prev) => [...prev, { ...patient, appointment }]);
+    //   setNextQueueNumber((prev) => prev + 1);
 
-        gender: "male",
-        dateOfBirth: "",
-      });
+    //   // Reset the input fields
+    //   setNewPatient({
+    //     phone: "",
+    //     name: "",
 
-      alert("Patient successfully added and appointment booked.");
-    } catch (error) {
-      console.error("Error adding patient:", error);
-      alert("Failed to add patient.");
-    } finally {
-      setError("");
-      setVerifiedPatient(null);
-      setVerifiedPatients(true);
-    }
+    //     gender: "male",
+    //     dateOfBirth: "",
+    //   });
+
+    //   alert("Patient successfully added and appointment booked.");
+    // } catch (error) {
+    //   console.error("Error adding patient:", error);
+    //   alert("Failed to add patient.");
+    // } finally {
+    //   setError("");
+    //   setVerifiedPatient(null);
+    //   setVerifiedPatients(true);
+    // }
   };
 
   const calculateAge = (dob: string) => {
