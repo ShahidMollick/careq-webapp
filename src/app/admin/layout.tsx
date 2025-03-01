@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ClinicSetting from "./clinicSetting";
 
 type Props = {
   pathname: string;
@@ -85,7 +86,9 @@ export default async function DoctorLayout({
             <div className="flex gap-6 items-center">
               <div className=" flex gap-6">
                 <ComboboxDemo />
-                <Image src="/bell.svg" alt="bell" width={20} height={20} />
+                <ClinicSetting></ClinicSetting>
+
+                
               </div>
               <div className="flex mr-2 gap-2">
                 <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
