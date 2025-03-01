@@ -29,7 +29,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Search, Settings2, X } from "lucide-react";
+import {
+  Search,
+  Settings2,
+  X,
+  Loader2,
+  ArrowRight,
+  CircleCheck,
+  CircleAlert,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -38,8 +46,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { QueueSettings } from "./types";
+import clinicSetting from "./clinicSetting";
 import { log } from "console";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Patient {
   id: string;
@@ -58,16 +72,19 @@ interface Patient {
 
 export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
+  const [loadings, setLoadings] = useState(false);
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
   const [verifiedPatients, setVerifiedPatients] = useState(false);
   const [Patients, setPatients] = useState<Patient[]>([]);
+  const [processing, setProcessing] = useState(false);
   // const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedPatientForCancel, setSelectedPatientForCancel] =
     useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTab, setCurrentTab] = useState("live");
+  const [showTopLoader, setShowTopLoader] = useState(false);
   const [nextQueueNumber, setNextQueueNumber] = useState(1);
   const [settings, setSettings] = useState<QueueSettings>({
     scheduleStart: "17:00",
@@ -85,19 +102,22 @@ export default function QueueManagement() {
   });
 
   const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
-  const { patients: livePatients,socket , isConnected,currentPatient } = useWebSocket(scheduleId); 
-   // Sync WebSocket data with Patients state and ensure appointmentId is present
-   useEffect(() => {
-    // Make sure each patient has an appointmentId
-    const patientsWithAppointmentIds = livePatients.map(patient => {
-      if (!patient.appointmentId && patient.id) {
-        console.warn(`Patient ${patient.name} (ID: ${patient.id}) missing appointmentId, using ID as fallback`);
-        return { ...patient, appointmentId: patient.id }; // Use patient.id as fallback if appointmentId is missing
-      }
-      return patient;
-    });
-    setPatients(patientsWithAppointmentIds);
+  const {
+    patients: livePatients,
+    socket,
+    isConnected,
+    currentPatient,
+    showTopLoaders
+  } = useWebSocket(scheduleId);
+  // Sync WebSocket data with Patients state
+  useEffect(() => {
+    setPatients(livePatients);
   }, [livePatients]);
+
+  const startTopLoader = () => {
+    setShowTopLoader(true);
+    // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
+  };
 
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
@@ -112,13 +132,10 @@ export default function QueueManagement() {
     return matchesSearch && matchesTab;
   });
 
-  
-  
-
   const fetchAppointments = async (scheduleId: string) => {
     setLoading(true);
     setError("");
-
+    startTopLoader();
     try {
       console.log("Fetching appointments for scheduleId:", scheduleId);
       const response = await axios.get(
@@ -161,7 +178,6 @@ export default function QueueManagement() {
   const verifyPatient = async () => {
     setLoading(true);
     setError(""); // Reset error
-    setVerifiedPatients(true);
 
     console.log("Verifying patient with phone:", newPatient.phone);
 
@@ -179,7 +195,11 @@ export default function QueueManagement() {
         setVerifiedPatient(patient);
 
         // Check if DOB is available and format it; otherwise, assign a default value
-        const formattedDob = patient.dob ? patient.dob.split("T")[0] : ""; // Default to empty string if dob is null
+             // ✅ Ensure DOB is properly formatted
+      const formattedDob = patient.dob
+      ? new Date(patient.dob).toISOString().split("T")[0]
+      : ""; // Convert to YYYY-MM-DD format
+
 
         // Set new patient data based on the verified patient response
         setNewPatient({
@@ -208,6 +228,8 @@ export default function QueueManagement() {
       setError("Error verifying patient. Please try again.");
     } finally {
       setLoading(false);
+      setVerifiedPatients(true);
+
       console.log("Verification process complete. Loading state set to false.");
     }
   };
@@ -218,9 +240,10 @@ export default function QueueManagement() {
 
       name: newPatient.name,
       gender: newPatient.gender,
-      dateOfBirth: newPatient.dateOfBirth,
+      dob: newPatient.dateOfBirth,
     };
-
+    startTopLoader();
+    setLoadings(true); // Start top loader
     try {
       let patient;
       console.log(verifiedPatient);
@@ -253,10 +276,15 @@ export default function QueueManagement() {
       );
 
       console.log("📡 Emitting WebSocket update manually...");
-    socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
-  } catch (error) {
-    console.error("❌ Error adding patient:", error);
-  }
+      socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
+    } catch (error) {
+      console.error("❌ Error adding patient:", error);
+    } finally {
+      setShowTopLoader(false);
+      setError("");
+      setVerifiedPatients(false);
+      setLoadings(false);
+    }
 
     //   // Step 3: Get the updated appointment data
     //   const appointment = appointmentResponse.data.appointment;
@@ -299,7 +327,6 @@ export default function QueueManagement() {
     return age;
   };
 
- 
   const cancelAppointment = (patient: Patient) => {
     setSelectedPatientForCancel(patient);
     setCancelDialogOpen(true);
@@ -347,21 +374,24 @@ export default function QueueManagement() {
   const handleStartServing = async (scheduleId: string) => {
     try {
       // First mark the current patient as completed
-     
-      
+
       // Then call the next patient
       await axios.patch(
         `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${scheduleId}`
       );
-      
+
       // The server + WebSocket will update the state
     } catch (err) {
       console.error("Error processing patients:", err);
-      setError("Failed to update patient status and call next patient. Please try again.");
+      setError(
+        "Failed to update patient status and call next patient. Please try again."
+      );
     }
   };
 
   const handleFinishServing = async (scheduleId: string) => {
+    setProcessing(true);
+    startTopLoader();
     try {
       await axios.patch(
         `https://9b94-203-110-242-40.ngrok-free.app/appointments/finish/${scheduleId}`
@@ -370,10 +400,15 @@ export default function QueueManagement() {
     } catch (err) {
       console.error("Error finishing serving patient:", err);
       setError("Failed to finish serving the patient. Please try again.");
+    } finally {
+      setProcessing(false);
+      setShowTopLoader(false);
     }
   };
 
   const handleFinish = async (scheduleId: string) => {
+    setProcessing(true);
+    startTopLoader(); // Start top loader
     try {
       await axios.patch(
         `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${scheduleId}`
@@ -382,6 +417,9 @@ export default function QueueManagement() {
     } catch (err) {
       console.error("Error calling next patient:", err);
       setError("Failed to call the next patient. Please try again.");
+    } finally {
+      setProcessing(false);
+      setShowTopLoader(false);
     }
   };
   // Determine the "Current Queue" number
@@ -396,34 +434,71 @@ export default function QueueManagement() {
     : "-"; // If no patients have been served yet, show "-"
   return (
     <div className="min-h-screen  overflow-x-hidden">
+      <div>
+        {/* ✅ Top Moving Loader */}
+        {showTopLoader && (
+          <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
+            <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
+          </div>
+        )}
+        {/* ✅ Top Moving Loader */}
+        {showTopLoaders && (
+          <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
+            <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
+          </div>
+        )}
+      </div>
       <div className="flex h-[calc(100vh-73px)]">
         {/* Main Content */}
-        <div className="flex-1 flex">
-          <div className="flex-1 p-6">
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 p-6 overflow-y-scroll">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-md font-bold text-primary">
-                  Patient Queue
-                </h2>
+                <div className="flex flex-row gap-4 items-center mb-1">
+                  <h2 className="text-md font-bold">
+                    Patient Queue
+                  </h2>
+                  <div className="flex gap-2 items-center">
+                    {/* Connection Status Indicator */}
+                    <div className="flex items-center gap-1">
+                      {isConnected ? (
+                        <CircleCheck className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <CircleAlert className="w-4 h-4 text-red-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700">
+                        {isConnected ? (
+                          <>
+                            <div className="text-green-500">Online</div>
+                          </>
+                        ) : (
+                          <>
+                          <div className="text-red-500">Offline</div>
+                          </>
+                          
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Retry Button (Only when offline) */}
+                    {!isConnected && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => socket?.connect()} // ✅ Retry Connection
+                      >
+                        Reconnect
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 <p className="text-sm text-muted-foreground">
                   Information Information Information Information
                 </p>
               </div>
-               {/* ✅ Show Queue Status */}
-            <div className="flex gap-2 items-center">
-              <div className={`text-sm font-bold ${isConnected ? "text-green-500" : "text-red-500"}`}>
-                {isConnected ? "🟢 Live Queue" : "🔴 Disconnected"}
-              </div>
+              {/* ✅ Show Queue Status */}
 
-              {!isConnected && (
-                <button 
-                  className="bg-red-500 text-white px-2 py-1 rounded-md text-xs"
-                  onClick={() => socket?.connect()} // ✅ Manually reconnect
-                >
-                  Retry Connection
-                </button>
-              )}
-            </div>
               <div className="flex gap-2">
                 <div className="text-sm">
                   Current Queue{" "}
@@ -526,7 +601,8 @@ export default function QueueManagement() {
                         }
                         )
                       </AccordionTrigger>
-                      <AccordionContent>
+                      <AccordionContent
+                      className="mb-32">
                         {filteredPatients.filter((p) => p.status === "waiting")
                           .length > 0 ? (
                           <div className="space-y-2">
@@ -551,16 +627,27 @@ export default function QueueManagement() {
                                     Gender: {patient.gender}
                                   </div>
 
-                                    <div className="flex items-center">
+                                  <div className="flex items-center">
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black">
-                                        <circle cx="12" cy="12" r="1" />
-                                        <circle cx="12" cy="5" r="1" />
-                                        <circle cx="12" cy="19" r="1" />
-                                        </svg>
-                                      </Button>
+                                        <Button variant="ghost" size="icon">
+                                          <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="text-black"
+                                          >
+                                            <circle cx="12" cy="12" r="1" />
+                                            <circle cx="12" cy="5" r="1" />
+                                            <circle cx="12" cy="19" r="1" />
+                                          </svg>
+                                        </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent>
                                       <DropdownMenuItem onClick={() => cancelAppointment(patient)}>
@@ -584,7 +671,7 @@ export default function QueueManagement() {
                                       </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
-                                    </div>
+                                  </div>
                                 </div>
                               ))}
                           </div>
@@ -706,10 +793,12 @@ export default function QueueManagement() {
                     </div>
                     <div>
                       <div className="font-medium">{currentPatient.name}</div>
-                      <div className="text-sm text-primary">Serving</div>
-                      <div className="text-sm text-muted-foreground">
-                        Phone Number: {currentPatient.phone}
+                      <div className="text-sm font-bold  text-primary">
+                        Serving
                       </div>
+                      {/* <div className="text-sm text-muted-foreground">
+                        Phone Number: {currentPatient.phone}
+                      </div> */}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -730,22 +819,35 @@ export default function QueueManagement() {
                     <Button variant="outline" onClick={() => handleFinishServing(scheduleId || "")}>
                       Finish Consultation
                     </Button>
-                    <Button variant="default" 
-                    onClick={() => handleStartServing(scheduleId || "")}
+                    {/* <Button
+                      variant="default"
+                      onClick={() => handleStartServing(scheduleId || "")}
                     >
                       Next Patient
-                    </Button>
+                    </Button> */}
                   </div>
                 </>
               ) : (
-                <div className="w-full flex justify-center">
-                    <Button
-                    variant="default" 
-                    onClick={() =>  handleFinish(scheduleId || "")}
+                <div className="w-full flex justify-end">
+                  <Button
+                    variant="default"
+                    size="lg"
+                    onClick={() => handleFinish(scheduleId || "")}
                     // disabled={!Patients.some((p) => p.status === "waiting") || !currentPatient}
-                    >
-                    Call Next Patient
-                    </Button>
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      <>
+                        Calling Next Patient...
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        Call Next Patient
+                        <ArrowRight></ArrowRight>
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
@@ -760,103 +862,6 @@ export default function QueueManagement() {
                   Information Information Information Information
                 </p>
               </div>
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Settings2 className="w-5 h-5" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Settings</SheetTitle>
-                  </SheetHeader>
-                  <div className="space-y-6 mt-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">
-                        Schedule Window
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Information Information Information Information
-                      </p>
-                      <div className="flex gap-4">
-                        <Input
-                          type="time"
-                          value={settings.scheduleStart}
-                          onChange={(e) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              scheduleStart: e.target.value,
-                            }))
-                          }
-                        />
-                        <span className="flex items-center">-</span>
-                        <Input
-                          type="time"
-                          value={settings.scheduleEnd}
-                          onChange={(e) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              scheduleEnd: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">
-                        Booking Window
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Information Information Information Information
-                      </p>
-                      <div className="flex gap-4">
-                        <Input
-                          type="time"
-                          value={settings.bookingStart}
-                          onChange={(e) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              bookingStart: e.target.value,
-                            }))
-                          }
-                        />
-                        <span className="flex items-center">-</span>
-                        <Input
-                          type="time"
-                          value={settings.bookingEnd}
-                          onChange={(e) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              bookingEnd: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">
-                        Online Appointment Status
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            Information Information Information Information
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.onlineAppointments}
-                          onCheckedChange={(checked) =>
-                            setSettings((prev) => ({
-                              ...prev,
-                              onlineAppointments: checked,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
 
             <div className="space-y-6">
@@ -874,7 +879,14 @@ export default function QueueManagement() {
                     }
                   />
                   <Button onClick={verifyPatient} disabled={loading}>
-                    {loading ? <div className="spinner"></div> : "Verify"}
+                    {loading ? (
+                      <>
+                        Verifying
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      </>
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -882,72 +894,80 @@ export default function QueueManagement() {
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
               {/* Render the form fields */}
-              <div>
-                <label className="text-sm font-medium">Full Name</label>
-                <Input
-                  className="mt-1"
-                  placeholder="Enter Patient's Name"
-                  value={newPatient.name}
-                  onChange={(e) =>
-                    setNewPatient((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                  disabled={!verifiedPatients} // Disable if patient is verified
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {verifiedPatients ? (
                 <div>
-                  <label className="text-sm font-medium">Gender</label>
-                  <Select
-                    value={newPatient.gender}
-                    onValueChange={(value) =>
-                      setNewPatient((prev) => ({
-                        ...prev,
-                        gender: value,
-                      }))
-                    }
-                    disabled={!verifiedPatients} // Disable if patient is verified
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Date Of Birth</label>
+                  <label className="text-sm font-medium">Full Name</label>
                   <Input
                     className="mt-1"
-                    type="date"
-                    value={newPatient.dateOfBirth}
+                    placeholder="Enter Patient's Name"
+                    value={newPatient.name}
                     onChange={(e) =>
                       setNewPatient((prev) => ({
                         ...prev,
-                        dateOfBirth: e.target.value,
+                        name: e.target.value,
                       }))
                     }
                     disabled={!verifiedPatients} // Disable if patient is verified
                   />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Gender</label>
+                      <Select
+                        value={newPatient.gender}
+                        onValueChange={(value) =>
+                          setNewPatient((prev) => ({
+                            ...prev,
+                            gender: value,
+                          }))
+                        }
+                        disabled={!verifiedPatients} // Disable if patient is verified
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium">
+                        Date Of Birth
+                      </label>
+                      <Input
+                        className="mt-1"
+                        type="date"
+                        value={newPatient.dateOfBirth}
+                        onChange={(e) =>
+                          setNewPatient((prev) => ({
+                            ...prev,
+                            dateOfBirth: e.target.value,
+                          }))
+                        }
+                        disabled={!verifiedPatients} // Disable if patient is verified
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <></>
+              )}
 
               <Button
                 className="w-full mt-6"
                 variant="default"
                 onClick={addPatient}
                 disabled={
-                  !verifiedPatients || !newPatient.name || !newPatient.phone
+                  !verifiedPatients ||
+                  !newPatient.name ||
+                  !newPatient.phone ||
+                  loadings
                 }
               >
-                Add Patient
+                {loadings ? <>Adding Patient...</> : <>Add Patient</>}
               </Button>
             </div>
           </div>

@@ -142,3 +142,20 @@ body {
 .animation-delay-400 {
   animation-delay: 0.4s;
 }
+@keyframes smooth-moving-loader {
+  0% {
+    left: -25%;
+    width: 10%;
+  }
+  50% {
+    left: 50%;
+    width: 40%;
+  }
+  100% {
+    left: 125%; /* Moves past the container for smooth transition */
+  }
+}
+
+.animate-smooth-moving-loader {
+  animation: smooth-moving-loader 1.2s infinite linear;
+}
