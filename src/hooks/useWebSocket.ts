@@ -62,7 +62,8 @@ export function useWebSocket(scheduleId: string) {
       const formattedPatients = updatedAppointments.map((appointment: any) => {
         const patient = appointment.patient || {};
         return {
-          id: patient.id || appointment.id || "Unknown ID",
+          id: patient.id || "Unknown ID",
+          appointmentId: appointment.id || "Unknown Appointment ID", // Added appointmentId
           queueNumber: appointment.queueNumber ?? "N/A",
           name: patient.name || "Unknown",
           phone: patient.phone || "N/A",
@@ -84,6 +85,7 @@ export function useWebSocket(scheduleId: string) {
       if (servingPatient) {
         setCurrentPatient({
           id: servingPatient.id,
+          appointmentId: servingPatient.appointmentId, 
           name: servingPatient.name,
           phone: servingPatient.phone,
           age: servingPatient.age,
