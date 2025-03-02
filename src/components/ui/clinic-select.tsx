@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Hospital } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +64,11 @@ export function ComboboxDemo() {
           aria-expanded={open}
           className="w-[250px] justify-between flex-row flex-nowrap"
         >
-          {selectedClinic ? selectedClinic.name : "Select Clinic"}
+          <div className="flex items-center flex-row gap-2">
+            <Hospital className="text-gray-500"></Hospital>
+            {selectedClinic ? selectedClinic.name : "Select Clinic"}
+          </div>
+
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -87,7 +91,9 @@ export function ComboboxDemo() {
                   <Check
                     className={cn(
                       "ml-auto",
-                      selectedClinic?.id === clinic.id ? "opacity-100" : "opacity-0"
+                      selectedClinic?.id === clinic.id
+                        ? "opacity-100"
+                        : "opacity-0"
                     )}
                   />
                 </CommandItem>

@@ -19,11 +19,11 @@ export default function DoctorHeader() {
       {/* Example rendering of the doctor icon */}
       <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
 
-      <div className="flex flex-col">
+      <div className="flex flex-col mr-4">
         <div className="text-sm font-semibold">
           {doctorName ? doctorName : "Doctor"}
         </div>
-        <div className="text-xs text-gray-500">Doctor</div>
+        <div className="text-sm font-medium text-gray-500">Doctor</div>
       </div>
     </div>
   );
