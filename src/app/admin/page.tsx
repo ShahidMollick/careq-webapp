@@ -74,7 +74,7 @@ export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [loadings, setLoadings] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    localStorage.getItem("selectedScheduleId")
+    localStorage.getItem("selectedScheduleId") || null
   );
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
@@ -96,6 +96,7 @@ export default function QueueManagement() {
     bookingEnd: "22:00",
     onlineAppointments: true,
   });
+  
   const [newPatient, setNewPatient] = useState({
     phone: "",
 
@@ -114,6 +115,16 @@ export default function QueueManagement() {
     showTopLoaders,
     queueStatus
   } = useWebSocket(selectedScheduleId||"");
+  
+  useEffect(() => {
+    if (selectedScheduleId) {
+      console.log("Listening for scheduleId:", selectedScheduleId);
+      socket?.emit("fetchAppointments", selectedScheduleId);
+    } else {
+      console.log("No schedule selected. Resetting WebSocket.");
+      socket?.emit("clearAppointments");
+    }
+  }, [selectedScheduleId, socket]);
   // Sync WebSocket data with Patients state
   useEffect(() => {
     setPatients(livePatients);
@@ -150,48 +161,61 @@ export default function QueueManagement() {
     return matchesSearch && matchesTab;
   });
 
-  const fetchAppointments = async (scheduleId: string) => {
+  const fetchAppointments = async (scheduleId: string | null) => {
+    // ✅ Prevent API call if scheduleId is null or invalid
+    if (!scheduleId || scheduleId === "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e") {
+      console.warn("⚠️ No valid schedule selected. Skipping API call.");
+      setPatients([]); // Clear the list to prevent showing wrong data
+      setLoading(false);
+      return;
+    }
+  
     setLoading(true);
     setError("");
     startTopLoader();
+  
     try {
-      console.log("Fetching appointments for scheduleId:", scheduleId);
+      console.log("📡 Fetching appointments for scheduleId:", scheduleId);
+      
       const response = await axios.get(
         `https://9b94-203-110-242-40.ngrok-free.app/appointments/${scheduleId}`
       );
-
-      // Ensure the response contains valid data
+  
+      // ✅ Ensure response is valid
       if (response.data && Array.isArray(response.data)) {
-        console.log("Appointments fetched:", response.data);
-
-        // Map the response to match the Patient type
+        console.log("✅ Appointments fetched:", response.data);
+  
+        // ✅ Format data correctly
         const formattedPatients = response.data.map((appointment: any) => ({
-          id: appointment.patient.id,
+          id: appointment.patient?.id || "N/A",
           appointmentId: appointment.id,
-          queueNumber: appointment.queueNumber,
-          name: appointment.patient.name,
-          phone: appointment.patient.phone,
-          age: calculateAge(appointment.patient.dateOfBirth),
-          gender: appointment.patient.gender,
-          status: appointment.status,
-          dateOfBirth: appointment.patient.dateOfBirth,
-          timeAdded: appointment.createdAt,
+          queueNumber: appointment.queueNumber || "N/A",
+          name: appointment.patient?.name || "Unknown",
+          phone: appointment.patient?.phone || "N/A",
+          age: appointment.patient?.dateOfBirth ? calculateAge(appointment.patient.dateOfBirth) : "N/A",
+          gender: appointment.patient?.gender || "N/A",
+          status: appointment.status || "N/A",
+          dateOfBirth: appointment.patient?.dateOfBirth || "N/A",
+          timeAdded: appointment.createdAt || null,
           timeStarted: appointment.timeStarted || null,
           timeCompleted: appointment.timeCompleted || null,
         }));
-
+  
         setPatients(formattedPatients);
       } else {
-        console.error("Invalid data received:", response.data);
-        setError("Failed to fetch appointments.");
+        console.error("❌ Invalid data received:", response.data);
+        setError("No appointments found.");
+        setPatients([]); // Clear the list if no valid data
       }
     } catch (error) {
-      console.error("Error fetching appointments:", error);
+      console.error("❌ Error fetching appointments:", error);
       setError("Error fetching appointments. Please try again.");
+      setPatients([]); // Ensure UI does not show old data
     } finally {
       setLoading(false);
     }
   };
+  
 
   const verifyPatient = async () => {
     setLoading(true);
@@ -420,28 +444,41 @@ export default function QueueManagement() {
       alert("Cannot reschedule patient: Missing appointment information");
       return;
     }
+
+    if (!selectedScheduleId) {
+      console.error("Cannot reschedule: Missing scheduleId");
+      alert("System error: Missing schedule information");
+      return;
+    }
     
     try {
       // Show loading indicator
       setShowTopLoader(true);
+      console.log(`Rescheduling patient: ${patient.name}, appointmentId: ${patient.appointmentId}`);
       
-      // Call the API endpoint to reschedule the skipped patient
-      await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
+      // Call the API endpoint to reschedule the skipped patient - use the same base URL as other successful API calls
+      const response = await axios.patch(
+        `http://localhost:5002/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
       );
       
-      console.log("Patient rescheduled successfully:", patient.name);
+      console.log("Rescheduling response:", response.data);
       
       // Trigger WebSocket update to refresh the appointments for all clients
-      socket?.emit("fetchAppointments", selectedScheduleId);
-      
-      // No need to manually update state as WebSocket will handle it
+      if (socket?.connected) {
+        console.log("Emitting WebSocket update after rescheduling patient");
+        socket.emit("fetchAppointments", selectedScheduleId);
+      } else {
+        console.warn("WebSocket disconnected, fetching appointments manually");
+        // Fallback - manually fetch appointments if WebSocket isn't connected
+        await fetchAppointments(selectedScheduleId);
+      }
     } catch (error) {
       console.error("Failed to reschedule patient:", error);
       
       // Show appropriate error message based on response
       if (axios.isAxiosError(error) && error.response) {
         const errorMessage = error.response.data?.message || "Unknown error occurred";
+        console.error("Server error details:", error.response.data);
         alert(`Failed to reschedule patient: ${errorMessage}`);
       } else {
         alert("Failed to reschedule patient. Please try again.");
@@ -930,14 +967,14 @@ export default function QueueManagement() {
                     <Button 
                         variant="outline" 
                         onClick={() => {
-                          if (currentPatient?.appointmentId) {
-                            skipPatient(selectedScheduleId || "", currentPatient.appointmentId);
+                          if (currentPatient?.appointmentId && selectedScheduleId) {
+                            skipPatient(selectedScheduleId, currentPatient.appointmentId);
                           } else {
-                            console.error("Cannot skip: Missing appointmentId");
-                            alert("Cannot skip patient: Missing appointment information");
+                            console.error("Cannot skip: Missing appointmentId or scheduleId");
+                            alert("Cannot skip patient: Missing required information");
                           }
                         }}
-                        disabled={!currentPatient }
+                        disabled={!currentPatient || !selectedScheduleId}
                       >
                         Skip
                       </Button>

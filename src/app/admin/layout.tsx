@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { GetServerSideProps } from "next";
 import { usePathname } from "next/navigation";
 import localFont from "next/font/local";
+import DoctorHeader from "./DoctorHeader"; 
 import "../globals.css";
 import React, { useState } from "react";
 import Image from "next/image";
@@ -90,19 +91,7 @@ export default async function DoctorLayout({
 
                 
               </div>
-              <div className="flex mr-2 gap-2">
-                <Image src="/doctor.svg" alt="doctor" width={40} height={40} />
-                
-                  <div className="p-1 px-2 flex gap-4 h-fit">
-                    <div className="flex justify-start h-full flex-col">
-                      <div className="text-sm font-semibold">Dr. John Doe</div>
-                      <div className="text-[12px] text-gray-500  text-start font-medium">
-                        Doctor
-                      </div>
-                    </div>
-                  </div>
-    
-              </div>
+              <DoctorHeader />
             </div>
           </div>
           <div className=" h-full w-full overflow-hidden">{children}</div>
