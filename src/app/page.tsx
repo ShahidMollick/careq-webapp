@@ -29,50 +29,53 @@ export default function LoginPage() {
     e.preventDefault();
     setError(""); // Clear previous errors
     setLoading(true);
-
+  
     try {
       console.log("🔄 Attempting login...");
       const response = await apiClient.post("/auth/login", { email, password });
-
-      if (!response.data || !response.data.access_token) {
+  
+      if (!response.data || !response.data.access_token || !response.data.doctor) {
         throw new Error("Invalid response from server");
       }
-
-      const accessToken = response.data.access_token;
-      console.log("✅ Token received:", accessToken);
-
+  
+      const { access_token, doctor } = response.data;
+      console.log("✅ Token received:", access_token);
+      console.log("✅ Doctor Details:", doctor);
+  
       // Decode token to extract user details
-      const decodedToken = jwtDecode(accessToken);
+      const decodedToken = jwtDecode(access_token);
       console.log("🔍 Decoded Token:", decodedToken);
-
+  
       // Extract user details safely
       const userID = decodedToken.id || "";
       console.log(`✅ UserID received: ${userID}`);
-
+  
       // Store JWT securely in HTTP-only cookie
-      Cookies.set("accessToken", accessToken, { expires: 1, secure: true });
-
-      // Store user ID securely in Redux state
-      dispatch(setUserRoles({ userID, email }));
-
+      Cookies.set("accessToken", access_token, { expires: 1, secure: true });
+  
+      // Store doctor details in local storage or state for future use
+      localStorage.setItem("doctorData", JSON.stringify(doctor)); // ✅ Save doctor details
+      console.log("✅ Doctor data stored in localStorage");
+  
       console.log("✅ Login successful! Redirecting...");
-
+  
       // Redirect to dashboard or panel
       router.push("/admin");
-
+  
     } catch (err: any) {
       console.error("❌ Login Error:", err);
-
+  
       // Handle error messages properly
       const errorMessage =
         err.response?.data?.message ||
         "Login failed. Please check your credentials and try again.";
-
+  
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col items-center p-5 justify-between bg-[url('/CareQ.png')]">

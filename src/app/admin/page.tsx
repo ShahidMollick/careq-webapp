@@ -73,6 +73,9 @@ interface Patient {
 export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [loadings, setLoadings] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
+    localStorage.getItem("selectedScheduleId")
+  );
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
   const [verifiedPatients, setVerifiedPatients] = useState(false);
@@ -101,14 +104,16 @@ export default function QueueManagement() {
     dateOfBirth: "",
   });
 
-  const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Replace with dynamic scheduleId if needed
+   // Retrieve schedule ID (e.g., from state or context)
+      console.log("the schedule that is selected is ",selectedScheduleId);
   const {
     patients: livePatients,
     socket,
     isConnected,
     currentPatient,
-    showTopLoaders
-  } = useWebSocket(scheduleId);
+    showTopLoaders,
+    queueStatus
+  } = useWebSocket(selectedScheduleId||"");
   // Sync WebSocket data with Patients state
   useEffect(() => {
     setPatients(livePatients);
@@ -119,6 +124,19 @@ export default function QueueManagement() {
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
   };
 
+  // ✅ Listen for `selectedScheduleId` changes across the app
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "selectedScheduleId") {
+        console.log("🔄 Schedule ID updated globally:", event.newValue);
+        setSelectedScheduleId(event.newValue);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+  
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -262,7 +280,9 @@ export default function QueueManagement() {
       }
 
       // Step 2: Create an appointment and add the patient to the queue
-      const scheduleId = "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e"; // Retrieve schedule ID (e.g., from state or context)
+      const scheduleId = localStorage.getItem("selectedScheduleId") // Retrieve schedule ID (e.g., from state or context)
+      console.log("the schedule that is selected is ",scheduleId);
+      
       const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
       console.log("patientId :", patient.id);
 
@@ -358,13 +378,13 @@ export default function QueueManagement() {
     }
   };
 
-  const handleStartServing = async (scheduleId: string) => {
+  const handleStartServing = async (selectedScheduleId: string) => {
     try {
       // First mark the current patient as completed
 
       // Then call the next patient
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${selectedScheduleId}`
       );
 
       // The server + WebSocket will update the state
@@ -376,12 +396,12 @@ export default function QueueManagement() {
     }
   };
 
-  const handleFinishServing = async (scheduleId: string) => {
+  const handleFinishServing = async (selectedScheduleId: string) => {
     setProcessing(true);
     startTopLoader();
     try {
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/finish/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/finish/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -393,12 +413,12 @@ export default function QueueManagement() {
     }
   };
 
-  const handleFinish = async (scheduleId: string) => {
+  const handleFinish = async (selectedScheduleId: string) => {
     setProcessing(true);
     startTopLoader(); // Start top loader
     try {
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${scheduleId}`
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -489,11 +509,11 @@ export default function QueueManagement() {
               <div className="flex gap-2">
                 <div className="text-sm">
                   Current Queue{" "}
-                  <span className="font-medium">{currentQueueNumber}</span>
+                  <span className="font-medium">{queueStatus?.currentQueue ?? "Loading..."}</span>
                 </div>
                 <div className="text-sm">
                   Total Queue{" "}
-                  <span className="font-medium">{Patients.length}</span>
+                  <span className="font-medium">{queueStatus?.totalQueue ?? "Loading..."}</span>
                 </div>
                 <div className="text-sm">
                   Waiting{" "}
@@ -647,7 +667,7 @@ export default function QueueManagement() {
                                         <DropdownMenuItem
                                           onClick={() =>
                                             skipPatient(
-                                              scheduleId,
+                                              selectedScheduleId,
                                               patient.appointmentId
                                             )
                                           }
@@ -790,7 +810,7 @@ export default function QueueManagement() {
                     <Button
                       variant="outline"
                       onClick={() =>
-                        skipPatient(scheduleId, appointmentId || "")
+                        skipPatient(selectedScheduleId ||"", appointmentId || "")
                       }
                     >
                       Skip
@@ -798,7 +818,7 @@ export default function QueueManagement() {
                     <Button
                       variant="default"
                       size="lg"
-                      onClick={() => handleFinishServing(scheduleId || "")}
+                      onClick={() => handleFinishServing(selectedScheduleId || "")}
                       className="flex"
                       disabled={processing}
                     >
@@ -824,7 +844,7 @@ export default function QueueManagement() {
                   <Button
                     variant="default"
                     size="lg"
-                    onClick={() => handleFinish(scheduleId || "")}
+                    onClick={() => handleFinish(selectedScheduleId || "")}
                     // disabled={!Patients.some((p) => p.status === "waiting") || !currentPatient}
                     disabled={processing}
                   >

@@ -21,17 +21,39 @@ import {
 
 export function ComboboxDemo() {
   const [open, setOpen] = React.useState(false);
+  const [clinics, setClinics] = React.useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [selectedClinic, setSelectedClinic] = React.useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
-  // Sample clinics (Replace this with backend data later)
-  const sampleClinics = [
-    { id: "1", name: "Heart Care Clinic", role: "Cardiologist" },
-    { id: "2", name: "Downtown Medical Center", role: "General Practitioner" },
-    { id: "3", name: "Sunrise Dental", role: "Dentist" },
-    { id: "4", name: "Neuro Clinic", role: "Neurologist" },
-  ];
+  // ✅ Fetch unique clinics from stored doctor schedules
+  React.useEffect(() => {
+    const storedDoctorData = localStorage.getItem("doctorData");
+    if (storedDoctorData) {
+      const doctor = JSON.parse(storedDoctorData);
+      const schedules = doctor.schedules || [];
 
-  // Default selected clinic
-  const [selectedClinic, setSelectedClinic] = React.useState(sampleClinics[0]);
+      // Extract unique clinics
+      const uniqueClinicsMap = new Map();
+      schedules.forEach((schedule: any) => {
+        if (!uniqueClinicsMap.has(schedule.clinicName)) {
+          uniqueClinicsMap.set(schedule.clinicName, {
+            id: schedule.id,
+            name: schedule.clinicName,
+          });
+        }
+      });
+
+      const uniqueClinics = Array.from(uniqueClinicsMap.values());
+      setClinics(uniqueClinics);
+      if (uniqueClinics.length > 0) {
+        setSelectedClinic(uniqueClinics[0]); // Set default selection
+      }
+    }
+  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -40,19 +62,19 @@ export function ComboboxDemo() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between flex-row flex-nowrap"
+          className="w-[250px] justify-between flex-row flex-nowrap"
         >
           {selectedClinic ? selectedClinic.name : "Select Clinic"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-[250px] p-0">
         <Command>
           <CommandInput placeholder="Search clinics..." />
           <CommandList>
             <CommandEmpty>No clinic found.</CommandEmpty>
             <CommandGroup>
-              {sampleClinics.map((clinic) => (
+              {clinics.map((clinic) => (
                 <CommandItem
                   key={clinic.id}
                   value={clinic.id}

@@ -10,6 +10,15 @@ export function useWebSocket(scheduleId: string) {
   const [currentPatient, setCurrentPatient] = useState<any | null>(null);
   const [showTopLoaders, setShowTopLoaders] = useState(false);
 
+  // ✅ State to Store Queue Status
+  const [queueStatus, setQueueStatus] = useState<{
+    currentQueue: number;
+    totalQueue: number;
+  }>({
+    currentQueue: 0,
+    totalQueue: 0,
+  });
+
   // ✅ Function to calculate age properly
   const calculateAge = (dob: string | null) => {
     if (!dob) return "N/A";
@@ -18,7 +27,10 @@ export function useWebSocket(scheduleId: string) {
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -26,6 +38,8 @@ export function useWebSocket(scheduleId: string) {
 
   useEffect(() => {
     if (!scheduleId) return;
+
+    console.log("📡 Initializing WebSocket Connection...");
 
     const newSocket = io(SOCKET_URL, {
       transports: ["websocket"],
@@ -36,19 +50,44 @@ export function useWebSocket(scheduleId: string) {
     setSocket(newSocket);
     setShowTopLoaders(true); // ✅ Start loader while fetching data
 
-    console.log("📡 Connecting to WebSocket...");
-
     newSocket.on("connect", () => {
       console.log("✅ WebSocket Connected");
       setIsConnected(true);
-      newSocket.emit("fetchAppointments", scheduleId); // Fetch initial data
+
+      // ✅ Fetch Initial Data
+      console.log("📡 Requesting initial data...");
+      newSocket.emit("fetchAppointments", scheduleId);
+      newSocket.emit("schedule-queue-status", { scheduleId }); // ✅ Request Queue Status
     });
 
     newSocket.on("disconnect", () => {
-      console.warn("❌ WebSocket Disconnected");
+      console.warn("❌ WebSocket Disconnected. Reconnecting...");
       setIsConnected(false);
     });
 
+    // ✅ Listen for queue status updates
+    newSocket.on("queue-status-${scheduleId}", (data) => {
+      console.log("🔄 Queue Status Update Received:", data);
+
+      // ✅ Check if data is valid
+      if (
+        !data ||
+        typeof data.currentQueue === "undefined" ||
+        typeof data.totalQueue === "undefined"
+      ) {
+        console.error("❌ Invalid queue status data received:", data);
+        return;
+      }
+
+      // ✅ Update Queue Status
+      setQueueStatus({
+        currentQueue: data.currentQueue ?? 0,
+        totalQueue: data.totalQueue ?? 0,
+      });
+      
+    });
+
+    // ✅ Listen for appointment updates
     newSocket.on("appointmentsUpdated", (updatedAppointments) => {
       console.log("🔄 Received real-time updates:", updatedAppointments);
 
@@ -79,8 +118,10 @@ export function useWebSocket(scheduleId: string) {
       setPatients(formattedPatients);
 
       // ✅ Ensure serving patient is correctly set
-      const servingPatient = formattedPatients.find((p) => p.status === "serving");
-      
+      const servingPatient = formattedPatients.find(
+        (p) => p.status === "serving"
+      );
+
       if (servingPatient) {
         setCurrentPatient({
           id: servingPatient.id,
@@ -112,5 +153,12 @@ export function useWebSocket(scheduleId: string) {
     };
   }, [scheduleId]);
 
-  return { patients, socket, isConnected, currentPatient, showTopLoaders };
+  return {
+    patients,
+    socket,
+    isConnected,
+    currentPatient,
+    showTopLoaders,
+    queueStatus,
+  };
 }
