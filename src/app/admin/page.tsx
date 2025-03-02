@@ -351,30 +351,175 @@ export default function QueueManagement() {
     setSelectedPatientForCancel(patient);
     setCancelDialogOpen(true);
   };
-
-  const confirmCancel = () => {
-    if (selectedPatientForCancel) {
-      setPatients((prev) =>
-        prev.filter((p) => p.id !== selectedPatientForCancel.id)
-      );
-    }
+  const confirmCancel = async () => {
+    // Store patient info before closing dialog
+    const patientToCancel = selectedPatientForCancel;
+    
+    // Close dialog immediately to prevent UI issues
     setCancelDialogOpen(false);
     setSelectedPatientForCancel(null);
-  };
-
-  const autoSchedulePatient = (patient: Patient) => {
-    setPatients((prev) =>
-      prev.map((p) => (p.id === patient.id ? { ...p, status: "waiting" } : p))
-    );
-  };
-
-  const skipPatient = async (scheduleId: string, appointmentId: string) => {
+    
+    // Validate the patient data
+    if (!patientToCancel) {
+      console.error("Cannot cancel: No patient selected");
+      return;
+    }
+    
+    if (!patientToCancel.appointmentId) {
+      console.error("Cannot cancel: Missing appointmentId for patient", patientToCancel);
+      setError("Cannot cancel: Missing appointment information");
+      return;
+    }
+    
+    if (!selectedScheduleId) {
+      console.error("Cannot cancel: Missing scheduleId");
+      setError("System configuration error. Please contact support.");
+      return;
+    }
+    
     try {
-      await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/skip/${scheduleId}/${appointmentId}`
+      // Show loading indicator
+      setShowTopLoader(true);
+      setError("");
+
+      // Use the same domain as other API calls
+      const cancelUrl = `http://localhost:5002/appointments/cancelappointment/${selectedScheduleId}/${patientToCancel.appointmentId}`;
+      console.log(`Attempting to cancel appointment: ${cancelUrl}`);
+      
+      // Call API to cancel the appointment
+      const response = await axios.patch(cancelUrl);
+      
+      // Log success
+      // console.log(`Successfully cancelled appointment for ${patientToCancel.name}`, response.data);
+      
+      // Update local state first (optimistic update)
+      setPatients(prevPatients => 
+        prevPatients.filter(p => p.appointmentId !== patientToCancel.appointmentId)
       );
-    } catch (err) {
+      
+      // Then update all clients via WebSocket
+      if (socket?.connected) {
+        socket.emit("fetchAppointments", selectedScheduleId);
+      } else {
+        console.warn("WebSocket disconnected, changes won't be synchronized automatically");
+        // Fetch appointments manually as fallback
+        await fetchAppointments(selectedScheduleId);
+      }
+    } catch (error) {
+      // Handle different error types
+      if (axios.isAxiosError(error)) {
+        // Network or server errors (typed Axios errors)
+        if (error.response) {
+          // Server returned error response (4xx, 5xx)
+          const status = error.response.status;
+          const errorMessage = error.response.data?.message || "Unknown server error";
+          
+          console.error(`Server error (${status}) cancelling appointment:`, error.response.data);
+          setError(status >= 500 
+            ? "Server error. Please try again later." 
+            : `Failed to cancel appointment: ${errorMessage}`
+          );
+        } else if (error.request) {
+          // Request made but no response received
+          console.error("Network error cancelling appointment:", error.message);
+          setError("Network error. Please check your connection and try again.");
+        } else {
+          // Error in request configuration
+          console.error("Error preparing request:", error.message);
+          setError("An error occurred. Please try again.");
+        }
+      } else {
+        // Generic error handling
+        console.error("Unexpected error cancelling appointment:", error);
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      // Hide loading indicator
+      setShowTopLoader(false);
+    }
+  };
+
+
+  const autoSchedulePatient = async (patient: Patient) => {
+    if (!patient.appointmentId) {
+      console.error("Cannot reschedule patient: Missing appointmentId");
+      alert("Cannot reschedule patient: Missing appointment information");
+      return;
+    }
+    
+    try {
+      // Show loading indicator
+      setShowTopLoader(true);
+      
+      // Call the API endpoint to reschedule the skipped patient
+      await axios.patch(
+        `https://9b94-203-110-242-40.ngrok-free.app/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
+      );
+      
+      console.log("Patient rescheduled successfully:", patient.name);
+      
+      // Trigger WebSocket update to refresh the appointments for all clients
+      socket?.emit("fetchAppointments", selectedScheduleId);
+      
+      // No need to manually update state as WebSocket will handle it
+    } catch (error) {
+      console.error("Failed to reschedule patient:", error);
+      
+      // Show appropriate error message based on response
+      if (axios.isAxiosError(error) && error.response) {
+        const errorMessage = error.response.data?.message || "Unknown error occurred";
+        alert(`Failed to reschedule patient: ${errorMessage}`);
+      } else {
+        alert("Failed to reschedule patient. Please try again.");
+      }
+    } finally {
+      // Hide loading indicator
+      setShowTopLoader(false);
+    }
+  };
+  const skipPatient = async (scheduleId: string, appointmentId: string) => {
+    console.log("Skipping patient - scheduleId:", scheduleId, "appointmentId:", appointmentId);
+    
+    if (!scheduleId || !appointmentId) {
+      console.error("Cannot skip patient: Missing scheduleId or appointmentId");
+      alert("Cannot skip patient: Missing required information");
+      return;
+    }
+    
+    try {
+      setShowTopLoader(true); // Show loading indicator
+      
+      // Modify the URL to include appointmentId in the path
+      const response = await axios.patch(
+        `http://localhost:5002/appointments/skip/${scheduleId}/${appointmentId}`,
+        { 
+          status: "skipped" 
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      
+      console.log("Skip response:", response.data);
+      console.log("📡 Emitting WebSocket update after skipping patient...");
+      socket?.emit("fetchAppointments", scheduleId);
+    } catch (err: any) {
       console.error("Error skipping patient:", err);
+      
+      // Error handling based on server response
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+        
+        const errorMessage = err.response.data?.message || "Unknown error occurred";
+        alert(`Failed to skip patient: ${errorMessage}`);
+      } else {
+        alert(`Failed to skip patient: ${err.message || "Please try again."}`);
+      }
+    } finally {
+      setShowTopLoader(false); // Hide loading indicator
     }
   };
 
@@ -657,23 +802,24 @@ export default function QueueManagement() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent>
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            cancelAppointment(patient)
-                                          }
-                                        >
-                                          Cancel Appointment
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            skipPatient(
-                                              selectedScheduleId,
-                                              patient.appointmentId
-                                            )
-                                          }
-                                        >
-                                          Skip Patient
-                                        </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => cancelAppointment(patient)}>
+                                        Cancel Appointment
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        console.log("scheduleId:", selectedScheduleId);
+                                        console.log("Patient data:", patient);
+                                        
+                                        if (!selectedScheduleId || !patient.appointmentId) {
+                                          console.error("Cannot skip patient: Missing appointmentId in patient data");
+                                          alert("Cannot skip: Missing appointment information");
+                                          return;
+                                        }
+                                        
+                                        console.log("Skipping patient with appointmentId:", patient.appointmentId);
+                                        skipPatient(selectedScheduleId, patient.appointmentId);
+                                      }}>
+                                        Skip Appointment
+                                      </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </div>
@@ -807,29 +953,22 @@ export default function QueueManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        skipPatient(selectedScheduleId ||"", appointmentId || "")
-                      }
-                    >
-                      Skip
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="lg"
-                      onClick={() => handleFinishServing(selectedScheduleId || "")}
-                      className="flex"
-                      disabled={processing}
-                    >
-                      {processing ? (
-                        <>
-                          Ending Consultation...
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        </>
-                      ) : (
-                        "Finish Consultation"
-                      )}
+                    <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          if (currentPatient?.appointmentId) {
+                            skipPatient(selectedScheduleId, currentPatient.appointmentId);
+                          } else {
+                            console.error("Cannot skip: Missing appointmentId");
+                            alert("Cannot skip patient: Missing appointment information");
+                          }
+                        }}
+                        disabled={!currentPatient }
+                      >
+                        Skip
+                      </Button>
+                    <Button variant="outline" onClick={() => handleFinishServing(selectedScheduleId || "")}>
+                      Finish Consultation
                     </Button>
                     {/* <Button
                       variant="default"
