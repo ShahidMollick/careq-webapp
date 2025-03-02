@@ -66,7 +66,7 @@ export function useWebSocket(scheduleId: string) {
     });
 
     // ✅ Listen for queue status updates
-    newSocket.on("queue-status-${scheduleId}", (data) => {
+    newSocket.on(`queue-updated-${scheduleId}`, (data) => {
       console.log("🔄 Queue Status Update Received:", data);
 
       // ✅ Check if data is valid
@@ -84,7 +84,12 @@ export function useWebSocket(scheduleId: string) {
         currentQueue: data.currentQueue ?? 0,
         totalQueue: data.totalQueue ?? 0,
       });
-      
+
+      console.log(
+        "✅ Updated Queue Status:",
+        data.currentQueue,
+        data.totalQueue
+      );
     });
 
     // ✅ Listen for appointment updates
@@ -126,7 +131,7 @@ export function useWebSocket(scheduleId: string) {
       if (servingPatient) {
         setCurrentPatient({
           id: servingPatient.id,
-          appointmentId: servingPatient.appointmentId, 
+          appointmentId: servingPatient.appointmentId,
           name: servingPatient.name,
           phone: servingPatient.phone,
           age: servingPatient.age,
@@ -149,8 +154,19 @@ export function useWebSocket(scheduleId: string) {
       }
     });
 
+    // ✅ FIX: Attach queue update listener dynamically per scheduleId
+    const queueEventName = `queue-updated-${scheduleId}`;
+    newSocket.on(queueEventName, (data) => {
+      console.log(`🔄 Queue Status Update Received for ${scheduleId}:`, data);
+      setQueueStatus({
+        currentQueue: data.currentQueue ?? 0,
+        totalQueue: data.totalQueue ?? 0,
+      });
+    });
+
     return () => {
       console.log("❌ Disconnecting WebSocket");
+      newSocket.off(queueEventName);
       newSocket.disconnect(); // Clean up when component unmounts
     };
   }, [scheduleId]);

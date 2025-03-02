@@ -118,7 +118,7 @@ export default function QueueManagement() {
   useEffect(() => {
     setPatients(livePatients);
   }, [livePatients]);
-
+  console.log("The status of the queue is : ",queueStatus);
   const startTopLoader = () => {
     setShowTopLoader(true);
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
@@ -305,32 +305,6 @@ export default function QueueManagement() {
       setVerifiedPatients(false);
       setLoadings(false);
     }
-
-    //   // Step 3: Get the updated appointment data
-    //   const appointment = appointmentResponse.data.appointment;
-
-    //   // Update the UI with the new appointment and patient
-    //   setPatients((prev) => [...prev, { ...patient, appointment }]);
-    //   setNextQueueNumber((prev) => prev + 1);
-
-    //   // Reset the input fields
-    //   setNewPatient({
-    //     phone: "",
-    //     name: "",
-
-    //     gender: "male",
-    //     dateOfBirth: "",
-    //   });
-
-    //   alert("Patient successfully added and appointment booked.");
-    // } catch (error) {
-    //   console.error("Error adding patient:", error);
-    //   alert("Failed to add patient.");
-    // } finally {
-    //   setError("");
-    //   setVerifiedPatient(null);
-    //   setVerifiedPatients(true);
-    // }
   };
 
   const calculateAge = (dob: string) => {
@@ -957,7 +931,7 @@ export default function QueueManagement() {
                         variant="outline" 
                         onClick={() => {
                           if (currentPatient?.appointmentId) {
-                            skipPatient(selectedScheduleId, currentPatient.appointmentId);
+                            skipPatient(selectedScheduleId || "", currentPatient.appointmentId);
                           } else {
                             console.error("Cannot skip: Missing appointmentId");
                             alert("Cannot skip patient: Missing appointment information");
