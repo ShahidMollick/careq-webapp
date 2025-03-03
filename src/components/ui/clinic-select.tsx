@@ -38,7 +38,7 @@ export function ComboboxDemo() {
 
       // Extract unique clinics
       const uniqueClinicsMap = new Map();
-      schedules.forEach((schedule: any) => {
+    schedules.forEach((schedule: { id: string; clinicName: string }) => {
         if (!uniqueClinicsMap.has(schedule.clinicName)) {
           uniqueClinicsMap.set(schedule.clinicName, {
             id: schedule.id,

@@ -26,21 +26,42 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Settings2, Plus, Hospital } from "lucide-react";
+import { Settings2, Plus } from "lucide-react";
 import axios from "axios";
 import { Switch } from "@/components/ui/switch";
 
+interface ApiErrorResponse {
+response: {
+    data: {
+    message: string;
+    };
+};
+}
+
+function isApiError(error: unknown): error is ApiErrorResponse {
+return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as ApiErrorResponse).response === "object" &&
+    (error as ApiErrorResponse).response !== null &&
+    "data" in (error as ApiErrorResponse).response &&
+    typeof (error as ApiErrorResponse).response.data === "object" &&
+    (error as ApiErrorResponse).response.data !== null &&
+    "message" in (error as ApiErrorResponse).response.data &&
+    typeof (error as ApiErrorResponse).response.data.message === "string"
+);
+}
+
 function ClinicSetting() {
-  // doctorId is used indirectly when saving to localStorage
-  const [doctorId, setDoctorId] = useState<string | null>(null);
   const [selectedClinic, setSelectedClinic] = useState<{
     name: string;
     address: string;
   } | null>(null);
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null
   );
@@ -76,8 +97,9 @@ function ClinicSetting() {
     }
   }, [selectedScheduleId, schedules]);
   // ✅ State for tracking loading state when adding schedule
-  const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
-  const [showSaveButton, setShowSaveButton] = useState(false);
+const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
+const [doctorId, setDoctorId] = useState<string>("");
+const [showSaveButton, setShowSaveButton] = useState(false);
   // Define Schedule type
   type Schedule = {
     id: string;
@@ -236,24 +258,21 @@ function ClinicSetting() {
       setNewSchedule({ from: "", to: "", fees: "", day: "" });
       setShowAddScheduleDialog(false);
       setIsAddingSchedule(false);
-    } catch (error: any) {
-      // ✅ Reset form and close modal
-      setNewSchedule({ from: "", to: "", fees: "", day: "" });
-      setShowAddScheduleDialog(false);
 
-      // Extract error message if available
-      let errorMessage = "Unknown error occurred";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
+    } catch (error: unknown) {
+    let errorMessage = "Unknown error occurred";
+
+    if (isApiError(error)) {
         errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
-
+    
       alert(`Failed to add schedule: ${errorMessage}`);
       setIsAddingSchedule(false);
     }
+    
+    
   };
 
   // ✅ No Schedule Warning Dialog
@@ -269,13 +288,9 @@ function ClinicSetting() {
     (CHANGES) - Instead of a state variable for doctorName,
     we just read it straight from localStorage here:
   */
-  const localDoctorName =
-    typeof window !== "undefined" ? localStorage.getItem("doctorName") : "";
-
   const handleChange = () => {
     setShowSaveButton(true);
   };
-
   return (
     <div>
       <Sheet>
@@ -494,8 +509,8 @@ function ClinicSetting() {
                       <Select
                         value={newSchedule.from.split(":")[0] || ""}
                         onValueChange={(val) => {
-                          const [_, minutes, period] =
-                            newSchedule.from.split(":");
+                        const [, minutes, period] =
+                        newSchedule.from.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             from: `${val}:${minutes || "00"}:${period || "AM"}`,
@@ -525,7 +540,7 @@ function ClinicSetting() {
                           )[0] || "00"
                         }
                         onValueChange={(val) => {
-                          const [hours, _, period] =
+                        const [hours, , period] = newSchedule.from.split(":");
                             newSchedule.from.split(":");
                           setNewSchedule({
                             ...newSchedule,
@@ -575,8 +590,8 @@ function ClinicSetting() {
                       <Select
                         value={newSchedule.to.split(":")[0] || ""}
                         onValueChange={(val) => {
-                          const [_, minutes, period] =
-                            newSchedule.to.split(":");
+                        const [, minutes, period] =
+                        newSchedule.to.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             to: `${val}:${minutes || "00"}:${period || "AM"}`,
@@ -605,7 +620,7 @@ function ClinicSetting() {
                           "00"
                         }
                         onValueChange={(val) => {
-                          const [hours, _, period] = newSchedule.to.split(":");
+                        const [hours, , period] = newSchedule.to.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             to: `${hours || "12"}:${val}:${period || "AM"}`,

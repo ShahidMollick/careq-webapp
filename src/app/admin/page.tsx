@@ -16,10 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogFooter,
@@ -29,30 +27,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   Search,
-  Settings2,
-  X,
   Loader2,
   ArrowRight,
   CircleCheck,
   History,
   CircleAlert,
-  Redo,
   SkipForward,
-  ChevronLast,
-  Check,
   CheckCheck,
   User,
-  UserRound,
   UsersRound,
   Clock,
   MoreVertical,
@@ -66,8 +50,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { QueueSettings } from "./types";
-import clinicSetting from "./clinicSetting";
-import { log } from "console";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,25 +59,44 @@ import {
 
 interface Patient {
   id: string;
-  queueNumber: number;
   appointmentId: string;
+  queueNumber: string | number;
   name: string;
   phone: string;
-  age: number;
-  gender: "male" | "female" | "other";
-  status: "waiting" | "skipped" | "serving" | "completed";
-  dateOfBirth: string;
-  timeAdded: Date;
-  timeStarted?: Date;
-  timeCompleted?: Date;
+  age: number | string;
+  gender: string;
+  status: string;
+  dob: string;
+  timeAdded: Date | string;
+  timeStarted: Date | string | null;
+  timeCompleted: Date | string | null;
+}
+interface Appointment {
+  id: string;
+  queueNumber?: number;
+  status?: string;
+  createdAt?: string;
+  timeStarted?: string;
+  timeCompleted?: string;
+  patient?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    dob?: string;
+    gender?: string;
+  };
 }
 
 export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [loadings, setLoadings] = useState(false);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    localStorage.getItem("selectedScheduleId") || null
-  );
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedScheduleId") || null;
+    }
+    return null;
+  });
+  
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
   const [verifiedPatients, setVerifiedPatients] = useState(false);
@@ -122,7 +123,7 @@ export default function QueueManagement() {
 
     name: "",
     gender: "male",
-    dateOfBirth: "",
+    dob: "",
   });
 
   // Retrieve schedule ID (e.g., from state or context)
@@ -206,22 +207,30 @@ export default function QueueManagement() {
         console.log("✅ Appointments fetched:", response.data);
 
         // ✅ Format data correctly
-        const formattedPatients = response.data.map((appointment: any) => ({
-          id: appointment.patient?.id || "N/A",
-          appointmentId: appointment.id,
-          queueNumber: appointment.queueNumber || "N/A",
-          name: appointment.patient?.name || "Unknown",
-          phone: appointment.patient?.phone || "N/A",
-          age: appointment.patient?.dateOfBirth
-            ? calculateAge(appointment.patient.dateOfBirth)
-            : "N/A",
-          gender: appointment.patient?.gender || "N/A",
-          status: appointment.status || "N/A",
-          dateOfBirth: appointment.patient?.dateOfBirth || "N/A",
-          timeAdded: appointment.createdAt || null,
-          timeStarted: appointment.timeStarted || null,
-          timeCompleted: appointment.timeCompleted || null,
-        }));
+        const formattedPatients = response.data.map(
+          (appointment: Appointment) => ({
+            id: appointment.patient?.id || "N/A",
+            appointmentId: appointment.id,
+            queueNumber: appointment.queueNumber || "N/A",
+            name: appointment.patient?.name || "Unknown",
+            phone: appointment.patient?.phone || "N/A",
+            age: appointment.patient?.dob
+              ? calculateAge(appointment.patient.dob)
+              : "N/A",
+            gender: appointment.patient?.gender || "N/A",
+            status: appointment.status || "N/A",
+            dob: appointment.patient?.dob || "N/A",
+            timeAdded: appointment.createdAt
+              ? new Date(appointment.createdAt)
+              : new Date(), // ✅ Convert string to Date
+            timeStarted: appointment.timeStarted
+              ? new Date(appointment.timeStarted)
+              : null, // ✅ Convert or leave undefined
+            timeCompleted: appointment.timeCompleted
+              ? new Date(appointment.timeCompleted)
+              : null, // ✅ Convert or leave undefined
+          })
+        );
 
         setPatients(formattedPatients);
       } else {
@@ -268,7 +277,7 @@ export default function QueueManagement() {
           ...newPatient,
           name: patient.name,
           gender: patient.gender,
-          dateOfBirth: formattedDob,
+          dob: formattedDob,
         });
       } else {
         console.log("Patient not found with phone:", newPatient.phone);
@@ -282,7 +291,7 @@ export default function QueueManagement() {
           phone: newPatient.phone, // Retain the entered phone number
           name: "",
           gender: "male", // Default gender
-          dateOfBirth: "",
+          dob: "",
         });
       }
     } catch (error) {
@@ -302,7 +311,7 @@ export default function QueueManagement() {
 
       name: newPatient.name,
       gender: newPatient.gender,
-      dob: newPatient.dateOfBirth,
+      dob: newPatient.dob,
     };
     startTopLoader();
     setLoadings(true); // Start top loader
@@ -324,7 +333,8 @@ export default function QueueManagement() {
       }
 
       // Step 2: Create an appointment and add the patient to the queue
-      const scheduleId = localStorage.getItem("selectedScheduleId"); // Retrieve schedule ID (e.g., from state or context)
+      const scheduleId = typeof window !== "undefined" ? localStorage.getItem("selectedScheduleId") : null;
+ // Retrieve schedule ID (e.g., from state or context)
       console.log("the schedule that is selected is ", scheduleId);
 
       const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
@@ -541,6 +551,13 @@ export default function QueueManagement() {
     try {
       setShowTopLoader(true); // Show loading indicator
 
+      type ApiError = {
+        response?: {
+          data?: { message?: string };
+          status?: number;
+        };
+        message?: string;
+      };
       // Modify the URL to include appointmentId in the path
       const response = await axios.patch(
         `http://localhost:5002/appointments/skip/${scheduleId}/${appointmentId}`,
@@ -557,19 +574,43 @@ export default function QueueManagement() {
       console.log("Skip response:", response.data);
       console.log("📡 Emitting WebSocket update after skipping patient...");
       socket?.emit("fetchAppointments", scheduleId);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error skipping patient:", err);
 
-      // Error handling based on server response
-      if (err.response) {
+      // Type guard function to check if the error is an Axios error
+      const isAxiosError = (
+        error: unknown
+      ): error is {
+        response?: {
+          data?: { message?: string };
+          status?: number;
+        };
+      } => {
+        return (
+          typeof error === "object" && error !== null && "response" in error
+        );
+      };
+
+      // Type guard function to check if the error has a message property
+      const hasMessage = (error: unknown): error is { message: string } => {
+        return (
+          typeof error === "object" &&
+          error !== null &&
+          "message" in error &&
+          typeof (error as { message: string }).message === "string"
+        );
+      };
+
+      if (isAxiosError(err) && err.response) {
         console.error("Response data:", err.response.data);
         console.error("Response status:", err.response.status);
-
         const errorMessage =
           err.response.data?.message || "Unknown error occurred";
         alert(`Failed to skip patient: ${errorMessage}`);
+      } else if (hasMessage(err)) {
+        alert(`Failed to skip patient: ${err.message}`);
       } else {
-        alert(`Failed to skip patient: ${err.message || "Please try again."}`);
+        alert("Failed to skip patient: An unknown error occurred");
       }
     } finally {
       setShowTopLoader(false); // Hide loading indicator
@@ -630,7 +671,13 @@ export default function QueueManagement() {
   // Determine the "Current Queue" number
   const lastCompletedPatient = [...Patients]
     .filter((p) => p.status === "completed")
-    .sort((a, b) => (b.timeCompleted as any) - (a.timeCompleted as any))[0];
+    .sort((a, b) => {
+      if (!a.timeCompleted || !b.timeCompleted) return 0;
+      return (
+        new Date(b.timeCompleted).getTime() -
+        new Date(a.timeCompleted).getTime()
+      );
+    })[0];
 
   const currentQueueNumber = currentPatient
     ? currentPatient.queueNumber // If serving, show current patient queue number
@@ -979,25 +1026,29 @@ export default function QueueManagement() {
                 <div className="mb-28">
                   {filteredPatients.length > 0 ? (
                     <div className="space-y-2">
-                      {filteredPatients.map((patient) => (
-                        <div key={patient.id} className="p-2 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
-                              {patient.queueNumber}
-                            </div>
-                            <div className="flex-1 text-sm grid grid-cols-4">
-                              <div className="text-sm">{patient.name}</div>
-                              <div className="text-sm">
-                                Phone: {patient.phone}
+                      {filteredPatients
+                        .map((patient) => (
+                          <div key={patient.id} className="p-2 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                                {patient.queueNumber}
                               </div>
-                              <div className="text-sm">Age: {patient.age}</div>
-                              <div className="text-sm">
-                                Gender: {patient.gender}
+                              <div className="flex-1 text-sm grid grid-cols-4">
+                                <div className="text-sm">{patient.name}</div>
+                                <div className="text-sm">
+                                  Phone: {patient.phone}
+                                </div>
+                                <div className="text-sm">
+                                  Age: {patient.age}
+                                </div>
+                                <div className="text-sm">
+                                  Gender: {patient.gender}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                        }
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
@@ -1014,7 +1065,8 @@ export default function QueueManagement() {
                 <DialogHeader>
                   <DialogTitle>Cancel Appointment</DialogTitle>
                   <DialogDescription>
-                    Are you sure you want to cancel this patient's appointment?
+                    Are you sure you want to cancel this patient&apos;s
+                    appointment?
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -1217,11 +1269,11 @@ export default function QueueManagement() {
                       <Input
                         className="mt-1"
                         type="date"
-                        value={newPatient.dateOfBirth}
+                        value={newPatient.dob}
                         onChange={(e) =>
                           setNewPatient((prev) => ({
                             ...prev,
-                            dateOfBirth: e.target.value,
+                            dob: e.target.value,
                           }))
                         }
                         disabled={!verifiedPatients} // Disable if patient is verified

@@ -1,12 +1,11 @@
 // redux/store.ts
 import { configureStore } from '@reduxjs/toolkit';
 import appointmentReducer from './appointmentSlice';
-import userRolesReducer from "./userRolesSlice";
+
 
 const store = configureStore({
   reducer: {
     appointments: appointmentReducer,
-    userRoles: userRolesReducer,
   },
 });
 

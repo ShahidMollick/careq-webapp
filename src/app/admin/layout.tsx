@@ -54,18 +54,9 @@ export const metadata: Metadata = {
 
 
 
-export default async function DoctorLayout({
-  pathname,
-  children,
-}: Readonly<{ pathname: string; children: React.ReactNode }>) {
+export default function DoctorLayout({ children }: { children: React.ReactNode }){
   
   const getActiveMenuName = (path: string) => {
-    switch (pathname) {
-      case "/":
-        return "Queue Management";
-      default:
-        return "Queue Management"; // Default case if no match
-    }
   };
 
   return (
@@ -81,8 +72,8 @@ export default async function DoctorLayout({
 
         <div className="flex flex-col bg-gray-50 h-full items-center justify-start rounded-xl w-[100%] border-b-gray-500 border-b-2">
           <div className=" bg-white w-[100%] rounded-tl-lg flex item-center justify-between px-4 h-16 py-1">
-            <div className="font-bold flex items-center text-secondary text-xl">
-              {getActiveMenuName(pathname)}
+            <div className="font-semibold flex items-center text-secondary text-lg">
+              Queue Management
             </div>
             <div className="flex gap-6 items-center">
               <div className=" flex gap-6">

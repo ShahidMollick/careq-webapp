@@ -71,9 +71,14 @@ export default function CreateDoctorAccount() {
       const data = await response.json();
       alert("Doctor account created successfully!");
       router.push("/admin"); // Redirect to doctor dashboard or success page
-    } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
-    } finally {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    }
+     finally {
       setLoading(false);
     }
   };
@@ -178,7 +183,7 @@ export default function CreateDoctorAccount() {
                       <Select
                         value={schedule.day}
                         onValueChange={(value) => handleScheduleChange(index, "day", value)}
-                        className="w-1/4"
+                      
                       >
                         <SelectTrigger>
                           <span>{schedule.day}</span>
