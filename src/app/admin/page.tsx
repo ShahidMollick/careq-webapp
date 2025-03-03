@@ -7,6 +7,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -36,8 +44,19 @@ import {
   Loader2,
   ArrowRight,
   CircleCheck,
+  History,
   CircleAlert,
   Redo,
+  SkipForward,
+  ChevronLast,
+  Check,
+  CheckCheck,
+  User,
+  UserRound,
+  UsersRound,
+  Clock,
+  MoreVertical,
+  CalendarX2,
 } from "lucide-react";
 import {
   Select,
@@ -179,7 +198,7 @@ export default function QueueManagement() {
       console.log("📡 Fetching appointments for scheduleId:", scheduleId);
 
       const response = await axios.get(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/${scheduleId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`
       );
 
       // ✅ Ensure response is valid
@@ -228,7 +247,7 @@ export default function QueueManagement() {
     try {
       console.log("Sending verification request to server...");
       const response = await axios.post(
-        "https://9b94-203-110-242-40.ngrok-free.app/patients/verify",
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/verify`,
         { phone: newPatient.phone }
       );
 
@@ -298,7 +317,7 @@ export default function QueueManagement() {
         console.log("sending patient data: ", patientData);
 
         const patientResponse = await axios.post(
-          "https://9b94-203-110-242-40.ngrok-free.app/patients/create-patient",
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
           patientData
         );
         patient = patientResponse.data;
@@ -312,7 +331,7 @@ export default function QueueManagement() {
       console.log("patientId :", patient.id);
 
       const appointmentResponse = await axios.post(
-        "https://9b94-203-110-242-40.ngrok-free.app/appointments/book",
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
         {
           scheduleId: scheduleId,
           patientId: patient.id,
@@ -563,7 +582,7 @@ export default function QueueManagement() {
 
       // Then call the next patient
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/callnextpatient/${selectedScheduleId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/callnextpatient/${selectedScheduleId}`
       );
 
       // The server + WebSocket will update the state
@@ -580,7 +599,7 @@ export default function QueueManagement() {
     startTopLoader();
     try {
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/finish/${selectedScheduleId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/finish/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -597,7 +616,7 @@ export default function QueueManagement() {
     startTopLoader(); // Start top loader
     try {
       await axios.patch(
-        `https://9b94-203-110-242-40.ngrok-free.app/appointments/serve/${selectedScheduleId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/serve/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
     } catch (err) {
@@ -641,7 +660,7 @@ export default function QueueManagement() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
-                  <h2 className="text-md font-bold">Patient Queue</h2>
+                  <h2 className="text-md font-semibold">Patient Queue</h2>
                   <div className="flex gap-2 items-center">
                     {/* Connection Status Indicator */}
                     <div className="flex items-center gap-1">
@@ -683,19 +702,22 @@ export default function QueueManagement() {
               {/* ✅ Show Queue Status */}
 
               <div className="flex gap-2">
-                <div className="text-sm">
+                <div className="text-sm  flex flex-row gap-1 items-center justify-center border border-gray-200 font-normal rounded-md p-2 ">
+                  <User size="18"></User>
                   Current Queue{" "}
                   <span className="font-medium">
                     {queueStatus?.currentQueue ?? "Loading..."}
                   </span>
                 </div>
-                <div className="text-sm">
+                <div className="text-sm  flex flex-row gap-1 items-center justify-center border border-gray-200 font-normal rounded-md p-2 ">
+                  <UsersRound size="18"></UsersRound>
                   Total Queue{" "}
                   <span className="font-medium">
                     {queueStatus?.totalQueue ?? "Loading..."}
                   </span>
                 </div>
-                <div className="text-sm">
+                <div className="text-sm  flex flex-row gap-1 items-center justify-center border border-gray-200 font-normal rounded-md p-2">
+                  <Clock size="18"></Clock>
                   Waiting{" "}
                   <span className="font-medium">
                     {Patients.filter((p) => p.status === "waiting").length}
@@ -720,10 +742,7 @@ export default function QueueManagement() {
                 className="space-x-2"
               >
                 <TabsList>
-                  <TabsTrigger
-                    value="live"
-                    className="bg-primary text-primary-foreground"
-                  >
+                  <TabsTrigger value="live" className="">
                     Live Queue
                   </TabsTrigger>
                   <TabsTrigger value="skipped">Skipped Patients</TabsTrigger>
@@ -781,112 +800,130 @@ export default function QueueManagement() {
                   >
                     <AccordionItem value="waiting">
                       <AccordionTrigger className="text-sm">
-                        Waiting (
-                        {
-                          filteredPatients.filter((p) => p.status === "waiting")
-                            .length
-                        }
-                        )
+                        <div className="flex flex-row items-center gap-2">
+                          Waiting
+                          <p className=" flex text-white text-sm h-6 w-6 items-center justify-center  rounded-full bg-primary">
+                            {
+                              filteredPatients.filter(
+                                (p) => p.status === "waiting"
+                              ).length
+                            }
+                          </p>
+                        </div>
                       </AccordionTrigger>
-                      <AccordionContent className="">
+                      <AccordionContent className="text-sm pt-4">
                         {filteredPatients.filter((p) => p.status === "waiting")
                           .length > 0 ? (
-                          <div className="space-y-2">
-                            {filteredPatients
-                              .filter((p) => p.status === "waiting")
-                              .map((patient) => (
-                                <div
-                                  key={patient.id}
-                                  className="p-2 rounded-lg grid grid-cols-6 gap-4"
-                                >
-                                  <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
-                                    {patient.queueNumber}
-                                  </div>
-                                  <div className="text-sm">{patient.name}</div>
-                                  <div className="text-sm">
-                                    Phone: {patient.phone}
-                                  </div>
-                                  <div className="text-sm">
-                                    Age: {patient.age}
-                                  </div>
-                                  <div className="text-sm">
-                                    Gender: {patient.gender}
-                                  </div>
+                          <div className="rounded-md border-0">
+                            <Table className="[&_tr]:border-0 h-4">
+                              <TableHeader className=" pb-1 mb-1">
+                                <TableRow>
+                                  <TableHead className="text-sm w-[80px]">
+                                    Queue
+                                  </TableHead>
+                                  <TableHead className="text-sm">
+                                    Name
+                                  </TableHead>
+                                  <TableHead className="text-sm">
+                                    Phone
+                                  </TableHead>
+                                  <TableHead className="text-sm">Age</TableHead>
+                                  <TableHead className="text-sm">
+                                    Gender
+                                  </TableHead>
+                                  <TableHead className="text-sm w-[80px]">
+                                    Actions
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {filteredPatients
+                                  .filter((p) => p.status === "waiting")
+                                  .map((patient) => (
+                                    <TableRow key={patient.id}>
+                                      <TableCell className="text-sm">
+                                        <div className="w-8 h-8 rounded-full  flex items-center justify-center font-bold text-sm">
+                                          {patient.queueNumber}
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-sm font-medium">
+                                        {patient.name}
+                                      </TableCell>
+                                      <TableCell className="text-sm">
+                                        {patient.phone}
+                                      </TableCell>
+                                      <TableCell className="text-sm">
+                                        {patient.age}
+                                      </TableCell>
+                                      <TableCell className="text-sm">
+                                        {patient.gender}
+                                      </TableCell>
+                                      <TableCell>
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                              <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                console.log(
+                                                  "scheduleId:",
+                                                  selectedScheduleId
+                                                );
+                                                console.log(
+                                                  "Patient data:",
+                                                  patient
+                                                );
 
-                                  <div className="flex items-center">
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="text-black"
-                                          >
-                                            <circle cx="12" cy="12" r="1" />
-                                            <circle cx="12" cy="5" r="1" />
-                                            <circle cx="12" cy="19" r="1" />
-                                          </svg>
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent>
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            cancelAppointment(patient)
-                                          }
-                                        >
-                                          Cancel Appointment
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => {
-                                            console.log(
-                                              "scheduleId:",
-                                              selectedScheduleId
-                                            );
-                                            console.log(
-                                              "Patient data:",
-                                              patient
-                                            );
+                                                if (
+                                                  !selectedScheduleId ||
+                                                  !patient.appointmentId
+                                                ) {
+                                                  console.error(
+                                                    "Cannot skip patient: Missing appointmentId in patient data"
+                                                  );
+                                                  alert(
+                                                    "Cannot skip: Missing appointment information"
+                                                  );
+                                                  return;
+                                                }
 
-                                            if (
-                                              !selectedScheduleId ||
-                                              !patient.appointmentId
-                                            ) {
-                                              console.error(
-                                                "Cannot skip patient: Missing appointmentId in patient data"
-                                              );
-                                              alert(
-                                                "Cannot skip: Missing appointment information"
-                                              );
-                                              return;
-                                            }
-
-                                            console.log(
-                                              "Skipping patient with appointmentId:",
-                                              patient.appointmentId
-                                            );
-                                            skipPatient(
-                                              selectedScheduleId,
-                                              patient.appointmentId
-                                            );
-                                          }}
-                                        >
-                                          Skip Appointment
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-                              ))}
+                                                console.log(
+                                                  "Skipping patient with appointmentId:",
+                                                  patient.appointmentId
+                                                );
+                                                skipPatient(
+                                                  selectedScheduleId,
+                                                  patient.appointmentId
+                                                );
+                                              }}
+                                            >
+                                              <SkipForward></SkipForward>
+                                              Skip Appointment
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                              onClick={() =>
+                                                cancelAppointment(patient)
+                                              }
+                                              className="text-red-500 hover:text-red-500"
+                                            >
+                                              <CalendarX2 className="text-red-500"></CalendarX2>
+                                              <span className="text-red-500 hover:text-red-600 text-sm">
+                                                Cancel Appointment
+                                              </span>
+                                            </DropdownMenuItem>
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                              </TableBody>
+                            </Table>
                           </div>
                         ) : (
-                          <div className="text-center py-4 text-muted-foreground">
+                          <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-md">
                             No patients waiting in queue
                           </div>
                         )}
@@ -924,7 +961,7 @@ export default function QueueManagement() {
                             variant="default"
                             onClick={() => autoSchedulePatient(patient)}
                           >
-                            <Redo></Redo>
+                            <History></History>
                             Auto Schedule
                           </Button>
                         </div>
@@ -1034,9 +1071,10 @@ export default function QueueManagement() {
                         }
                       }}
                       disabled={!currentPatient || !selectedScheduleId}
-                      className="border-red-500 text-red-500"
+                      className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
                     >
-                      Skip
+                      <SkipForward></SkipForward>
+                      Skip Patient
                     </Button>
                     <Button
                       variant="default"
@@ -1044,8 +1082,19 @@ export default function QueueManagement() {
                         handleFinishServing(selectedScheduleId || "")
                       }
                       className=""
+                      disabled={processing}
                     >
-                      Finish Consultation
+                      {processing ? (
+                        <>
+                          Ending Consultation...
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        </>
+                      ) : (
+                        <>
+                          <CheckCheck></CheckCheck>
+                          Finish Consultation
+                        </>
+                      )}
                     </Button>
                     {/* <Button
                       variant="default"
@@ -1085,7 +1134,7 @@ export default function QueueManagement() {
           <div className="w-[400px] border-l p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-md font-bold text-primary">Add Patient</h2>
+                <h2 className="text-md font-semibold ">Add Patient</h2>
                 <p className="text-sm text-muted-foreground">
                   Information Information Information Information
                 </p>
@@ -1137,7 +1186,7 @@ export default function QueueManagement() {
                     }
                     disabled={!verifiedPatients} // Disable if patient is verified
                   />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 mt-1 gap-4">
                     <div>
                       <label className="text-sm font-medium">Gender</label>
                       <Select

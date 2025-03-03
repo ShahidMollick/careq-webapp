@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -25,8 +26,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Settings2, Plus } from "lucide-react";
+import { Settings2, Plus, Hospital } from "lucide-react";
 import axios from "axios";
+import { Switch } from "@/components/ui/switch";
 
 function ClinicSetting() {
   // doctorId is used indirectly when saving to localStorage
@@ -39,8 +41,15 @@ function ClinicSetting() {
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
+    null
+  );
   const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [bookingStart, setBookingStart] = useState("");
+  const [bookingEnd, setBookingEnd] = useState("");
+  const [allowOnlineBooking, setAllowOnlineBooking] = useState("yes");
 
   // ✅ State for Adding New Schedule
   const [newSchedule, setNewSchedule] = useState({
@@ -51,11 +60,24 @@ function ClinicSetting() {
   });
 
   // ✅ State for no schedule warning
-  const [showNoScheduleWarning, setShowNoScheduleWarning] = useState<boolean>(false);
-
+  const [showNoScheduleWarning, setShowNoScheduleWarning] =
+    useState<boolean>(false);
+  useEffect(() => {
+    if (selectedScheduleId) {
+      const selectedSchedule = schedules.find(
+        (s) => s.id === selectedScheduleId
+      );
+      if (selectedSchedule) {
+        setScheduleStart(selectedSchedule.from);
+        setScheduleEnd(selectedSchedule.to);
+        setBookingStart(selectedSchedule.bookingStart || "");
+        setBookingEnd(selectedSchedule.bookingEnd || "");
+      }
+    }
+  }, [selectedScheduleId, schedules]);
   // ✅ State for tracking loading state when adding schedule
   const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
-
+  const [showSaveButton, setShowSaveButton] = useState(false);
   // Define Schedule type
   type Schedule = {
     id: string;
@@ -166,7 +188,12 @@ function ClinicSetting() {
         alert("Clinic details are missing.");
         return;
       }
-      if (!newSchedule.day || !newSchedule.from || !newSchedule.to || !newSchedule.fees) {
+      if (
+        !newSchedule.day ||
+        !newSchedule.from ||
+        !newSchedule.to ||
+        !newSchedule.fees
+      ) {
         alert("Please fill in all fields before submitting.");
         return;
       }
@@ -192,7 +219,7 @@ function ClinicSetting() {
 
       // ✅ Send API request
       const response = await axios.post(
-        `https://9b94-203-110-242-40.ngrok-free.app/doctors/${doctorId}/schedules`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${doctorId}/schedules`,
         requestBody
       );
 
@@ -216,7 +243,11 @@ function ClinicSetting() {
 
       // Extract error message if available
       let errorMessage = "Unknown error occurred";
-      if (error.response && error.response.data && error.response.data.message) {
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         errorMessage = error.response.data.message;
       }
 
@@ -241,6 +272,10 @@ function ClinicSetting() {
   const localDoctorName =
     typeof window !== "undefined" ? localStorage.getItem("doctorName") : "";
 
+  const handleChange = () => {
+    setShowSaveButton(true);
+  };
+
   return (
     <div>
       <Sheet>
@@ -249,73 +284,149 @@ function ClinicSetting() {
             <Settings2 className="w-5 h-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Clinic Settings</SheetTitle>
-            {localDoctorName && (
-              <p className="text-sm text-gray-600">Dr. {localDoctorName}</p>
-            )}
-          </SheetHeader>
-
-          <div className="space-y-6 mt-6">
-            {/* ✅ Display Clinic Name */}
-            {selectedClinic && (
-              <div>
-                <h3 className="text-lg font-medium mb-2">Clinic</h3>
-                <p className="text-md font-bold text-gray-700">
-                  {selectedClinic.name}
+        <SheetContent className="flex flex-col justify-between">
+          <div>
+            <SheetHeader className="mt-2 flex flex-row justify-between mb-4">
+              <SheetTitle>
+                Clinic Settings
+                <p className="text-sm flex flex-row text-gray-500 font-normal items-center gap-2">
+                  Configure your bookings
                 </p>
-              </div>
-            )}
+              </SheetTitle>
+              {/* ✅ Select Available Days */}
+              {availableDays.length > 0 && (
+                <div className="text-sm">
+                  <Select
+                    value={selectedDay || ""}
+                    onValueChange={setSelectedDay}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue
+                        className="text-sm"
+                        placeholder="Choose a day"
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="text-sm">
+                      {availableDays.map((day) => (
+                        <SelectItem className="text-sm" key={day} value={day}>
+                          {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </SheetHeader>
 
-            {/* ✅ Select Available Days */}
-            {availableDays.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-2">Select Day</h3>
-                <Select value={selectedDay || ""} onValueChange={setSelectedDay}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDays.map((day) => (
-                      <SelectItem key={day} value={day}>
-                        {day}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="flex flex-row w-full gap-2">
+              {/* ✅ Select Slot if Multiple Schedules Exist */}
+              {selectedDay && filteredSchedules.length > 0 && (
+                <div className="w-full mb-1 ">
+                  <span className=" text-sm font-medium mb-2">Slot</span>
+                  <Select
+                    value={selectedScheduleId || ""}
+                    onValueChange={handleSelectSchedule}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue
+                        className="text-sm"
+                        placeholder="Choose a slot"
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="text-sm">
+                      {filteredSchedules.map((schedule) => (
+                        <SelectItem key={schedule.id} value={schedule.id}>
+                          {schedule.from} - {schedule.to}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
 
-            {/* ✅ Select Slot if Multiple Schedules Exist */}
-            {selectedDay && filteredSchedules.length > 0 && (
-              <div>
-                <h3 className="text-lg font-medium mb-2">Select Slot</h3>
-                <Select
-                  value={selectedScheduleId || ""}
-                  onValueChange={handleSelectSchedule}
+            <div>
+              {/* Schedule Timing */}
+              <div className="mt-4">
+                <h3 className="text-md font-medium">Schedule Timing</h3>
+                <p className="text-sm text-gray-500">
+                  Adjust the schedule for this slot.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="time"
+                    value={scheduleStart}
+                    onChange={(e) => {
+                      setScheduleStart(e.target.value);
+                      handleChange();
+                    }}
+                  />
+                  <Input
+                    type="time"
+                    value={scheduleEnd}
+                    onChange={(e) => {
+                      setScheduleEnd(e.target.value);
+                      handleChange();
+                    }}
+                  />
+                </div>
+              </div>
+              {/* Booking Timing */}
+              <div className="mt-4">
+                <h3 className="text-md font-medium">Booking Timing</h3>
+                <p className="text-sm text-gray-500">
+                  Set the allowed booking window for this slot.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="time"
+                    value={bookingStart}
+                    onChange={(e) => {
+                      setBookingStart(e.target.value);
+                      handleChange();
+                    }}
+                  />
+                  <Input
+                    type="time"
+                    value={bookingEnd}
+                    onChange={(e) => {
+                      setBookingEnd(e.target.value);
+                      handleChange();
+                    }}
+                  />
+                </div>
+              </div>
+              {/* Online Booking Toggle */}
+              <div className="mt-4">
+                <h3 className="text-md font-medium">Online Booking</h3>
+                <p className="text-sm text-gray-500">
+                  Allow patients to book appointments online?
+                </p>
+                <div className="mt-2 flex items-center space-x-2">
+                  <Switch
+                    checked={allowOnlineBooking === "yes"}
+                    onCheckedChange={(isChecked) => {
+                      setAllowOnlineBooking(isChecked ? "yes" : "no");
+                      handleChange();
+                    }}
+                  />
+                  <span className="text-sm text-gray-700">
+                    {allowOnlineBooking === "yes" ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+              </div>
+              {showSaveButton && (
+                <Button
+                  className="w-full bg-primary text-white"
+                  onClick={() => {
+                    setShowSaveButton(false);
+                    alert("Changes saved!");
+                  }}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a slot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSchedules.map((schedule) => (
-                      <SelectItem key={schedule.id} value={schedule.id}>
-                        {schedule.bookingStart} - {schedule.bookingEnd} (
-                        {schedule.from} - {schedule.to})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* ✅ Show Selected Schedule ID */}
-            {selectedScheduleId && (
-              <p className="text-sm text-gray-600">
-                Selected Schedule ID: <strong>{selectedScheduleId}</strong>
-              </p>
-            )}
+                  Save Changes
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* ✅ Add Schedule Button in Footer */}
@@ -325,8 +436,11 @@ function ClinicSetting() {
               onOpenChange={setShowAddScheduleDialog}
             >
               <DialogTrigger asChild>
-                <Button variant="default" className="w-full">
-                  <Plus className="mr-2 w-4 h-4" />
+                <Button
+                  variant="outline"
+                  className="w-full hover:bg-green-50 text-primary border-primary font-medium hover:text-primary"
+                >
+                  <Plus className="mr-2 w-4 h-4 text-primary" />
                   Add New Schedule
                 </Button>
               </DialogTrigger>
@@ -353,18 +467,18 @@ function ClinicSetting() {
                         setNewSchedule({ ...newSchedule, day: val })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a day" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="pr-1">
                         {[
-                          "Monday",
-                          "Tuesday",
-                          "Wednesday",
-                          "Thursday",
-                          "Friday",
-                          "Saturday",
-                          "Sunday",
+                          "Monday  ",
+                          "Tuesday  ",
+                          "Wednesday  ",
+                          "Thursday  ",
+                          "Friday  ",
+                          "Saturday  ",
+                          "Sunday ",
                         ].map((day) => (
                           <SelectItem key={day} value={day}>
                             {day}
@@ -380,7 +494,8 @@ function ClinicSetting() {
                       <Select
                         value={newSchedule.from.split(":")[0] || ""}
                         onValueChange={(val) => {
-                          const [_, minutes, period] = newSchedule.from.split(":");
+                          const [_, minutes, period] =
+                            newSchedule.from.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             from: `${val}:${minutes || "00"}:${period || "AM"}`,
@@ -405,11 +520,13 @@ function ClinicSetting() {
 
                       <Select
                         value={
-                          (newSchedule.from.split(":")[1] || "").split(":")[0] ||
-                          "00"
+                          (newSchedule.from.split(":")[1] || "").split(
+                            ":"
+                          )[0] || "00"
                         }
                         onValueChange={(val) => {
-                          const [hours, _, period] = newSchedule.from.split(":");
+                          const [hours, _, period] =
+                            newSchedule.from.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             from: `${hours || "12"}:${val}:${period || "AM"}`,
@@ -458,7 +575,8 @@ function ClinicSetting() {
                       <Select
                         value={newSchedule.to.split(":")[0] || ""}
                         onValueChange={(val) => {
-                          const [_, minutes, period] = newSchedule.to.split(":");
+                          const [_, minutes, period] =
+                            newSchedule.to.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             to: `${val}:${minutes || "00"}:${period || "AM"}`,

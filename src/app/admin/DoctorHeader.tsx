@@ -8,7 +8,7 @@ export default function DoctorHeader() {
 
   useEffect(() => {
     // Safely read from localStorage in the browser
-    const storedDoctorName = localStorage.getItem("doctorName");
+    const storedDoctorName = "Dr. "+ localStorage.getItem("doctorName");
     if (storedDoctorName) {
       setDoctorName(storedDoctorName);
     }
