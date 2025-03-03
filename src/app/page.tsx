@@ -33,7 +33,6 @@ export default function LoginPage() {
     try {
       console.log("🔄 Attempting login...");
       const response = await apiClient.post("/auth/login", { email, password });
-  
       if (!response.data || !response.data.access_token || !response.data.doctor) {
         throw new Error("Invalid response from server");
       }

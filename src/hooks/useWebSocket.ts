@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = "https://9b94-203-110-242-40.ngrok-free.app"; // Update if needed
+const SOCKET_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}`; // Update if needed
 
 export function useWebSocket(scheduleId: string) {
   const [patients, setPatients] = useState<any[]>([]);

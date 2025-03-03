@@ -55,7 +55,7 @@ export default function CreateDoctorAccount() {
     };
 
     try {
-      const response = await fetch("https://9b94-203-110-242-40.ngrok-free.app/auth/register", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
