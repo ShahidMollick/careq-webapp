@@ -44,9 +44,6 @@ function ClinicSetting() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
     null
   );
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    null
-  );
   const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
@@ -196,6 +193,9 @@ function ClinicSetting() {
         !newSchedule.to ||
         !newSchedule.fees
       ) {
+        alert("Please fill in all fields before submitting.");
+        return;
+      }
       if (
         !newSchedule.day ||
         !newSchedule.from ||
@@ -270,6 +270,7 @@ function ClinicSetting() {
       alert(`Failed to add schedule: ${errorMessage}`);
       setIsAddingSchedule(false);
     }
+  }
   };
 
   // ✅ No Schedule Warning Dialog

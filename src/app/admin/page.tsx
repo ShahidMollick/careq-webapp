@@ -146,6 +146,27 @@ export default function QueueManagement() {
     }
   }, [selectedScheduleId, socket]);
   // Sync WebSocket data with Patients state
+  // ✅ Listen for Booking Window Updates
+useEffect(() => {
+  if (socket) {
+    console.log("📡 Listening for booking window updates...");
+    socket.on("bookingWindowUpdated", ({ scheduleId, isOpen }) => {
+      console.log(`📢 Booking window update received for ${scheduleId}: ${isOpen ? "OPEN" : "CLOSED"}`);
+
+      if (selectedScheduleId === scheduleId) {
+        setSettings((prev) => ({
+          ...prev,
+          onlineAppointments: isOpen, // ✅ Dynamically enable/disable bookings
+        }));
+      }
+    });
+  }
+
+  return () => {
+    socket?.off("bookingWindowUpdated");
+  };
+}, [socket, selectedScheduleId]);
+
   useEffect(() => {
     setPatients(livePatients);
   }, [livePatients]);
@@ -661,6 +682,8 @@ export default function QueueManagement() {
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
                   <h2 className="text-md font-semibold">Patient Queue</h2>
+                  
+
                   <div className="flex gap-2 items-center">
                     {/* Connection Status Indicator */}
                     <div className="flex items-center gap-1">
@@ -1233,19 +1256,27 @@ export default function QueueManagement() {
                 <></>
               )}
 
-              <Button
-                className="w-full mt-6"
-                variant="default"
-                onClick={addPatient}
-                disabled={
-                  !verifiedPatients ||
-                  !newPatient.name ||
-                  !newPatient.phone ||
-                  loadings
-                }
-              >
-                {loadings ? <>Adding Patient...</> : <>Add Patient</>}
-              </Button>
+<Button
+  className="w-full mt-6"
+  variant="default"
+  onClick={addPatient}
+  disabled={
+    !verifiedPatients ||
+    !newPatient.name ||
+    !newPatient.phone ||
+    loadings ||
+    !settings.onlineAppointments // ✅ Disable when booking window is closed
+  }
+>
+  {loadings ? (
+    <>Adding Patient...</>
+  ) : settings.onlineAppointments ? (
+    <>Add Patient</>
+  ) : (
+    <>Booking Closed</> // ✅ Show "Booking Closed" when window is closed
+  )}
+</Button>
+
             </div>
           </div>
         </div>
