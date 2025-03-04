@@ -147,6 +147,27 @@ export default function QueueManagement() {
     }
   }, [selectedScheduleId, socket]);
   // Sync WebSocket data with Patients state
+  // ✅ Listen for Booking Window Updates
+useEffect(() => {
+  if (socket) {
+    console.log("📡 Listening for booking window updates...");
+    socket.on("bookingWindowUpdated", ({ scheduleId, isOpen }) => {
+      console.log(`📢 Booking window update received for ${scheduleId}: ${isOpen ? "OPEN" : "CLOSED"}`);
+
+      if (selectedScheduleId === scheduleId) {
+        setSettings((prev) => ({
+          ...prev,
+          onlineAppointments: isOpen, // ✅ Dynamically enable/disable bookings
+        }));
+      }
+    });
+  }
+
+  return () => {
+    socket?.off("bookingWindowUpdated");
+  };
+}, [socket, selectedScheduleId]);
+
   useEffect(() => {
     setPatients(livePatients);
   }, [livePatients]);
@@ -156,7 +177,7 @@ export default function QueueManagement() {
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
   };
 
-  // ✅ Listen for `selectedScheduleId` changes across the app
+  // ✅ Listen for selectedScheduleId changes across the app
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "selectedScheduleId") {
@@ -185,7 +206,7 @@ export default function QueueManagement() {
   const fetchAppointments = async (scheduleId: string | null) => {
     // ✅ Prevent API call if scheduleId is null or invalid
     if (!scheduleId || scheduleId === "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e") {
-      console.warn("⚠️ No valid schedule selected. Skipping API call.");
+      console.warn("⚠ No valid schedule selected. Skipping API call.");
       setPatients([]); // Clear the list to prevent showing wrong data
       setLoading(false);
       return;
@@ -197,12 +218,10 @@ export default function QueueManagement() {
 
     try {
       console.log("📡 Fetching appointments for scheduleId:", scheduleId);
-
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`
-      );
-
-      // ✅ Ensure response is valid
+      
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`);
+      
+            // ✅ Ensure response is valid
       if (response.data && Array.isArray(response.data)) {
         console.log("✅ Appointments fetched:", response.data);
 
@@ -414,14 +433,14 @@ export default function QueueManagement() {
       setError("");
 
       // Use the same domain as other API calls
-      const cancelUrl = `http://localhost:5002/appointments/cancelappointment/${selectedScheduleId}/${patientToCancel.appointmentId}`;
+      const cancelUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/cancelappointment/${selectedScheduleId}/${patientToCancel.appointmentId}`;
       console.log(`Attempting to cancel appointment: ${cancelUrl}`);
 
       // Call API to cancel the appointment
       const response = await axios.patch(cancelUrl);
 
       // Log success
-      // console.log(`Successfully cancelled appointment for ${patientToCancel.name}`, response.data);
+      // console.log(Successfully cancelled appointment for ${patientToCancel.name}, response.data);
 
       // Update local state first (optimistic update)
       setPatients((prevPatients) =>
@@ -503,7 +522,7 @@ export default function QueueManagement() {
 
       // Call the API endpoint to reschedule the skipped patient - use the same base URL as other successful API calls
       const response = await axios.patch(
-        `http://localhost:5002/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
       );
 
       console.log("Rescheduling response:", response.data);
@@ -560,7 +579,7 @@ export default function QueueManagement() {
       };
       // Modify the URL to include appointmentId in the path
       const response = await axios.patch(
-        `http://localhost:5002/appointments/skip/${scheduleId}/${appointmentId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/skip/${scheduleId}/${appointmentId}`,
         {
           status: "skipped",
         },
@@ -708,6 +727,8 @@ export default function QueueManagement() {
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
                   <h2 className="text-md font-semibold">Patient Queue</h2>
+                  
+
                   <div className="flex gap-2 items-center">
                     {/* Connection Status Indicator */}
                     <div className="flex items-center gap-1">
@@ -1285,19 +1306,27 @@ export default function QueueManagement() {
                 <></>
               )}
 
-              <Button
-                className="w-full mt-6"
-                variant="default"
-                onClick={addPatient}
-                disabled={
-                  !verifiedPatients ||
-                  !newPatient.name ||
-                  !newPatient.phone ||
-                  loadings
-                }
-              >
-                {loadings ? <>Adding Patient...</> : <>Add Patient</>}
-              </Button>
+<Button
+  className="w-full mt-6"
+  variant="default"
+  onClick={addPatient}
+  disabled={
+    !verifiedPatients ||
+    !newPatient.name ||
+    !newPatient.phone ||
+    loadings ||
+    !settings.onlineAppointments // ✅ Disable when booking window is closed
+  }
+>
+  {loadings ? (
+    <>Adding Patient...</>
+  ) : settings.onlineAppointments ? (
+    <>Add Patient</>
+  ) : (
+    <>Booking Closed</> // ✅ Show "Booking Closed" when window is closed
+  )}
+</Button>
+
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ interface Patient {
 
 
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000"; // ✅ Default to localhost if env is missing
+const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5002"; // ✅ Default to localhost if env is missing
 
 export function useWebSocket(scheduleId: string) {
   const [patients, setPatients] = useState<Patient[]>([]);
