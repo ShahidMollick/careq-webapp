@@ -31,57 +31,24 @@ import axios from "axios";
 import { Switch } from "@/components/ui/switch";
 
 function ClinicSetting() {
-  // doctorId is used indirectly when saving to localStorage
   const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [selectedClinic, setSelectedClinic] = useState<{
-    name: string;
-    address: string;
-  } | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<{ name: string; address: string } | null>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    null
-  );
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    null
-  );
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
   const [scheduleStart, setScheduleStart] = useState("");
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [bookingStart, setBookingStart] = useState("");
   const [bookingEnd, setBookingEnd] = useState("");
   const [allowOnlineBooking, setAllowOnlineBooking] = useState("yes");
-
-  // ✅ State for Adding New Schedule
-  const [newSchedule, setNewSchedule] = useState({
-    from: "",
-    to: "",
-    fees: "",
-    day: "",
-  });
-
-  // ✅ State for no schedule warning
-  const [showNoScheduleWarning, setShowNoScheduleWarning] =
-    useState<boolean>(false);
-  useEffect(() => {
-    if (selectedScheduleId) {
-      const selectedSchedule = schedules.find(
-        (s) => s.id === selectedScheduleId
-      );
-      if (selectedSchedule) {
-        setScheduleStart(selectedSchedule.from);
-        setScheduleEnd(selectedSchedule.to);
-        setBookingStart(selectedSchedule.bookingStart || "");
-        setBookingEnd(selectedSchedule.bookingEnd || "");
-      }
-    }
-  }, [selectedScheduleId, schedules]);
-  // ✅ State for tracking loading state when adding schedule
+  const [newSchedule, setNewSchedule] = useState({ from: "", to: "", fees: "", day: "" });
+  const [showNoScheduleWarning, setShowNoScheduleWarning] = useState<boolean>(false);
   const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
   const [showSaveButton, setShowSaveButton] = useState(false);
-  // Define Schedule type
+
   type Schedule = {
     id: string;
     day: string;
@@ -99,35 +66,18 @@ function ClinicSetting() {
     if (storedDoctorData) {
       const doctor = JSON.parse(storedDoctorData);
       setDoctorId(doctor.id);
-
       localStorage.setItem("doctorId", doctor.id);
-      localStorage.setItem("doctorName", doctor.name || ""); // still store it
-      console.log("Doctor Id :", doctor.id);
-
+      localStorage.setItem("doctorName", doctor.name || "");
       if (doctor.schedules && doctor.schedules.length > 0) {
         setSchedules(doctor.schedules);
-
-        // ✅ Extract Clinic Name
         const firstClinic = doctor.schedules[0];
-        const clinicInfo = {
-          name: firstClinic.clinicName,
-          address: firstClinic.clinicAddress,
-        };
+        const clinicInfo = { name: firstClinic.clinicName, address: firstClinic.clinicAddress };
         setSelectedClinic(clinicInfo);
-
-        // Store clinic info in localStorage for consistency
         localStorage.setItem("selectedClinic", JSON.stringify(clinicInfo));
-
-        // ✅ Extract Unique Days
-        const uniqueDays = [
-          ...new Set(doctor.schedules.map((s: Schedule) => s.day)),
-        ] as string[];
+        const uniqueDays = [...new Set(doctor.schedules.map((s: Schedule) => s.day))] as string[];
         setAvailableDays(uniqueDays);
-
-        // ✅ Set Default Day & Schedule
         setSelectedDay(uniqueDays[0] || null);
       } else {
-        // ✅ Show warning if no schedules found
         setShowNoScheduleWarning(true);
         setSelectedClinic({
           name: doctor.clinicName || "",
@@ -139,19 +89,15 @@ function ClinicSetting() {
 
   useEffect(() => {
     if (!selectedDay || schedules.length === 0) {
-      console.log("No schedule available, clearing selectedScheduleId.");
       setSelectedScheduleId(null);
       localStorage.removeItem("selectedScheduleId");
     }
   }, [selectedDay, schedules]);
 
-  // ✅ Update Schedule List when Day Changes
   useEffect(() => {
     if (selectedDay) {
       const daySchedules = schedules.filter((s) => s.day === selectedDay);
       setFilteredSchedules(daySchedules);
-
-      // ✅ Auto-select the first schedule and store it
       if (daySchedules.length > 0) {
         setSelectedScheduleId(daySchedules[0].id);
       } else {
@@ -160,28 +106,60 @@ function ClinicSetting() {
     }
   }, [selectedDay, schedules]);
 
-  // ✅ Ensure selectedScheduleId is stored correctly in localStorage
   useEffect(() => {
     if (selectedScheduleId) {
       localStorage.setItem("selectedScheduleId", selectedScheduleId);
     }
   }, [selectedScheduleId]);
 
-  // ✅ Handle Schedule Selection Change
+  useEffect(() => {
+    if (selectedScheduleId) {
+      const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId);
+      if (selectedSchedule) {
+        setScheduleStart(selectedSchedule.from);
+        setScheduleEnd(selectedSchedule.to);
+        setBookingStart(selectedSchedule.bookingStart || "");
+        setBookingEnd(selectedSchedule.bookingEnd || "");
+      }
+    }
+  }, [selectedScheduleId, schedules]);
+
   const handleSelectSchedule = (selectedScheduleId: string) => {
     setSelectedScheduleId(selectedScheduleId);
   };
 
-  // ✅ Handle Adding a New Schedule
+  const handleOnlineBookingClick = async (scheduleId: string) => {
+    try {
+      console.log("Toggling online booking for doctorId:", scheduleId);
+      const response = await fetch(`http://localhost:5002/${scheduleId}/schedules`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      console.log("PATCH request sent.");
+
+      if (!response.ok) {
+        console.log("Response status:", response.status);
+        throw new Error("Failed to toggle booking window");
+      }
+
+      const updatedSchedule = await response.json();
+      console.log("Updated schedule:", updatedSchedule);
+
+      if (updatedSchedule.bookingWindow) {
+        setAllowOnlineBooking("yes");
+      } else {
+        setAllowOnlineBooking("no");
+      }
+    } catch (error) {
+      console.error("Error toggling booking window:", error);
+    }
+  };
+
   const handleAddSchedule = async () => {
     try {
-      // Get stored doctor ID & clinic details
       const doctorId = localStorage.getItem("doctorId");
-      const selectedClinic = JSON.parse(
-        localStorage.getItem("selectedClinic") || "{}"
-      );
-
-      // Ensure required fields are provided
+      const selectedClinic = JSON.parse(localStorage.getItem("selectedClinic") || "{}");
       if (!doctorId) {
         alert("Doctor ID is missing. Please login again.");
         return;
@@ -190,33 +168,16 @@ function ClinicSetting() {
         alert("Clinic details are missing.");
         return;
       }
-      if (
-        !newSchedule.day ||
-        !newSchedule.from ||
-        !newSchedule.to ||
-        !newSchedule.fees
-      ) {
-      if (
-        !newSchedule.day ||
-        !newSchedule.from ||
-        !newSchedule.to ||
-        !newSchedule.fees
-      ) {
+      if (!newSchedule.day || !newSchedule.from || !newSchedule.to || !newSchedule.fees) {
         alert("Please fill in all fields before submitting.");
         return;
       }
-
-      // Ensure fees is a valid integer
       const feesInt = parseInt(newSchedule.fees, 10);
       if (isNaN(feesInt) || feesInt <= 0) {
         alert("Fees must be a positive number.");
         return;
       }
-
-      // Set loading state only after validation passes
       setIsAddingSchedule(true);
-
-      // ✅ Request Payload
       const requestBody = {
         clinicName: selectedClinic.name,
         clinicAddress: selectedClinic.address,
@@ -225,63 +186,36 @@ function ClinicSetting() {
         to: newSchedule.to,
         fees: feesInt,
       };
-
-      console.log("📡 Sending Schedule Data:", requestBody);
-
-      // ✅ Send API request
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${doctorId}/schedules`,
         requestBody
       );
-
-      console.log("✅ Schedule Added Successfully:", response.data);
       alert("Schedule added successfully!");
-
-      // ✅ Update local storage & state
       localStorage.setItem("selectedScheduleId", response.data.id);
       setSelectedScheduleId(response.data.id);
       setSchedules((prev) => [...prev, response.data]);
-      setShowNoScheduleWarning(false); // Hide warning after adding schedule
-
-      // ✅ Reset form and close modal
+      setShowNoScheduleWarning(false);
       setNewSchedule({ from: "", to: "", fees: "", day: "" });
       setShowAddScheduleDialog(false);
       setIsAddingSchedule(false);
     } catch (error: any) {
-      // ✅ Reset form and close modal
       setNewSchedule({ from: "", to: "", fees: "", day: "" });
       setShowAddScheduleDialog(false);
-
-      // Extract error message if available
       let errorMessage = "Unknown error occurred";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
+      if (error.response && error.response.data && error.response.data.message) {
         errorMessage = error.response.data.message;
       }
-
       alert(`Failed to add schedule: ${errorMessage}`);
       setIsAddingSchedule(false);
     }
   };
 
-  // ✅ No Schedule Warning Dialog
   useEffect(() => {
     if (showNoScheduleWarning) {
-      setTimeout(() => {
-        // Optionally auto-open the add schedule dialog or do something else
-      }, 1000);
+      setTimeout(() => {}, 1000);
     }
   }, [showNoScheduleWarning]);
 
-  // Just read doctorName straight from localStorage
   const localDoctorName =
     typeof window !== "undefined" ? localStorage.getItem("doctorName") : "";
 
@@ -306,18 +240,11 @@ function ClinicSetting() {
                   Configure your bookings
                 </p>
               </SheetTitle>
-              {/* ✅ Select Available Days */}
               {availableDays.length > 0 && (
                 <div className="text-sm">
-                  <Select
-                    value={selectedDay || ""}
-                    onValueChange={setSelectedDay}
-                  >
+                  <Select value={selectedDay || ""} onValueChange={setSelectedDay}>
                     <SelectTrigger className="text-sm">
-                      <SelectValue
-                        className="text-sm"
-                        placeholder="Choose a day"
-                      />
+                      <SelectValue className="text-sm" placeholder="Choose a day" />
                     </SelectTrigger>
                     <SelectContent className="text-sm">
                       {availableDays.map((day) => (
@@ -332,19 +259,12 @@ function ClinicSetting() {
             </SheetHeader>
 
             <div className="flex flex-row w-full gap-2">
-              {/* ✅ Select Slot if Multiple Schedules Exist */}
               {selectedDay && filteredSchedules.length > 0 && (
                 <div className="w-full mb-1 ">
                   <span className=" text-sm font-medium mb-2">Slot</span>
-                  <Select
-                    value={selectedScheduleId || ""}
-                    onValueChange={handleSelectSchedule}
-                  >
+                  <Select value={selectedScheduleId || ""} onValueChange={handleSelectSchedule}>
                     <SelectTrigger className="text-sm">
-                      <SelectValue
-                        className="text-sm"
-                        placeholder="Choose a slot"
-                      />
+                      <SelectValue className="text-sm" placeholder="Choose a slot" />
                     </SelectTrigger>
                     <SelectContent className="text-sm">
                       {filteredSchedules.map((schedule) => (
@@ -359,12 +279,9 @@ function ClinicSetting() {
             </div>
 
             <div>
-              {/* Schedule Timing */}
               <div className="mt-4">
                 <h3 className="text-md font-medium">Schedule Timing</h3>
-                <p className="text-sm text-gray-500">
-                  Adjust the schedule for this slot.
-                </p>
+                <p className="text-sm text-gray-500">Adjust the schedule for this slot.</p>
                 <div className="flex gap-2 mt-2">
                   <Input
                     type="time"
@@ -384,12 +301,9 @@ function ClinicSetting() {
                   />
                 </div>
               </div>
-              {/* Booking Timing */}
               <div className="mt-4">
                 <h3 className="text-md font-medium">Booking Timing</h3>
-                <p className="text-sm text-gray-500">
-                  Set the allowed booking window for this slot.
-                </p>
+                <p className="text-sm text-gray-500">Set the allowed booking window for this slot.</p>
                 <div className="flex gap-2 mt-2">
                   <Input
                     type="time"
@@ -409,7 +323,6 @@ function ClinicSetting() {
                   />
                 </div>
               </div>
-              {/* Online Booking Toggle */}
               <div className="mt-4">
                 <h3 className="text-md font-medium">Online Booking</h3>
                 <p className="text-sm text-gray-500">
@@ -423,7 +336,13 @@ function ClinicSetting() {
                       handleChange();
                     }}
                   />
-                  <span className="text-sm text-gray-700">
+                  <span
+                    className="text-sm text-gray-700"
+                    onClick={() => {
+                      console.log("Toggling online booking for schedule ID:", selectedScheduleId);
+                      handleOnlineBookingClick(selectedScheduleId || "");
+                    }}
+                  >
                     {allowOnlineBooking === "yes" ? "Enabled" : "Disabled"}
                   </span>
                 </div>
@@ -441,13 +360,8 @@ function ClinicSetting() {
               )}
             </div>
           </div>
-
-          {/* ✅ Add Schedule Button in Footer */}
           <SheetFooter>
-            <Dialog
-              open={showAddScheduleDialog}
-              onOpenChange={setShowAddScheduleDialog}
-            >
+            <Dialog open={showAddScheduleDialog} onOpenChange={setShowAddScheduleDialog}>
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
@@ -461,38 +375,24 @@ function ClinicSetting() {
                 <DialogHeader>
                   <DialogTitle>Add New Schedule</DialogTitle>
                 </DialogHeader>
-
                 <div className="space-y-4">
-                  {/* ✅ Show Clinic Name (Pre-filled) */}
                   <div>
                     <h3 className="text-md font-medium">Clinic Name</h3>
                     <p className="text-md font-bold text-gray-700">
                       {selectedClinic?.name}
                     </p>
                   </div>
-
-                  {/* ✅ Select Day */}
                   <div>
                     <label className="text-sm font-medium">Select Day</label>
                     <Select
                       value={newSchedule.day}
-                      onValueChange={(val) =>
-                        setNewSchedule({ ...newSchedule, day: val })
-                      }
+                      onValueChange={(val) => setNewSchedule({ ...newSchedule, day: val })}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a day" />
                       </SelectTrigger>
                       <SelectContent className="pr-1">
-                        {[
-                          "Monday  ",
-                          "Tuesday  ",
-                          "Wednesday  ",
-                          "Thursday  ",
-                          "Friday  ",
-                          "Saturday  ",
-                          "Sunday ",
-                        ].map((day) => (
+                        {["Monday  ","Tuesday  ","Wednesday  ","Thursday  ","Friday  ","Saturday  ","Sunday "].map((day) => (
                           <SelectItem key={day} value={day}>
                             {day}
                           </SelectItem>
@@ -500,31 +400,22 @@ function ClinicSetting() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* ✅ Select Schedule Start Time */}
                   <div>
                     <label className="text-sm font-medium">Start Time</label>
                     <div className="flex space-x-2 items-center">
-                      {/* Hour */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.from) return "";
-                            const [h, m] = newSchedule.from.split(":");
-                            const hour24 = parseInt(h, 10);
-                            // Convert 24h to 12h for display
-                            let hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-                            return String(hour12).padStart(2, "0");
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.from) return "";
+                          const [h] = newSchedule.from.split(":");
+                          let hour24 = parseInt(h, 10);
+                          let hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                          return String(hour12).padStart(2, "0");
+                        })()}
                         onValueChange={(val) => {
                           const [currH, currM] = (newSchedule.from || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
-                          let minute = parseInt(currM, 10);
-                          // Determine current AM/PM from hour24
                           const wasPM = hour24 >= 12;
                           const newHour12 = parseInt(val, 10);
-                          // Convert newHour12 + wasPM -> final 24h
                           let finalHour24 = wasPM
                             ? newHour12 === 12
                               ? 12
@@ -534,7 +425,10 @@ function ClinicSetting() {
                             : newHour12;
                           setNewSchedule({
                             ...newSchedule,
-                            from: `${String(finalHour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+                            from: `${String(finalHour24).padStart(2, "0")}:${String(currM).padStart(
+                              2,
+                              "0"
+                            )}`,
                           });
                         }}
                       >
@@ -542,32 +436,32 @@ function ClinicSetting() {
                           <SelectValue placeholder="Hour" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((hour) => (
+                          {Array.from({ length: 12 }, (_, i) =>
+                            String(i + 1).padStart(2, "0")
+                          ).map((hour) => (
                             <SelectItem key={hour} value={hour}>
                               {hour}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-
                       <span>:</span>
-
-                      {/* Minute */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.from) return "00";
-                            const minutes = newSchedule.from.split(":")[1];
-                            return String(parseInt(minutes, 10)).padStart(2, "0");
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.from) return "00";
+                          const minutes = newSchedule.from.split(":")[1];
+                          return String(parseInt(minutes, 10)).padStart(2, "0");
+                        })()}
                         onValueChange={(val) => {
                           const [currH] = (newSchedule.from || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
                           let minute = parseInt(val, 10);
                           setNewSchedule({
                             ...newSchedule,
-                            from: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+                            from: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(
+                              2,
+                              "0"
+                            )}`,
                           });
                         }}
                       >
@@ -575,32 +469,26 @@ function ClinicSetting() {
                           <SelectValue placeholder="Min" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0")).map((minute) => (
-                            <SelectItem key={minute} value={minute}>
-                              {minute}
-                            </SelectItem>
-                          ))}
+                          {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0")).map(
+                            (minute) => (
+                              <SelectItem key={minute} value={minute}>
+                                {minute}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
-
-                      {/* AM/PM */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.from) return "AM";
-                            const [h] = newSchedule.from.split(":");
-                            return parseInt(h, 10) >= 12 ? "PM" : "AM";
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.from) return "AM";
+                          const [h] = newSchedule.from.split(":");
+                          return parseInt(h, 10) >= 12 ? "PM" : "AM";
+                        })()}
                         onValueChange={(val) => {
                           const [currH, currM] = (newSchedule.from || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
-                          // Convert to or from PM/AM
-                          if (val === "PM" && hour24 < 12) {
-                            hour24 += 12;
-                          } else if (val === "AM" && hour24 >= 12) {
-                            hour24 -= 12;
-                          }
+                          if (val === "PM" && hour24 < 12) hour24 += 12;
+                          else if (val === "AM" && hour24 >= 12) hour24 -= 12;
                           setNewSchedule({
                             ...newSchedule,
                             from: `${String(hour24).padStart(2, "0")}:${currM}`,
@@ -617,26 +505,20 @@ function ClinicSetting() {
                       </Select>
                     </div>
                   </div>
-
-                  {/* ✅ Select Schedule End Time */}
                   <div>
                     <label className="text-sm font-medium">End Time</label>
                     <div className="flex space-x-2 items-center">
-                      {/* Hour */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.to) return "";
-                            const [h, m] = newSchedule.to.split(":");
-                            const hour24 = parseInt(h, 10);
-                            let hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-                            return String(hour12).padStart(2, "0");
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.to) return "";
+                          const [h] = newSchedule.to.split(":");
+                          const hour24 = parseInt(h, 10);
+                          let hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                          return String(hour12).padStart(2, "0");
+                        })()}
                         onValueChange={(val) => {
                           const [currH, currM] = (newSchedule.to || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
-                          let minute = parseInt(currM, 10);
                           const wasPM = hour24 >= 12;
                           const newHour12 = parseInt(val, 10);
                           let finalHour24 = wasPM
@@ -648,7 +530,10 @@ function ClinicSetting() {
                             : newHour12;
                           setNewSchedule({
                             ...newSchedule,
-                            to: `${String(finalHour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+                            to: `${String(finalHour24).padStart(2, "0")}:${String(currM).padStart(
+                              2,
+                              "0"
+                            )}`,
                           });
                         }}
                       >
@@ -656,31 +541,34 @@ function ClinicSetting() {
                           <SelectValue placeholder="Hour" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((hour) => (
+                          {Array.from({ length: 12 }, (_, i) =>
+                            String(i + 1).padStart(2, "0")
+                          ).map((hour) => (
                             <SelectItem key={hour} value={hour}>
                               {hour}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-
                       <span>:</span>
-
-                      {/* Minute */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.to) return "00";
-                            return String(parseInt(newSchedule.to.split(":")[1], 10)).padStart(2, "0");
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.to) return "00";
+                          return String(parseInt(newSchedule.to.split(":")[1], 10)).padStart(
+                            2,
+                            "0"
+                          );
+                        })()}
                         onValueChange={(val) => {
                           const [currH] = (newSchedule.to || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
                           let minute = parseInt(val, 10);
                           setNewSchedule({
                             ...newSchedule,
-                            to: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+                            to: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(
+                              2,
+                              "0"
+                            )}`,
                           });
                         }}
                       >
@@ -688,31 +576,26 @@ function ClinicSetting() {
                           <SelectValue placeholder="Min" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0")).map((minute) => (
-                            <SelectItem key={minute} value={minute}>
-                              {minute}
-                            </SelectItem>
-                          ))}
+                          {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0")).map(
+                            (minute) => (
+                              <SelectItem key={minute} value={minute}>
+                                {minute}
+                              </SelectItem>
+                            )
+                          )}
                         </SelectContent>
                       </Select>
-
-                      {/* AM/PM */}
                       <Select
-                        value={
-                          (function () {
-                            if (!newSchedule.to) return "AM";
-                            const [h] = newSchedule.to.split(":");
-                            return parseInt(h, 10) >= 12 ? "PM" : "AM";
-                          })()
-                        }
+                        value={(() => {
+                          if (!newSchedule.to) return "AM";
+                          const [h] = newSchedule.to.split(":");
+                          return parseInt(h, 10) >= 12 ? "PM" : "AM";
+                        })()}
                         onValueChange={(val) => {
                           const [currH, currM] = (newSchedule.to || "00:00").split(":");
                           let hour24 = parseInt(currH, 10);
-                          if (val === "PM" && hour24 < 12) {
-                            hour24 += 12;
-                          } else if (val === "AM" && hour24 >= 12) {
-                            hour24 -= 12;
-                          }
+                          if (val === "PM" && hour24 < 12) hour24 += 12;
+                          else if (val === "AM" && hour24 >= 12) hour24 -= 12;
                           setNewSchedule({
                             ...newSchedule,
                             to: `${String(hour24).padStart(2, "0")}:${currM}`,
@@ -729,32 +612,21 @@ function ClinicSetting() {
                       </Select>
                     </div>
                   </div>
-
-                  {/* ✅ Enter Fees */}
                   <div>
                     <label className="text-sm font-medium">Fees</label>
                     <Input
                       type="number"
                       placeholder="Enter fees amount"
                       value={newSchedule.fees}
-                      onChange={(e) =>
-                        setNewSchedule({ ...newSchedule, fees: e.target.value })
-                      }
+                      onChange={(e) => setNewSchedule({ ...newSchedule, fees: e.target.value })}
                     />
                   </div>
                 </div>
-
                 <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAddScheduleDialog(false)}
-                  >
+                  <Button variant="outline" onClick={() => setShowAddScheduleDialog(false)}>
                     Cancel
                   </Button>
-                  <Button
-                    onClick={handleAddSchedule}
-                    disabled={isAddingSchedule}
-                  >
+                  <Button onClick={handleAddSchedule} disabled={isAddingSchedule}>
                     {isAddingSchedule ? (
                       <>
                         <svg
