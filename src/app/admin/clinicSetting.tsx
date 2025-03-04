@@ -316,6 +316,15 @@ function ClinicSetting() {
         alert("Please fill in all fields before submitting.");
         return;
       }
+      if (
+        !newSchedule.day ||
+        !newSchedule.from ||
+        !newSchedule.to ||
+        !newSchedule.fees
+      ) {
+        alert("Please fill in all fields before submitting.");
+        return;
+      }
 
       const feesInt = parseInt(newSchedule.fees, 10);
       if (isNaN(feesInt) || feesInt <= 0) {
