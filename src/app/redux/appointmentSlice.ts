@@ -221,7 +221,7 @@ const appointmentSlice = createSlice({
       })
       .addCase(fetchAppointmentsByDoctor.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       })
       .addCase(fetchTodayAppointmentsByDoctor.pending, (state) => {
         state.status = "loading";
@@ -233,7 +233,7 @@ const appointmentSlice = createSlice({
       })
       .addCase(fetchTodayAppointmentsByDoctor.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       })
       .addCase(fetchFollowUpAppointmentsByDoctor.pending, (state) => {
         state.status = "loading";
@@ -245,7 +245,7 @@ const appointmentSlice = createSlice({
       })
       .addCase(fetchFollowUpAppointmentsByDoctor.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       })
       .addCase(callNextPatient.pending, (state) => {
         state.status = "loading";
@@ -264,7 +264,7 @@ const appointmentSlice = createSlice({
       })
       .addCase(callNextPatient.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       })
       .addCase(completeConsultation.pending, (state) => {
         state.status = "loading";
@@ -284,7 +284,7 @@ const appointmentSlice = createSlice({
       })
       .addCase(completeConsultation.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       })
       .addCase(createFollowUpAppointment.pending, (state) => {
         state.status = "loading";
@@ -307,9 +307,10 @@ const appointmentSlice = createSlice({
       })
       .addCase(createFollowUpAppointment.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message;
+        state.error = action.error.message ?? "An unknown error occurred";
       });
   },
+  
 });
 
 export const selectTodayAppointments = (state) => state.appointments.todayAppointments;

@@ -26,16 +26,45 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Settings2, Plus, Hospital } from "lucide-react";
+import { Settings2, Plus } from "lucide-react";
 import axios from "axios";
 import { Switch } from "@/components/ui/switch";
 
+interface ApiErrorResponse {
+response: {
+    data: {
+    message: string;
+    };
+};
+}
+
+function isApiError(error: unknown): error is ApiErrorResponse {
+return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as ApiErrorResponse).response === "object" &&
+    (error as ApiErrorResponse).response !== null &&
+    "data" in (error as ApiErrorResponse).response &&
+    typeof (error as ApiErrorResponse).response.data === "object" &&
+    (error as ApiErrorResponse).response.data !== null &&
+    "message" in (error as ApiErrorResponse).response.data &&
+    typeof (error as ApiErrorResponse).response.data.message === "string"
+);
+}
+
 function ClinicSetting() {
-  const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [selectedClinic, setSelectedClinic] = useState<{ name: string; address: string } | null>(null);
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [selectedClinic, setSelectedClinic] = useState<{
+    name: string;
+    address: string;
+  } | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
+    null
+  );
   const [filteredSchedules, setFilteredSchedules] = useState<any[]>([]);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
@@ -158,6 +187,8 @@ function ClinicSetting() {
 
   const handleAddSchedule = async () => {
     try {
+      setIsAddingSchedule(true);
+      // Get stored doctor ID & clinic details
       const doctorId = localStorage.getItem("doctorId");
       const selectedClinic = JSON.parse(localStorage.getItem("selectedClinic") || "{}");
       if (!doctorId) {
@@ -204,10 +235,14 @@ function ClinicSetting() {
       let errorMessage = "Unknown error occurred";
       if (error.response && error.response.data && error.response.data.message) {
         errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
       alert(`Failed to add schedule: ${errorMessage}`);
       setIsAddingSchedule(false);
     }
+    
+    
   };
 
   useEffect(() => {
@@ -222,7 +257,6 @@ function ClinicSetting() {
   const handleChange = () => {
     setShowSaveButton(true);
   };
-
   return (
     <div>
       <Sheet>
@@ -401,7 +435,6 @@ function ClinicSetting() {
                     </Select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Start Time</label>
                     <div className="flex space-x-2 items-center">
                       <Select
                         value={(() => {
@@ -439,6 +472,9 @@ function ClinicSetting() {
                           {Array.from({ length: 12 }, (_, i) =>
                             String(i + 1).padStart(2, "0")
                           ).map((hour) => (
+                          {Array.from({ length: 12 }, (_, i) =>
+                            String(i + 1).padStart(2, "0")
+                          ).map((hour) => (
                             <SelectItem key={hour} value={hour}>
                               {hour}
                             </SelectItem>
@@ -453,9 +489,8 @@ function ClinicSetting() {
                           return String(parseInt(minutes, 10)).padStart(2, "0");
                         })()}
                         onValueChange={(val) => {
-                          const [currH] = (newSchedule.from || "00:00").split(":");
-                          let hour24 = parseInt(currH, 10);
-                          let minute = parseInt(val, 10);
+                        const [hours, , period] = newSchedule.from.split(":");
+                            newSchedule.from.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             from: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(
@@ -491,7 +526,7 @@ function ClinicSetting() {
                           else if (val === "AM" && hour24 >= 12) hour24 -= 12;
                           setNewSchedule({
                             ...newSchedule,
-                            from: `${String(hour24).padStart(2, "0")}:${currM}`,
+                            from: `${hours || "12"}:${minutes || "00"}:${val}`,
                           });
                         }}
                       >
@@ -534,6 +569,7 @@ function ClinicSetting() {
                               2,
                               "0"
                             )}`,
+                            to: `${val}:${minutes || "00"}:${period || "AM"}`,
                           });
                         }}
                       >
@@ -544,6 +580,9 @@ function ClinicSetting() {
                           {Array.from({ length: 12 }, (_, i) =>
                             String(i + 1).padStart(2, "0")
                           ).map((hour) => (
+                          {Array.from({ length: 12 }, (_, i) =>
+                            String(i + 1).padStart(2, "0")
+                          ).map((hour) => (
                             <SelectItem key={hour} value={hour}>
                               {hour}
                             </SelectItem>
@@ -551,6 +590,7 @@ function ClinicSetting() {
                         </SelectContent>
                       </Select>
                       <span>:</span>
+
                       <Select
                         value={(() => {
                           if (!newSchedule.to) return "00";
@@ -559,16 +599,19 @@ function ClinicSetting() {
                             "0"
                           );
                         })()}
+                        value={
+                          (newSchedule.to.split(":")[1] || "").split(":")[0] ||
+                          "00"
+                        }
                         onValueChange={(val) => {
-                          const [currH] = (newSchedule.to || "00:00").split(":");
-                          let hour24 = parseInt(currH, 10);
-                          let minute = parseInt(val, 10);
+                        const [hours, , period] = newSchedule.to.split(":");
                           setNewSchedule({
                             ...newSchedule,
                             to: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(
                               2,
                               "0"
                             )}`,
+                            to: `${hours || "12"}:${val}:${period || "AM"}`,
                           });
                         }}
                       >
@@ -583,8 +626,16 @@ function ClinicSetting() {
                               </SelectItem>
                             )
                           )}
+                          {Array.from({ length: 12 }, (_, i) =>
+                            String(i * 5).padStart(2, "0")
+                          ).map((minute) => (
+                            <SelectItem key={minute} value={minute}>
+                              {minute}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+
                       <Select
                         value={(() => {
                           if (!newSchedule.to) return "AM";
@@ -598,7 +649,7 @@ function ClinicSetting() {
                           else if (val === "AM" && hour24 >= 12) hour24 -= 12;
                           setNewSchedule({
                             ...newSchedule,
-                            to: `${String(hour24).padStart(2, "0")}:${currM}`,
+                            to: `${hours || "12"}:${minutes || "00"}:${val}`,
                           });
                         }}
                       >
@@ -627,6 +678,13 @@ function ClinicSetting() {
                     Cancel
                   </Button>
                   <Button onClick={handleAddSchedule} disabled={isAddingSchedule}>
+                  <Button
+                    onClick={() => {
+                      setIsAddingSchedule(true);
+                      handleAddSchedule();
+                    }}
+                    disabled={isAddingSchedule}
+                  >
                     {isAddingSchedule ? (
                       <>
                         <svg

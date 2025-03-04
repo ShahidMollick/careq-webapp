@@ -1,11 +1,12 @@
 "use client";
+import Image from 'next/image';
 import Cookies from "js-cookie";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import apiClient from "@/utils/apiClient"; // Import API client
 import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
-import { setUserRoles } from "@/app/redux/userRolesSlice";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,14 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+
+interface DecodedToken {
+  id: string;
+  email: string;
+  specialization: string;
+  iat: number;
+  exp: number;
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,7 +51,7 @@ export default function LoginPage() {
       console.log("✅ Doctor Details:", doctor);
   
       // Decode token to extract user details
-      const decodedToken = jwtDecode(access_token);
+      const decodedToken = jwtDecode<DecodedToken>(access_token);
       console.log("🔍 Decoded Token:", decodedToken);
   
       // Extract user details safely
@@ -61,16 +70,17 @@ export default function LoginPage() {
       // Redirect to dashboard or panel
       router.push("/admin");
   
-    } catch (err: any) {
+    } catch (err: unknown) {  // ✅ Fix: Use 'unknown' instead of 'Error'
       console.error("❌ Login Error:", err);
-  
-      // Handle error messages properly
-      const errorMessage =
-        err.response?.data?.message ||
-        "Login failed. Please check your credentials and try again.";
-  
-      setError(errorMessage);
-    } finally {
+    
+      // Type guard to check if err is an instance of Error
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    }
+     finally {
       setLoading(false);
     }
   };
@@ -143,7 +153,7 @@ export default function LoginPage() {
       <footer className="w-full flex items-center justify-center py-4">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-600">© 2025 </span>
-          <img src="/logo.png" alt="Company Logo" className="h-7" />
+        <Image src="/logo.png" alt="Company Logo" width={28} height={28} />
           <span className="text-sm text-gray-600">All rights reserved.</span>
         </div>
       </footer>
