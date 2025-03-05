@@ -1,6 +1,7 @@
 "use client";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { Switch } from "@/components/ui/switch";
 import {
   Accordion,
   AccordionContent,
@@ -104,12 +105,19 @@ export default function QueueManagement() {
   const [processing, setProcessing] = useState(false);
   // const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [allowOnlineBooking, setAllowOnlineBooking] = useState<"yes" | "no">("yes");
   const [selectedPatientForCancel, setSelectedPatientForCancel] =
     useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentTab, setCurrentTab] = useState("live");
   const [showTopLoader, setShowTopLoader] = useState(false);
   const [nextQueueNumber, setNextQueueNumber] = useState(1);
+  const [todayDate, setTodayDate] = useState("");
+
+useEffect(() => {
+  const date = new Date();
+  setTodayDate(date.toLocaleDateString()); // Formats the date as per locale
+}, []);
   const [settings, setSettings] = useState<QueueSettings>({
     scheduleStart: "17:00",
     scheduleEnd: "22:00",
@@ -393,6 +401,67 @@ useEffect(() => {
     }
     return age;
   };
+  const BookingStatusChange = async (): Promise<void> => {
+    // Retrieve schedule ID from local storage or state
+    const scheduleId = localStorage.getItem("selectedScheduleId");
+    
+    if (!scheduleId) {
+      console.error("❌ BookingStatusChange failed: No scheduleId available");
+      return;
+    }
+    
+    console.log(`🔄 Starting booking window toggle for schedule ID: ${scheduleId}`);
+    console.log(`📊 Current booking status: ${allowOnlineBooking}`);
+    
+    const startTime = performance.now();
+    
+    try {
+      // Log request details
+      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/booking-window`;
+      console.log(`📤 Sending PATCH request to: ${endpoint}`);
+      
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      // Log response status
+      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(e => ({ message: "Failed to parse error response" }));
+        console.error("❌ API Error Response:", errorData);
+        throw new Error(`API returned error ${response.status}: ${errorData.message || response.statusText}`);
+      }
+      
+      const updatedSchedule = await response.json();
+      const timeElapsed = Math.round(performance.now() - startTime);
+      
+      console.log(`✅ Booking window updated successfully (${timeElapsed}ms):`, updatedSchedule);
+      console.log(`📊 New booking status: ${updatedSchedule.onlineAppointments ? "open" : "closed"}`);
+      
+      // Update local state to match the server state
+      setSettings(prev => ({
+        ...prev,
+        onlineAppointments: updatedSchedule.onlineAppointments
+      }));
+      
+    } catch (error) {
+      const timeElapsed = Math.round(performance.now() - startTime);
+      console.error(`❌ Error updating booking window (${timeElapsed}ms):`, error);
+      
+      if (error instanceof Error) {
+        console.error(`- Message: ${error.message}`);
+        console.error(`- Stack: ${error.stack}`);
+      }
+      
+      // Show error to user or handle it
+      setError(`Failed to update booking status: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  };
+  
 
   const cancelAppointment = (patient: Patient) => {
     setSelectedPatientForCancel(patient);
@@ -726,7 +795,7 @@ useEffect(() => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
-                  <h2 className="text-md font-semibold">Patient Queue</h2>
+                  <h2 className="text-md font-semibold">Patient Queue Of - {todayDate}</h2>
                   
 
                   <div className="flex gap-2 items-center">
@@ -768,7 +837,26 @@ useEffect(() => {
                 </p>
               </div>
               {/* ✅ Show Queue Status */}
-
+               {/* Online Booking Toggle */}
+              <div className="mt-4">
+                <h3 className="text-md font-medium">Online Booking</h3>
+                <p className="text-sm text-gray-500">
+                  Current booking window status:
+                </p>
+                <div className="mt-2 flex items-center space-x-2">
+                  {/* 
+                    Switch disabled - viewing only 
+                    The switch will be green when booking window is open
+                  */}
+                  <Switch
+                    checked={settings.onlineAppointments}
+                    disabled={true} // Disable toggling
+                  />
+                  <span className="text-sm text-gray-700">
+                    {settings.onlineAppointments ? "Open" : "Closed"}
+                  </span>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <div className="text-sm  flex flex-row gap-1 items-center justify-center border border-gray-200 font-normal rounded-md p-2 ">
                   <User size="18"></User>
@@ -1169,12 +1257,12 @@ useEffect(() => {
                         </>
                       )}
                     </Button>
-                    {/* <Button
+                    <Button
                       variant="default"
-                      onClick={() => handleStartServing(scheduleId || "")}
+                      onClick={() => handleStartServing(selectedScheduleId || "")}
                     >
                       Next Patient
-                    </Button> */}
+                    </Button>
                   </div>
                 </>
               ) : (
@@ -1305,27 +1393,24 @@ useEffect(() => {
               ) : (
                 <></>
               )}
-
-<Button
-  className="w-full mt-6"
-  variant="default"
-  onClick={addPatient}
-  disabled={
-    !verifiedPatients ||
-    !newPatient.name ||
-    !newPatient.phone ||
-    loadings ||
-    !settings.onlineAppointments // ✅ Disable when booking window is closed
-  }
->
-  {loadings ? (
-    <>Adding Patient...</>
-  ) : settings.onlineAppointments ? (
-    <>Add Patient</>
-  ) : (
-    <>Booking Closed</> // ✅ Show "Booking Closed" when window is closed
-  )}
-</Button>
+              <Button
+                className="w-full mt-6"
+                variant="default"
+                onClick={addPatient}
+                disabled={
+                  !verifiedPatients ||
+                  !newPatient.name ||
+                  !newPatient.phone ||
+                  loadings
+                  // Removed the settings.onlineAppointments condition to allow booking regardless of window status
+                }
+              >
+                {loadings ? (
+                  <>Adding Patient...</>
+                ) : (
+                  <>Add Patient</> // Always shows "Add Patient" regardless of booking window status
+                )}
+              </Button>
 
             </div>
           </div>

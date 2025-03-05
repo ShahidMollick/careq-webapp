@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Settings2, Plus } from "lucide-react";
 import axios from "axios";
-import { Switch } from "@/components/ui/switch";
+
 
 /* ------------------------------------------------------------------
    A small type-guard utility for more graceful error handling
@@ -84,7 +84,7 @@ function ClinicSetting() {
   const [scheduleEnd, setScheduleEnd] = useState("");
   const [bookingStart, setBookingStart] = useState("");
   const [bookingEnd, setBookingEnd] = useState("");
-  const [allowOnlineBooking, setAllowOnlineBooking] = useState<"yes" | "no">("yes");
+  
 
   // Adding a new schedule
   const [newSchedule, setNewSchedule] = useState({
@@ -113,6 +113,7 @@ function ClinicSetting() {
     fees: number;
     bookingStart?: string; // e.g. "08:00"
     bookingEnd?: string;   // e.g. "12:00"
+    patientLimit?: number; // Maximum number of patients
   };
 
   // ----------------------------------------------------------------
@@ -216,77 +217,74 @@ function ClinicSetting() {
   //    Adjust as needed if your backend supports toggling online booking
   const handleOnSave = async (scheduleId: string) => {
     try {
-      // Check if we have a selected schedule
-      if (!scheduleId) {
-        alert("No schedule selected. Please select a schedule first.");
-        return;
-      }
-      
-      const doctorId = localStorage.getItem("doctorId");
-      if (!doctorId) {
-        alert("Doctor ID is missing. Please login again.");
-        return;
-      }
-      
-      // Find the current schedule from our local state
-      const currentSchedule = schedules.find(s => s.id === scheduleId);
-      if (!currentSchedule) {
-        alert("Selected schedule not found.");
-        return;
-      }
-      
-      // Prepare data for update - include all fields whether changed or not
-      const updateData = {
-        
-   // Convert to boolean
-         // Include existing data
-        // fees: currentSchedule.fees, // Include existing data
-        clinicName: currentSchedule.clinicName, // Include existing data
-        clinicAddress: currentSchedule.clinicAddress, // Include existing data
-        day: currentSchedule.day,
-        from: scheduleStart,
-        to: scheduleEnd,
-        fees: currentSchedule.fees, 
-        bookingStart: bookingStart,
-        bookingEnd: bookingEnd,
-      };
-      
-      console.log("------------------ Schedule Update Debug ------------------");
-      console.log(`Doctor ID: ${doctorId}`);
-      console.log(`Schedule ID: ${scheduleId}`);
-      console.log("Schedule data being sent from frontend:", updateData);
-      console.log("-----------------------------------------------------------");
-      
-      // Make API call to update the schedule with the correct endpoint URL
-      const response = await axios.patch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/schedules`,
-        updateData
-      );
-      
-      console.log("Schedule update response:", response.data);
-      
-      // Update local data with response
-      setSchedules(prevSchedules => 
-        prevSchedules.map(schedule => 
-          schedule.id === scheduleId 
-          ? { ...schedule, ...response.data } 
-          : schedule
-        )
-      );
-      
-      setShowSaveButton(false);
-      alert("Changes saved successfully!");
+        if (!scheduleId) {
+            alert("No schedule selected. Please select a schedule first.");
+            return;
+        }
+
+        const doctorId = localStorage.getItem("doctorId");
+        if (!doctorId) {
+            alert("Doctor ID is missing. Please login again.");
+            return;
+        }
+
+        const currentSchedule = schedules.find(s => s.id === scheduleId);
+        if (!currentSchedule) {
+            alert("Selected schedule not found.");
+            return;
+        }
+
+        // Ensure we get the latest values
+        const fees = schedules.find(s => s.id === scheduleId)?.fees || 0;
+        const patientLimit = schedules.find(s => s.id === scheduleId)?.patientLimit || 0;
+
+        // Prepare updated data including fees and patientLimit
+        const updateData = {
+            clinicName: currentSchedule.clinicName,
+            clinicAddress: currentSchedule.clinicAddress,
+            day: currentSchedule.day,
+            from: scheduleStart,
+            to: scheduleEnd,
+            fees: fees,  // Include fees
+            Limit: patientLimit,  // Include patientLimit
+            bookingStart: bookingStart,
+            bookingEnd: bookingEnd,
+        };
+
+        console.log("🚀🚀------------------ DEBUG LOG ------------------🚀🚀");
+        console.log("Doctor ID:", doctorId);
+        console.log("Schedule ID:", scheduleId);
+        console.log("Data being sent to PATCH API:", updateData);
+        console.log("----------------------------------------------------");
+
+        // Make PATCH request
+        const response = await axios.patch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/schedules`,
+            updateData
+        );
+
+        console.log("✅ API Response:", response.data);
+
+        // Update local schedules
+        setSchedules(prevSchedules =>
+            prevSchedules.map(schedule =>
+                schedule.id === scheduleId ? { ...schedule, ...response.data } : schedule
+            )
+        );
+
+        setShowSaveButton(false);
+        alert("Changes saved successfully!");
     } catch (error) {
-      let errorMessage = "Failed to save changes";
-      if (isApiError(error)) {
-        errorMessage = error.response.data.message;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      console.error("Schedule update failed:", error);
-      alert(`Error: ${errorMessage}`);
+        let errorMessage = "Failed to save changes";
+        if (isApiError(error)) {
+            errorMessage = error.response.data.message;
+        } else if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        console.error("❌ Schedule update failed:", error);
+        alert(`Error: ${errorMessage}`);
     }
-  }
+};
 
   
 
@@ -512,25 +510,52 @@ function ClinicSetting() {
                 </div>
               </div>
 
-              {/* Online Booking Toggle */}
-              <div className="mt-4">
-                <h3 className="text-md font-medium">Online Booking</h3>
-                <p className="text-sm text-gray-500">
-                  Allow patients to book appointments online?
-                </p>
-                <div className="mt-2 flex items-center space-x-2">
-                  <Switch
-                  checked={allowOnlineBooking === "yes"}
-                  onCheckedChange={(isChecked) => {
-                    setAllowOnlineBooking(isChecked ? "yes" : "no");
-                    handleChange();
+              {/* Fees */}
+            {/* Fees */}
+            <div className="mt-4">
+              <h3 className="text-md font-medium">Consultation Fees</h3>
+              <p className="text-sm text-gray-500">
+                Set the fees amount for this appointment slot.
+              </p>
+              <div className="mt-2">
+                <Input
+                  type="number"
+                  placeholder="Enter fees amount"
+                  value={selectedScheduleId ? schedules.find(s => s.id === selectedScheduleId)?.fees || '' : ''}
+                  onChange={(e) => {
+                      setSchedules(prev => prev.map(s =>
+                          s.id === selectedScheduleId
+                              ? { ...s, fees: parseInt(e.target.value) || 0 }
+                              : s
+                      ));
+                      handleChange();
                   }}
-                  />
-                  <span className="text-sm text-gray-700">
-                  {allowOnlineBooking === "yes" ? "Enabled" : "Disabled"}
-                  </span>
-                </div>
-                </div>
+                />
+              </div>
+            </div>
+
+            {/* Patient Limit */}
+            <div className="mt-4">
+              <h3 className="text-md font-medium">Patient Limit</h3>
+              <p className="text-sm text-gray-500">
+                Maximum number of patients for this slot.
+              </p>
+              <div className="mt-2">
+                <Input
+                  type="number"
+                  placeholder="Max patients"
+                  value={selectedScheduleId ? schedules.find(s => s.id === selectedScheduleId)?.patientLimit || '' : ''}
+                  onChange={(e) => {
+                      setSchedules(prev => prev.map(s =>
+                          s.id === selectedScheduleId
+                              ? { ...s, patientLimit: parseInt(e.target.value) || 0 }
+                              : s
+                      ));
+                      handleChange();
+                  }}
+                />
+              </div>
+            </div>
 
                 {/* Conditionally show a Save button if something changed */}
                 {showSaveButton && (
@@ -588,13 +613,13 @@ function ClinicSetting() {
                       </SelectTrigger>
                       <SelectContent className="pr-1">
                         {[
-                          "Monday  ",
-                          "Tuesday  ",
-                          "Wednesday  ",
-                          "Thursday  ",
-                          "Friday  ",
-                          "Saturday  ",
-                          "Sunday ",
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday",
+                          "Saturday",
+                          "Sunday",
                         ].map((day) => (
                           <SelectItem key={day} value={day}>
                             {day}
