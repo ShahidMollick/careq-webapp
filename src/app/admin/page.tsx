@@ -121,7 +121,7 @@ useEffect(() => {
     scheduleEnd: "22:00",
     bookingStart: "17:00",
     bookingEnd: "22:00",
-    onlineAppointments: true,
+    onlineAppointments: false,
   });
 
   const [newPatient, setNewPatient] = useState({
@@ -143,6 +143,37 @@ useEffect(() => {
     showTopLoaders,
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
+
+  useEffect(() => {
+    const fetchBookingStatus = async () => {
+      if (!selectedScheduleId) {
+        console.warn("⚠ No schedule selected, skipping fetch.");
+        return;
+      }
+
+      console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+
+      try {
+        const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${selectedScheduleId}/bookingStatus`;
+        console.log(`🔗 API Request URL: ${apiUrl}`);
+        
+        const response = await axios.get(apiUrl);
+        const { data } = response;
+
+        if (data && data.onlineAppointments !== undefined) {
+          console.log(`✅ Booking status received: ${data.onlineAppointments}`);
+          setSettings((prev) => ({ ...prev, onlineAppointments: data.onlineAppointments }));
+        } else {
+          console.warn("⚠ No valid booking status received from API");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching booking status:", error);
+      }
+    };
+
+    fetchBookingStatus();
+  }, [selectedScheduleId]);
+
 
   useEffect(() => {
     if (selectedScheduleId) {
@@ -838,11 +869,11 @@ useEffect(() => {
                     The switch will be green when booking window is open
                   */}
                   <Switch
-                    checked={settings.onlineAppointments}
+                    checked={settings?.onlineAppointments ?? false}
                     disabled={true} // Disable toggling
                   />
                   <span className="text-sm text-gray-700">
-                    {settings.onlineAppointments ? "Open" : "Closed"}
+                    {settings?.onlineAppointments ? "Open" : "Closed"}
                   </span>
                 </div>
               </div>
