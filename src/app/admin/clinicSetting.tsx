@@ -133,21 +133,56 @@ function ClinicSetting() {
       if (doctor.schedules && doctor.schedules.length > 0) {
         setSchedules(doctor.schedules);
 
-        // Set the clinic info from the first schedule
-        const firstClinic = doctor.schedules[0];
+        // Set the clinic info from the schedule with the nearest upcoming day
+        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const today = new Date().getDay(); // 0 is Sunday, 1 is Monday, etc.
+
+        // Find schedule with nearest upcoming day (today or later this week)
+        console.log("🔍 Finding nearest schedule. Today is:", daysOfWeek[today]);
+        const nearestSchedule = doctor.schedules.reduce((nearest, schedule, idx) => {
+          const scheduleIndex = daysOfWeek.indexOf(schedule.day);
+          const nearestIndex = daysOfWeek.indexOf(nearest.day);
+          
+          // Calculate distance to today, considering only upcoming days
+          // For days earlier in the week than today, we need to add 7 to get to next week
+          const distCurrent = scheduleIndex >= today 
+            ? scheduleIndex - today  // Same or later this week
+            : scheduleIndex + 7 - today;  // Next week
+          
+          const distNearest = nearestIndex >= today 
+            ? nearestIndex - today 
+            : nearestIndex + 7 - today;
+          
+          console.log(`📅 Schedule ${idx+1}: ${schedule.day} (index: ${scheduleIndex})`);
+          console.log(`   Distance from today: ${distCurrent} days`);
+          console.log(`   Current nearest: ${nearest.day} with distance: ${distNearest} days`);
+          console.log(`   Selected: ${distCurrent < distNearest ? schedule.day : nearest.day}`);
+          
+          // Return the schedule with the smaller distance to today
+          return distCurrent < distNearest ? schedule : nearest;
+        }, doctor.schedules[0]) as Schedule;
+
+        console.log("✅ Selected nearest schedule:", nearestSchedule.day, `(${nearestSchedule.from}-${nearestSchedule.to})`);
+
         const clinicInfo = {
-          name: firstClinic.clinicName,
-          address: firstClinic.clinicAddress,
+          name: nearestSchedule.clinicName,
+          address: nearestSchedule.clinicAddress,
         };
+
         setSelectedClinic(clinicInfo);
         localStorage.setItem("selectedClinic", JSON.stringify(clinicInfo));
 
-        // Extract unique days & set the first as default
+        // Extract unique days & set the nearest day as default
         const uniqueDays = [
           ...new Set(doctor.schedules.map((s: Schedule) => s.day)),
         ] as string[];
         setAvailableDays(uniqueDays);
-        setSelectedDay(uniqueDays[0] || null);
+        
+        // Set the nearest day as the selected day instead of the first day
+        setSelectedDay(nearestSchedule.day);
+        
+        // Also set the selected schedule ID to the nearest schedule
+        setSelectedScheduleId(nearestSchedule.id);
       } else {
         // If the doc has no schedules
         setShowNoScheduleWarning(true);
