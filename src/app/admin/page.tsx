@@ -57,6 +57,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDispatch, useSelector } from "react-redux";
+import { selectSchedule, selectSelectedScheduleId } from "@/app/redux/scheduleSlice";
 
 interface Patient {
   id: string;
@@ -91,12 +93,8 @@ interface Appointment {
 export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [loadings, setLoadings] = useState(false);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("selectedScheduleId") || null;
-    }
-    return null;
-  });
+  const dispatch = useDispatch();
+  const selectedScheduleId = useSelector(selectSelectedScheduleId);
   
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
@@ -135,6 +133,7 @@ useEffect(() => {
   });
 
   // Retrieve schedule ID (e.g., from state or context)
+  
   console.log("the schedule that is selected is ", selectedScheduleId);
   const {
     patients: livePatients,
@@ -184,19 +183,6 @@ useEffect(() => {
     setShowTopLoader(true);
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
   };
-
-  // ✅ Listen for selectedScheduleId changes across the app
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "selectedScheduleId") {
-        console.log("🔄 Schedule ID updated globally:", event.newValue);
-        setSelectedScheduleId(event.newValue);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
 
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
@@ -708,7 +694,7 @@ useEffect(() => {
   const handleStartServing = async (selectedScheduleId: string) => {
     try {
       // First mark the current patient as completed
-
+      setShowTopLoader(true);
       // Then call the next patient
       await axios.patch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/callnextpatient/${selectedScheduleId}`
@@ -716,10 +702,13 @@ useEffect(() => {
 
       // The server + WebSocket will update the state
     } catch (err) {
+      setShowTopLoader(false);
       console.error("Error processing patients:", err);
       setError(
         "Failed to update patient status and call next patient. Please try again."
       );
+    }finally {
+      setShowTopLoader(false);
     }
   };
 

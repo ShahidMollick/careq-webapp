@@ -28,6 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { Settings2, Plus } from "lucide-react";
 import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { 
+  selectSchedule, 
+  selectSelectedScheduleId,
+  clearSelectedSchedule 
+} from "@/app/redux/scheduleSlice";
 
 
 /* ------------------------------------------------------------------
@@ -60,314 +66,279 @@ function isApiError(error: unknown): error is ApiErrorResponse {
 ------------------------------------------------------------------ */
 function ClinicSetting() {
   // ----------------------------------------------------------------
-  // State Definitions
-  // ----------------------------------------------------------------
-  const [doctorId, setDoctorId] = useState<string | null>(null);
-  const [selectedClinic, setSelectedClinic] = useState<{
-    name: string;
-    address: string;
-  } | null>(null);
-
-  // Full list of schedules fetched (if any)
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-
-  // Days & current selection
-  const [availableDays, setAvailableDays] = useState<string[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-  // Filtered schedules for selected day
-  const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
-
-  // Booking window & schedule times for the currently-selected schedule
-  const [scheduleStart, setScheduleStart] = useState("");
-  const [scheduleEnd, setScheduleEnd] = useState("");
-  const [bookingStart, setBookingStart] = useState("");
-  const [bookingEnd, setBookingEnd] = useState("");
-  
-
-  // Adding a new schedule
-  const [newSchedule, setNewSchedule] = useState({
-    from: "",
-    to: "",
-    fees: "",
-    day: "",
-  });
-  const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
-  const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
-
-  // Warnings & UI flags
-  const [showNoScheduleWarning, setShowNoScheduleWarning] = useState<boolean>(false);
-  const [showSaveButton, setShowSaveButton] = useState(false);
-
-  // ----------------------------------------------------------------
-  // Type Definition
+  // Types & Interfaces
   // ----------------------------------------------------------------
   type Schedule = {
     id: string;
     day: string;
     clinicName: string;
     clinicAddress: string;
-    from: string;          // e.g. "09:00"
-    to: string;            // e.g. "13:00"
+    from: string;
+    to: string;
     fees: number;
-    bookingStart?: string; // e.g. "08:00"
-    bookingEnd?: string;   // e.g. "12:00"
-    patientLimit?: number; // Maximum number of patients
+    bookingStart?: string;
+    bookingEnd?: string;
+    patientLimit?: number;
   };
+
+  type ClinicInfo = {
+    name: string;
+    address: string;
+  };
+
+  type NewScheduleForm = {
+    from: string;
+    to: string;
+    fees: string;
+    day: string;
+  };
+
+  // ----------------------------------------------------------------
+  // State Definitions
+  // ----------------------------------------------------------------
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<ClinicInfo | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [bookingStart, setBookingStart] = useState("");
+  const [bookingEnd, setBookingEnd] = useState("");
+  const [newSchedule, setNewSchedule] = useState<NewScheduleForm>({
+    from: "",
+    to: "",
+    fees: "",
+    day: "",
+  });
+  const [showAddScheduleDialog, setShowAddScheduleDialog] = useState(false);
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
+  const [showNoScheduleWarning, setShowNoScheduleWarning] = useState(false);
+  const [showSaveButton, setShowSaveButton] = useState(false);
+
+  // Add these lines for Redux
+  const dispatch = useDispatch();
+  const selectedScheduleId = useSelector(selectSelectedScheduleId);
 
   // ----------------------------------------------------------------
   // Load doctor info on mount
   // ----------------------------------------------------------------
   useEffect(() => {
-    const storedDoctorData = localStorage.getItem("doctorData");
-    if (storedDoctorData) {
+    const loadDoctorData = () => {
+      const storedDoctorData = localStorage.getItem("doctorData");
+      if (!storedDoctorData) return;
+      
       const doctor = JSON.parse(storedDoctorData);
       setDoctorId(doctor.id || null);
-
-      // Keep these for further reference
+      
+      // Persist essential doctor info
       localStorage.setItem("doctorId", doctor.id);
       localStorage.setItem("doctorName", doctor.name || "");
-
-      // If the doctor has any schedules, set them up
-      if (doctor.schedules && doctor.schedules.length > 0) {
-        setSchedules(doctor.schedules);
-
-        // Set the clinic info from the schedule with the nearest upcoming day
-        const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const today = new Date().getDay(); // 0 is Sunday, 1 is Monday, etc.
-
-        // Find schedule with nearest upcoming day (today or later this week)
-        console.log("🔍 Finding nearest schedule. Today is:", daysOfWeek[today]);
-        const nearestSchedule = doctor.schedules.reduce((nearest, schedule, idx) => {
-          const scheduleIndex = daysOfWeek.indexOf(schedule.day);
-          const nearestIndex = daysOfWeek.indexOf(nearest.day);
-          
-          // Calculate distance to today, considering only upcoming days
-          // For days earlier in the week than today, we need to add 7 to get to next week
-          const distCurrent = scheduleIndex >= today 
-            ? scheduleIndex - today  // Same or later this week
-            : scheduleIndex + 7 - today;  // Next week
-          
-          const distNearest = nearestIndex >= today 
-            ? nearestIndex - today 
-            : nearestIndex + 7 - today;
-          
-          console.log(`📅 Schedule ${idx+1}: ${schedule.day} (index: ${scheduleIndex})`);
-          console.log(`   Distance from today: ${distCurrent} days`);
-          console.log(`   Current nearest: ${nearest.day} with distance: ${distNearest} days`);
-          console.log(`   Selected: ${distCurrent < distNearest ? schedule.day : nearest.day}`);
-          
-          // Return the schedule with the smaller distance to today
-          return distCurrent < distNearest ? schedule : nearest;
-        }, doctor.schedules[0]) as Schedule;
-
-        console.log("✅ Selected nearest schedule:", nearestSchedule.day, `(${nearestSchedule.from}-${nearestSchedule.to})`);
-
-        const clinicInfo = {
-          name: nearestSchedule.clinicName,
-          address: nearestSchedule.clinicAddress,
-        };
-
-        setSelectedClinic(clinicInfo);
-        localStorage.setItem("selectedClinic", JSON.stringify(clinicInfo));
-
-        // Extract unique days & set the nearest day as default
-        const uniqueDays = [
-          ...new Set(doctor.schedules.map((s: Schedule) => s.day)),
-        ] as string[];
-        setAvailableDays(uniqueDays);
-        
-        // Set the nearest day as the selected day instead of the first day
-        setSelectedDay(nearestSchedule.day);
-        
-        // Also set the selected schedule ID to the nearest schedule
-        setSelectedScheduleId(nearestSchedule.id);
-      } else {
-        // If the doc has no schedules
+      
+      if (!doctor.schedules?.length) {
         setShowNoScheduleWarning(true);
         setSelectedClinic({
           name: doctor.clinicName || "",
           address: doctor.clinicAddress || "",
         });
+        return;
       }
-    }
-  }, []);
+      
+      setSchedules(doctor.schedules);
+      
+      // Find and set nearest schedule
+      const nearestSchedule = findNearestSchedule(doctor.schedules);
+      
+      const clinicInfo = {
+        name: nearestSchedule.clinicName,
+        address: nearestSchedule.clinicAddress,
+      };
+      
+      setSelectedClinic(clinicInfo);
+      localStorage.setItem("selectedClinic", JSON.stringify(clinicInfo));
+      
+      // Extract unique days and set nearest day as default
+      const uniqueDays = [...new Set(doctor.schedules.map((s: Schedule) => s.day))] as string[];
+      setAvailableDays(uniqueDays);
+      setSelectedDay(nearestSchedule.day);
+      dispatch(selectSchedule(nearestSchedule.id));
+    };
+    
+    const findNearestSchedule = (schedules: Schedule[]): Schedule => {
+      const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const today = new Date().getDay();
+      
+      return schedules.reduce((nearest, schedule) => {
+        const scheduleIndex = daysOfWeek.indexOf(schedule.day);
+        const nearestIndex = daysOfWeek.indexOf(nearest.day);
+        
+        const distCurrent = scheduleIndex >= today 
+          ? scheduleIndex - today 
+          : scheduleIndex + 7 - today;
+        
+        const distNearest = nearestIndex >= today 
+          ? nearestIndex - today 
+          : nearestIndex + 7 - today;
+        
+        return distCurrent < distNearest ? schedule : nearest;
+      }, schedules[0]);
+    };
+    
+    loadDoctorData();
+  }, [dispatch]);
 
   // Clear schedule selection if no valid day or schedules exist
   useEffect(() => {
     if (!selectedDay || schedules.length === 0) {
-      setSelectedScheduleId(null);
+      dispatch(clearSelectedSchedule());
       localStorage.removeItem("selectedScheduleId");
     }
-  }, [selectedDay, schedules]);
+  }, [selectedDay, schedules, dispatch]);
 
   // When selectedDay changes, filter schedules for that day
   useEffect(() => {
-    if (selectedDay) {
-      const daySchedules = schedules.filter((s) => s.day === selectedDay);
-      setFilteredSchedules(daySchedules);
-
-      // Auto-select the first schedule for that day (if any)
-      if (daySchedules.length > 0) {
-        setSelectedScheduleId(daySchedules[0].id);
-      } else {
-        setSelectedScheduleId("");
-      }
+    if (!selectedDay) return;
+    
+    const daySchedules = schedules.filter((s) => s.day === selectedDay);
+    setFilteredSchedules(daySchedules);
+    
+    if (daySchedules.length > 0) {
+      dispatch(selectSchedule(daySchedules[0].id));
+    } else {
+      dispatch(selectSchedule(""));
     }
-  }, [selectedDay, schedules]);
+  }, [selectedDay, schedules, dispatch]);
 
-  // Persist the selected schedule ID in localStorage
+  // Persist the selected schedule ID
   useEffect(() => {
     if (selectedScheduleId) {
       localStorage.setItem("selectedScheduleId", selectedScheduleId);
     }
   }, [selectedScheduleId]);
 
-  // Whenever the selected schedule changes, update the times
+  // Update time fields when selected schedule changes
   useEffect(() => {
-    if (selectedScheduleId) {
-      const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId);
-      if (selectedSchedule) {
-        setScheduleStart(selectedSchedule.from);
-        setScheduleEnd(selectedSchedule.to);
-        setBookingStart(selectedSchedule.bookingStart || "");
-        setBookingEnd(selectedSchedule.bookingEnd || "");
-        // Suppose we want to reflect online booking state if needed
-        // but for now we default it to "yes" unless we have a special marker
-      }
+    if (!selectedScheduleId) return;
+    
+    const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId);
+    if (selectedSchedule) {
+      setScheduleStart(selectedSchedule.from);
+      setScheduleEnd(selectedSchedule.to);
+      setBookingStart(selectedSchedule.bookingStart || "");
+      setBookingEnd(selectedSchedule.bookingEnd || "");
     }
   }, [selectedScheduleId, schedules]);
+
+  // Show add schedule dialog if no schedules exist
+  useEffect(() => {
+    // Optional: Auto-open dialog when no schedules
+    // if (showNoScheduleWarning) {
+    //   setShowAddScheduleDialog(true);
+    // }
+  }, [showNoScheduleWarning]);
 
   // ----------------------------------------------------------------
   // Handlers
   // ----------------------------------------------------------------
-
-  // 1) Schedule selection
   const handleSelectSchedule = (scheduleId: string) => {
-    setSelectedScheduleId(scheduleId);
+    dispatch(selectSchedule(scheduleId));
   };
 
-  // 2) Toggling booking window on the server (from first code snippet)
-  //    Adjust as needed if your backend supports toggling online booking
+  const handleChange = () => {
+    setShowSaveButton(true);
+  };
+
   const handleOnSave = async (scheduleId: string) => {
-    try {
-        if (!scheduleId) {
-            alert("No schedule selected. Please select a schedule first.");
-            return;
-        }
-
-        const doctorId = localStorage.getItem("doctorId");
-        if (!doctorId) {
-            alert("Doctor ID is missing. Please login again.");
-            return;
-        }
-
-        const currentSchedule = schedules.find(s => s.id === scheduleId);
-        if (!currentSchedule) {
-            alert("Selected schedule not found.");
-            return;
-        }
-
-        // Ensure we get the latest values
-        const fees = schedules.find(s => s.id === scheduleId)?.fees || 0;
-        const patientLimit = schedules.find(s => s.id === scheduleId)?.patientLimit || 0;
-
-        // Prepare updated data including fees and patientLimit
-        const updateData = {
-            clinicName: currentSchedule.clinicName,
-            clinicAddress: currentSchedule.clinicAddress,
-            day: currentSchedule.day,
-            from: scheduleStart,
-            to: scheduleEnd,
-            fees: fees,  // Include fees
-            Limit: patientLimit,  // Include patientLimit
-            bookingStart: bookingStart,
-            bookingEnd: bookingEnd,
-        };
-
-        console.log("🚀🚀------------------ DEBUG LOG ------------------🚀🚀");
-        console.log("Doctor ID:", doctorId);
-        console.log("Schedule ID:", scheduleId);
-        console.log("Data being sent to PATCH API:", updateData);
-        console.log("----------------------------------------------------");
-
-        // Make PATCH request
-        const response = await axios.patch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/schedules`,
-            updateData
-        );
-
-        console.log("✅ API Response:", response.data);
-
-        // Update local schedules
-        setSchedules(prevSchedules =>
-            prevSchedules.map(schedule =>
-                schedule.id === scheduleId ? { ...schedule, ...response.data } : schedule
-            )
-        );
-
-        setShowSaveButton(false);
-        alert("Changes saved successfully!");
-    } catch (error) {
-        let errorMessage = "Failed to save changes";
-        if (isApiError(error)) {
-            errorMessage = error.response.data.message;
-        } else if (error instanceof Error) {
-            errorMessage = error.message;
-        }
-        console.error("❌ Schedule update failed:", error);
-        alert(`Error: ${errorMessage}`);
+    if (!scheduleId) {
+      alert("No schedule selected. Please select a schedule first.");
+      return;
     }
-};
 
-  
+    const doctorId = localStorage.getItem("doctorId");
+    if (!doctorId) {
+      alert("Doctor ID is missing. Please login again.");
+      return;
+    }
 
-  // 3) Adding a new schedule
-  const handleAddSchedule = async () => {
+    const currentSchedule = schedules.find(s => s.id === scheduleId);
+    if (!currentSchedule) {
+      alert("Selected schedule not found.");
+      return;
+    }
+
     try {
-      // Double-check we have a doc ID & clinic info
-      const docId = localStorage.getItem("doctorId");
-      const storedClinic = localStorage.getItem("selectedClinic");
-      if (!docId) {
-        alert("Doctor ID is missing. Please login again.");
-        return;
-      }
-      if (!storedClinic) {
-        alert("Clinic details are missing.");
-        return;
-      }
+      // Get latest values
+      const fees = schedules.find(s => s.id === scheduleId)?.fees || 0;
+      const patientLimit = schedules.find(s => s.id === scheduleId)?.patientLimit || 0;
 
-      const parsedClinic = JSON.parse(storedClinic);
-      if (!parsedClinic.name || !parsedClinic.address) {
-        alert("Clinic details are incomplete.");
-        return;
-      }
+      const updateData = {
+        clinicName: currentSchedule.clinicName,
+        clinicAddress: currentSchedule.clinicAddress,
+        day: currentSchedule.day,
+        from: scheduleStart,
+        to: scheduleEnd,
+        fees,
+        Limit: patientLimit,
+        bookingStart,
+        bookingEnd,
+      };
 
-      // Validate newSchedule
-      if (!newSchedule.day || !newSchedule.from || !newSchedule.to || !newSchedule.fees) {
-        alert("Please fill in all fields before submitting.");
-        return;
-      }
-      if (
-        !newSchedule.day ||
-        !newSchedule.from ||
-        !newSchedule.to ||
-        !newSchedule.fees
-      ) {
-        alert("Please fill in all fields before submitting.");
-        return;
-      }
+      const response = await axios.patch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/schedules`,
+        updateData
+      );
 
-      const feesInt = parseInt(newSchedule.fees, 10);
-      if (isNaN(feesInt) || feesInt <= 0) {
-        alert("Fees must be a positive number.");
-        return;
-      }
+      setSchedules(prevSchedules =>
+        prevSchedules.map(schedule =>
+          schedule.id === scheduleId ? { ...schedule, ...response.data } : schedule
+        )
+      );
 
+      setShowSaveButton(false);
+      alert("Changes saved successfully!");
+    } catch (error) {
+      let errorMessage = "Failed to save changes";
+      if (isApiError(error)) {
+        errorMessage = error.response.data.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.error("Schedule update failed:", error);
+      alert(`Error: ${errorMessage}`);
+    }
+  };
+
+  const handleAddSchedule = async () => {
+    // Validate input
+    if (!newSchedule.day || !newSchedule.from || !newSchedule.to || !newSchedule.fees) {
+      alert("Please fill in all fields before submitting.");
+      return;
+    }
+
+    const feesInt = parseInt(newSchedule.fees, 10);
+    if (isNaN(feesInt) || feesInt <= 0) {
+      alert("Fees must be a positive number.");
+      return;
+    }
+
+    const docId = localStorage.getItem("doctorId");
+    const storedClinic = localStorage.getItem("selectedClinic");
+    
+    if (!docId || !storedClinic) {
+      alert("Missing doctor or clinic information. Please login again.");
+      return;
+    }
+
+    const parsedClinic = JSON.parse(storedClinic);
+    if (!parsedClinic.name || !parsedClinic.address) {
+      alert("Clinic details are incomplete.");
+      return;
+    }
+
+    try {
       setIsAddingSchedule(true);
 
-      // Prepare data
       const requestBody = {
         clinicName: parsedClinic.name,
         clinicAddress: parsedClinic.address,
@@ -377,53 +348,34 @@ function ClinicSetting() {
         fees: feesInt,
       };
 
-      console.log("Sending new schedule data:", requestBody);
-
-      // Make the POST request
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${docId}/schedules`,
         requestBody
       );
 
-      // On success
-      alert("Schedule added successfully!");
-      localStorage.setItem("selectedScheduleId", response.data.id);
-      setSelectedScheduleId(response.data.id);
+      // Update state with new schedule
       setSchedules((prev) => [...prev, response.data]);
+      dispatch(selectSchedule(response.data.id));
+      localStorage.setItem("selectedScheduleId", response.data.id);
       setShowNoScheduleWarning(false);
-
+      
       // Reset form & close dialog
       setNewSchedule({ from: "", to: "", fees: "", day: "" });
       setShowAddScheduleDialog(false);
-      setIsAddingSchedule(false);
-    } catch (error: unknown) {
-      // Graceful error handling
-      setNewSchedule({ from: "", to: "", fees: "", day: "" });
-      setShowAddScheduleDialog(false);
-
+      
+      alert("Schedule added successfully!");
+    } catch (error) {
       let errorMessage = "Unknown error occurred";
       if (isApiError(error)) {
         errorMessage = error.response.data.message;
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-
+      
       alert(`Failed to add schedule: ${errorMessage}`);
+    } finally {
       setIsAddingSchedule(false);
     }
-  };
-
-  // 4) If there's no schedule, we can do something or show a prompt
-  useEffect(() => {
-    if (showNoScheduleWarning) {
-      // Potentially open the add schedule dialog automatically, etc.
-      // setShowAddScheduleDialog(true);
-    }
-  }, [showNoScheduleWarning]);
-
-  // 5) Track changes so we show the Save button
-  const handleChange = () => {
-    setShowSaveButton(true);
   };
 
   // ----------------------------------------------------------------
