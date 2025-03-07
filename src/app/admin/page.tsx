@@ -157,33 +157,97 @@ export default function QueueManagement() {
         return;
       }
 
-      console.log(
-        `📡 Fetching booking status for schedule: ${selectedScheduleId}`
-      );
+      console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+      setLoading(true); // Show loading state
 
       try {
         const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${selectedScheduleId}/bookingStatus`;
         console.log(`🔗 API Request URL: ${apiUrl}`);
-
+        
         const response = await axios.get(apiUrl);
         const { data } = response;
 
-        if (data && data.onlineAppointments !== undefined) {
-          console.log(`✅ Booking status received: ${data.onlineAppointments}`);
-          setSettings((prev) => ({
-            ...prev,
-            onlineAppointments: data.onlineAppointments,
-          }));
+        if (data && typeof data.bookingWindow === 'boolean') {
+          console.log(`✅ Booking status received: ${data.bookingWindow}`);
+          setSettings((prev) => ({ ...prev, onlineAppointments: data.bookingWindow }));
+          // Update allowOnlineBooking state to match backend data
+          setAllowOnlineBooking(data.bookingWindow ? "yes" : "no");
         } else {
-          console.warn("⚠ No valid booking status received from API");
+          console.warn("⚠ Invalid booking status structure:", data);
+          setError("Unable to determine booking status");
         }
       } catch (error) {
         console.error("❌ Error fetching booking status:", error);
+        setError("Failed to load booking status");
+      } finally {
+        setLoading(false);
       }
     };
 
+    // Force fetch on component mount and when selectedScheduleId changes
+    console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
     fetchBookingStatus();
+    
+    // Setup a refresh interval (every 30 seconds)
+    const intervalId = setInterval(fetchBookingStatus, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
+
+  // useEffect(() => {
+  //   const fetchBookingStatus = async () => {
+  //     if (!selectedScheduleId) {
+  //       console.warn("⚠ No schedule selected, skipping fetch.");
+  //       return;
+  //     }
+
+  //     console.log(
+  //       `📡 Fetching booking status for schedule: ${selectedScheduleId}`
+  //     );
+  //     console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+  //     setLoading(true); // Show loading state
+
+  //     try {
+  //       const apiUrl = `http:localhost:5001/doctors/${selectedScheduleId}/bookingStatus`;
+  //       console.log(`🔗 API Request URL: ${apiUrl}`);
+
+  //       const response = await axios.get(apiUrl);
+  //       const { data } = response;
+
+  //       console.log("📊 ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ Received booking status data:", data);
+
+  //       // Handle either bookingWindow or onlineAppointments property
+  //       if (data && (typeof data.bookingWindow === 'boolean' || typeof data.onlineAppointments === 'boolean')) {
+  //         const bookingStatus = typeof data.bookingWindow === 'boolean' 
+  //           ? data.bookingWindow 
+  //           : data.onlineAppointments;
+            
+  //         console.log(`✅ Booking status determined: ${bookingStatus}`);
+          
+  //         // Update settings state
+  //         setSettings((prev) => ({ 
+  //           ...prev, 
+  //           onlineAppointments: bookingStatus 
+  //         }));
+          
+  //         // Update allowOnlineBooking state
+  //         setAllowOnlineBooking(bookingStatus ? "yes" : "no");
+  //       } else {
+  //         console.warn("⚠ Invalid booking status structure:", data);
+  //         setError("Unable to determine booking status");
+  //       }
+  //     } catch (error) {
+  //       console.error("❌ Error fetching booking status:", error);
+  //       setError("Failed to load booking status");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   // Force fetch on component mount and when selectedScheduleId changes
+  //   console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
+  //   fetchBookingStatus();
+  // }, [selectedScheduleId]);
 
   useEffect(() => {
     if (selectedScheduleId) {
@@ -1466,27 +1530,43 @@ export default function QueueManagement() {
               <div>
                 <label className="text-sm font-medium">Phone Number</label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    placeholder="+91"
-                    value={newPatient.phone}
-                    onChange={(e) =>
-                      setNewPatient((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                  />
-                  <Button onClick={verifyPatient} disabled={loading}>
+                  <div className="flex-1 flex">
+                    <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
+                      +91
+                    </div>
+                    <Input
+                      placeholder="Enter 10-digit mobile number"
+                      value={newPatient.phone}
+                      onChange={(e) => {
+                        // Only allow digits
+                        const value = e.target.value.replace(/\D/g, '');
+                        // Limit to 10 digits
+                        const sanitizedValue = value.slice(0, 10);
+                        setNewPatient((prev) => ({
+                          ...prev,
+                          phone: sanitizedValue,
+                        }));
+                      }}
+                      className="rounded-l-none"
+                    />
+                  </div>
+                  <Button 
+                    onClick={verifyPatient} 
+                    disabled={loading || newPatient.phone.length !== 10}
+                  >
                     {loading ? (
                       <>
                         Verifying
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
                       </>
                     ) : (
                       "Verify"
                     )}
                   </Button>
                 </div>
+                {newPatient.phone.length > 0 && newPatient.phone.length !== 10 && error && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid 10-digit phone number</p>
+                )}
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
