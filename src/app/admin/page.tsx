@@ -58,8 +58,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDispatch, useSelector } from "react-redux";
-import { selectSchedule, selectSelectedScheduleId } from "@/app/redux/scheduleSlice";
-
+import {
+  selectSchedule,
+  selectSelectedScheduleId,
+} from "@/app/redux/scheduleSlice";
+import { useToast } from "@/hooks/use-toast";
 interface Patient {
   id: string;
   appointmentId: string;
@@ -95,7 +98,8 @@ export default function QueueManagement() {
   const [loadings, setLoadings] = useState(false);
   const dispatch = useDispatch();
   const selectedScheduleId = useSelector(selectSelectedScheduleId);
-  
+  const { toast } = useToast(); // Add toast hook
+
   const [error, setError] = useState("");
   const [verifiedPatient, setVerifiedPatient] = useState<Patient | null>(null);
   const [verifiedPatients, setVerifiedPatients] = useState(false);
@@ -105,7 +109,9 @@ export default function QueueManagement() {
   const [processingFinish, setProcessingFinish] = useState(false);
   // const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [allowOnlineBooking, setAllowOnlineBooking] = useState<"yes" | "no">("yes");
+  const [allowOnlineBooking, setAllowOnlineBooking] = useState<"yes" | "no">(
+    "yes"
+  );
   const [selectedPatientForCancel, setSelectedPatientForCancel] =
     useState<Patient | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -114,10 +120,10 @@ export default function QueueManagement() {
   const [nextQueueNumber, setNextQueueNumber] = useState(1);
   const [todayDate, setTodayDate] = useState("");
 
-useEffect(() => {
-  const date = new Date();
-  setTodayDate(date.toLocaleDateString()); // Formats the date as per locale
-}, []);
+  useEffect(() => {
+    const date = new Date();
+    setTodayDate(date.toLocaleDateString()); // Formats the date as per locale
+  }, []);
   const [settings, setSettings] = useState<QueueSettings>({
     scheduleStart: "17:00",
     scheduleEnd: "22:00",
@@ -135,7 +141,7 @@ useEffect(() => {
   });
 
   // Retrieve schedule ID (e.g., from state or context)
-  
+
   console.log("the schedule that is selected is ", selectedScheduleId);
   const {
     patients: livePatients,
@@ -145,8 +151,6 @@ useEffect(() => {
     showTopLoaders,
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
-
-
 
   useEffect(() => {
     const fetchBookingStatus = async () => {
@@ -192,6 +196,60 @@ useEffect(() => {
     return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
 
+  // useEffect(() => {
+  //   const fetchBookingStatus = async () => {
+  //     if (!selectedScheduleId) {
+  //       console.warn("⚠ No schedule selected, skipping fetch.");
+  //       return;
+  //     }
+
+  //     console.log(
+  //       `📡 Fetching booking status for schedule: ${selectedScheduleId}`
+  //     );
+  //     console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+  //     setLoading(true); // Show loading state
+
+  //     try {
+  //       const apiUrl = `http:localhost:5001/doctors/${selectedScheduleId}/bookingStatus`;
+  //       console.log(`🔗 API Request URL: ${apiUrl}`);
+
+  //       const response = await axios.get(apiUrl);
+  //       const { data } = response;
+
+  //       console.log("📊 ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ Received booking status data:", data);
+
+  //       // Handle either bookingWindow or onlineAppointments property
+  //       if (data && (typeof data.bookingWindow === 'boolean' || typeof data.onlineAppointments === 'boolean')) {
+  //         const bookingStatus = typeof data.bookingWindow === 'boolean' 
+  //           ? data.bookingWindow 
+  //           : data.onlineAppointments;
+            
+  //         console.log(`✅ Booking status determined: ${bookingStatus}`);
+          
+  //         // Update settings state
+  //         setSettings((prev) => ({ 
+  //           ...prev, 
+  //           onlineAppointments: bookingStatus 
+  //         }));
+          
+  //         // Update allowOnlineBooking state
+  //         setAllowOnlineBooking(bookingStatus ? "yes" : "no");
+  //       } else {
+  //         console.warn("⚠ Invalid booking status structure:", data);
+  //         setError("Unable to determine booking status");
+  //       }
+  //     } catch (error) {
+  //       console.error("❌ Error fetching booking status:", error);
+  //       setError("Failed to load booking status");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   // Force fetch on component mount and when selectedScheduleId changes
+  //   console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
+  //   fetchBookingStatus();
+  // }, [selectedScheduleId]);
 
   useEffect(() => {
     if (selectedScheduleId) {
@@ -204,25 +262,29 @@ useEffect(() => {
   }, [selectedScheduleId, socket]);
   // Sync WebSocket data with Patients state
   // ✅ Listen for Booking Window Updates
-useEffect(() => {
-  if (socket) {
-    console.log("📡 Listening for booking window updates...");
-    socket.on("bookingWindowUpdated", ({ scheduleId, isOpen }) => {
-      console.log(`📢 Booking window update received for ${scheduleId}: ${isOpen ? "OPEN" : "CLOSED"}`);
+  useEffect(() => {
+    if (socket) {
+      console.log("📡 Listening for booking window updates...");
+      socket.on("bookingWindowUpdated", ({ scheduleId, isOpen }) => {
+        console.log(
+          `📢 Booking window update received for ${scheduleId}: ${
+            isOpen ? "OPEN" : "CLOSED"
+          }`
+        );
 
-      if (selectedScheduleId === scheduleId) {
-        setSettings((prev) => ({
-          ...prev,
-          onlineAppointments: isOpen, // ✅ Dynamically enable/disable bookings
-        }));
-      }
-    });
-  }
+        if (selectedScheduleId === scheduleId) {
+          setSettings((prev) => ({
+            ...prev,
+            onlineAppointments: isOpen, // ✅ Dynamically enable/disable bookings
+          }));
+        }
+      });
+    }
 
-  return () => {
-    socket?.off("bookingWindowUpdated");
-  };
-}, [socket, selectedScheduleId]);
+    return () => {
+      socket?.off("bookingWindowUpdated");
+    };
+  }, [socket, selectedScheduleId]);
 
   useEffect(() => {
     setPatients(livePatients);
@@ -248,23 +310,27 @@ useEffect(() => {
 
   const fetchAppointments = async (scheduleId: string | null) => {
     // ✅ Prevent API call if scheduleId is null or invalid
-    if (!scheduleId || scheduleId === "ad265dc5-96b7-4dcd-b14b-1eda04f6ad0e") {
+    if (!scheduleId ) {
       console.warn("⚠ No valid schedule selected. Skipping API call.");
       setPatients([]); // Clear the list to prevent showing wrong data
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    
     setError("");
-    startTopLoader();
+    
 
     try {
+      setLoading(true);
+      setShowTopLoader(true); // Show top loader
       console.log("📡 Fetching appointments for scheduleId:", scheduleId);
-      
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`);
-      
-            // ✅ Ensure response is valid
+
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`
+      );
+
+      // ✅ Ensure response is valid
       if (response.data && Array.isArray(response.data)) {
         console.log("✅ Appointments fetched:", response.data);
 
@@ -375,12 +441,12 @@ useEffect(() => {
       gender: newPatient.gender,
       dob: newPatient.dob,
     };
-    startTopLoader();
+    
     setLoadings(true); // Start top loader
     try {
       let patient;
       console.log(verifiedPatient);
-
+      startTopLoader();
       // Step 1: Check if the patient exists, if not create the patient
       if (verifiedPatient) {
         patient = verifiedPatient; // Use the verified patient
@@ -395,8 +461,11 @@ useEffect(() => {
       }
 
       // Step 2: Create an appointment and add the patient to the queue
-      const scheduleId = typeof window !== "undefined" ? localStorage.getItem("selectedScheduleId") : null;
- // Retrieve schedule ID (e.g., from state or context)
+      const scheduleId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("selectedScheduleId")
+          : null;
+      // Retrieve schedule ID (e.g., from state or context)
       console.log("the schedule that is selected is ", scheduleId);
 
       const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
@@ -413,8 +482,22 @@ useEffect(() => {
 
       console.log("📡 Emitting WebSocket update manually...");
       socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
+
+      // Show success toast
+      toast({
+        title: "Patient Added",
+        description: `${newPatient.name} has been added to the queue.`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("❌ Error adding patient:", error);
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to add patient. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setShowTopLoader(false);
       setError("");
@@ -439,64 +522,86 @@ useEffect(() => {
   const BookingStatusChange = async (): Promise<void> => {
     // Retrieve schedule ID from local storage or state
     const scheduleId = localStorage.getItem("selectedScheduleId");
-    
+
     if (!scheduleId) {
       console.error("❌ BookingStatusChange failed: No scheduleId available");
       return;
     }
-    
-    console.log(`🔄 Starting booking window toggle for schedule ID: ${scheduleId}`);
+
+    console.log(
+      `🔄 Starting booking window toggle for schedule ID: ${scheduleId}`
+    );
     console.log(`📊 Current booking status: ${allowOnlineBooking}`);
-    
+
     const startTime = performance.now();
-    
+
     try {
       // Log request details
       const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/booking-window`;
       console.log(`📤 Sending PATCH request to: ${endpoint}`);
-      
+
       const response = await fetch(endpoint, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       // Log response status
-      console.log(`📥 Response status: ${response.status} ${response.statusText}`);
-      
+      console.log(
+        `📥 Response status: ${response.status} ${response.statusText}`
+      );
+
       if (!response.ok) {
-        const errorData = await response.json().catch(e => ({ message: "Failed to parse error response" }));
+        const errorData = await response
+          .json()
+          .catch((e) => ({ message: "Failed to parse error response" }));
         console.error("❌ API Error Response:", errorData);
-        throw new Error(`API returned error ${response.status}: ${errorData.message || response.statusText}`);
+        throw new Error(
+          `API returned error ${response.status}: ${
+            errorData.message || response.statusText
+          }`
+        );
       }
-      
+
       const updatedSchedule = await response.json();
       const timeElapsed = Math.round(performance.now() - startTime);
-      
-      console.log(`✅ Booking window updated successfully (${timeElapsed}ms):`, updatedSchedule);
-      console.log(`📊 New booking status: ${updatedSchedule.onlineAppointments ? "open" : "closed"}`);
-      
+
+      console.log(
+        `✅ Booking window updated successfully (${timeElapsed}ms):`,
+        updatedSchedule
+      );
+      console.log(
+        `📊 New booking status: ${
+          updatedSchedule.onlineAppointments ? "open" : "closed"
+        }`
+      );
+
       // Update local state to match the server state
-      setSettings(prev => ({
+      setSettings((prev) => ({
         ...prev,
-        onlineAppointments: updatedSchedule.onlineAppointments
+        onlineAppointments: updatedSchedule.onlineAppointments,
       }));
-      
     } catch (error) {
       const timeElapsed = Math.round(performance.now() - startTime);
-      console.error(`❌ Error updating booking window (${timeElapsed}ms):`, error);
-      
+      console.error(
+        `❌ Error updating booking window (${timeElapsed}ms):`,
+        error
+      );
+
       if (error instanceof Error) {
         console.error(`- Message: ${error.message}`);
         console.error(`- Stack: ${error.stack}`);
       }
-      
+
       // Show error to user or handle it
-      setError(`Failed to update booking status: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setError(
+        `Failed to update booking status: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
-  
 
   const cancelAppointment = (patient: Patient) => {
     setSelectedPatientForCancel(patient);
@@ -563,6 +668,13 @@ useEffect(() => {
         // Fetch appointments manually as fallback
         await fetchAppointments(selectedScheduleId);
       }
+
+      // Show success toast
+      toast({
+        title: "Appointment Cancelled",
+        description: `Appointment for ${patientToCancel.name} has been cancelled.`,
+        variant: "default",
+      });
     } catch (error) {
       // Handle different error types
       if (axios.isAxiosError(error)) {
@@ -598,6 +710,13 @@ useEffect(() => {
         console.error("Unexpected error cancelling appointment:", error);
         setError("An unexpected error occurred. Please try again.");
       }
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to cancel appointment. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       // Hide loading indicator
       setShowTopLoader(false);
@@ -640,6 +759,13 @@ useEffect(() => {
         // Fallback - manually fetch appointments if WebSocket isn't connected
         await fetchAppointments(selectedScheduleId);
       }
+
+      // Show success toast
+      toast({
+        title: "Patient Rescheduled",
+        description: `${patient.name} has been rescheduled.`,
+        variant: "default",
+      });
     } catch (error) {
       console.error("Failed to reschedule patient:", error);
 
@@ -652,6 +778,13 @@ useEffect(() => {
       } else {
         alert("Failed to reschedule patient. Please try again.");
       }
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to reschedule patient. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       // Hide loading indicator
       setShowTopLoader(false);
@@ -697,6 +830,13 @@ useEffect(() => {
       console.log("Skip response:", response.data);
       console.log("📡 Emitting WebSocket update after skipping patient...");
       socket?.emit("fetchAppointments", scheduleId);
+
+      // Show success toast
+      toast({
+        title: "Patient Skipped",
+        description: `Patient with appointment ID ${appointmentId} has been skipped.`,
+        variant: "default",
+      });
     } catch (err: unknown) {
       console.error("Error skipping patient:", err);
 
@@ -735,6 +875,13 @@ useEffect(() => {
       } else {
         alert("Failed to skip patient: An unknown error occurred");
       }
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to skip patient. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setShowTopLoader(false); // Hide loading indicator
     }
@@ -750,13 +897,27 @@ useEffect(() => {
       );
 
       // The server + WebSocket will update the state
+
+      // Show success toast
+      toast({
+        title: "Next Patient Called",
+        description: "The next patient has been called.",
+        variant: "default",
+      });
     } catch (err) {
       setShowTopLoader(false);
       console.error("Error processing patients:", err);
       setError(
         "Failed to update patient status and call next patient. Please try again."
       );
-    }finally {
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to call next patient. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setShowTopLoader(false);
     }
   };
@@ -769,9 +930,23 @@ useEffect(() => {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/finish/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
+
+      // Show success toast
+      toast({
+        title: "Consultation Finished",
+        description: "The consultation has been finished.",
+        variant: "default",
+      });
     } catch (err) {
       console.error("Error finishing serving patient:", err);
       setError("Failed to finish serving the patient. Please try again.");
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to finish consultation. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setProcessing(false);
       setShowTopLoader(false);
@@ -786,9 +961,23 @@ useEffect(() => {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/serve/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
+
+      // Show success toast
+      toast({
+        title: "Next Patient Called",
+        description: "The next patient has been called.",
+        variant: "default",
+      });
     } catch (err) {
       console.error("Error calling next patient:", err);
       setError("Failed to call the next patient. Please try again.");
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: "Failed to call next patient. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setProcessing(false);
       setShowTopLoader(false);
@@ -833,8 +1022,9 @@ useEffect(() => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
-                  <h2 className="text-md font-semibold">Patient Queue Of - {todayDate}</h2>
-                  
+                  <h2 className="text-md font-semibold">
+                    Patient Queue Of - {todayDate}
+                  </h2>
 
                   <div className="flex gap-2 items-center">
                     {/* Connection Status Indicator */}
@@ -875,7 +1065,7 @@ useEffect(() => {
                 </p>
               </div>
               {/* ✅ Show Queue Status */}
-               {/* Online Booking Toggle */}
+              {/* Online Booking Toggle */}
               <div className="mt-4">
                 <h3 className="text-md font-medium">Online Booking</h3>
                 <p className="text-sm text-gray-500">
@@ -1173,29 +1363,25 @@ useEffect(() => {
                 <div className="mb-28">
                   {filteredPatients.length > 0 ? (
                     <div className="space-y-2">
-                      {filteredPatients
-                        .map((patient) => (
-                          <div key={patient.id} className="p-2 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
-                                {patient.queueNumber}
+                      {filteredPatients.map((patient) => (
+                        <div key={patient.id} className="p-2 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full flex items-center font-bold justify-center text-sm">
+                              {patient.queueNumber}
+                            </div>
+                            <div className="flex-1 text-sm grid grid-cols-4">
+                              <div className="text-sm">{patient.name}</div>
+                              <div className="text-sm">
+                                Phone: {patient.phone}
                               </div>
-                              <div className="flex-1 text-sm grid grid-cols-4">
-                                <div className="text-sm">{patient.name}</div>
-                                <div className="text-sm">
-                                  Phone: {patient.phone}
-                                </div>
-                                <div className="text-sm">
-                                  Age: {patient.age}
-                                </div>
-                                <div className="text-sm">
-                                  Gender: {patient.gender}
-                                </div>
+                              <div className="text-sm">Age: {patient.age}</div>
+                              <div className="text-sm">
+                                Gender: {patient.gender}
                               </div>
                             </div>
                           </div>
-                        ))
-                        }
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
@@ -1481,7 +1667,6 @@ useEffect(() => {
                   <>Add Patient</> // Always shows "Add Patient" regardless of booking window status
                 )}
               </Button>
-
             </div>
           </div>
         </div>
