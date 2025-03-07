@@ -1343,27 +1343,24 @@ useEffect(() => {
                 <label className="text-sm font-medium">Phone Number</label>
                 <div className="flex gap-2 mt-1">
                   <div className="flex-1 flex">
-                  <div className="flex items-center justify-center px-3  border border-r-0 border-input rounded-l-md">
-                    +91
-                  </div>
-                  <Input
-                    placeholder="Enter 10-digit mobile number"
-                    value={newPatient.phone}
-                    onChange={(e) => {
-                    // Only allow digits
-                    const value = e.target.value.replace(/\D/g, '');
-                    // Limit to 10 digits
-                    const sanitizedValue = value.slice(0, 10);
-                    setNewPatient((prev) => ({
-                      ...prev,
-                      phone: sanitizedValue,
-                    }));
-                    }}
-                    className={`rounded-l-none ${newPatient.phone.length > 0 && newPatient.phone.length !== 10 ? "border-red-500" : ""}`}
-                  />
-                  {newPatient.phone.length > 0 && newPatient.phone.length !== 10 && (
-                    <p className="text-xs text-red-500 mt-1">Please enter a valid 10-digit phone number</p>
-                  )}
+                    <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
+                      +91
+                    </div>
+                    <Input
+                      placeholder="Enter 10-digit mobile number"
+                      value={newPatient.phone}
+                      onChange={(e) => {
+                        // Only allow digits
+                        const value = e.target.value.replace(/\D/g, '');
+                        // Limit to 10 digits
+                        const sanitizedValue = value.slice(0, 10);
+                        setNewPatient((prev) => ({
+                          ...prev,
+                          phone: sanitizedValue,
+                        }));
+                      }}
+                      className="rounded-l-none"
+                    />
                   </div>
                   <Button 
                     onClick={verifyPatient} 
@@ -1379,6 +1376,9 @@ useEffect(() => {
                     )}
                   </Button>
                 </div>
+                {newPatient.phone.length > 0 && newPatient.phone.length !== 10 && error && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a valid 10-digit phone number</p>
+                )}
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
