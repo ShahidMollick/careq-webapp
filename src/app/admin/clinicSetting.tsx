@@ -125,6 +125,13 @@ function ClinicSetting() {
   // Load doctor info on mount
   // ----------------------------------------------------------------
   useEffect(() => {
+    const storedDoctorData = localStorage.getItem("doctorData");
+    console.log("Raw doctorData from localStorage:", storedDoctorData);
+    if (storedDoctorData) {
+      const parsedData = JSON.parse(storedDoctorData);
+      console.log("Patient limit:", parsedData.schedules?.[0]?.Limit);
+      console.log("Parsed doctorData:", parsedData);
+    }
     const loadDoctorData = () => {
       const storedDoctorData = localStorage.getItem("doctorData");
       if (!storedDoctorData) return;

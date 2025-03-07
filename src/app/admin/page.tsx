@@ -144,6 +144,8 @@ useEffect(() => {
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
 
+
+
   useEffect(() => {
     const fetchBookingStatus = async () => {
       if (!selectedScheduleId) {
@@ -152,6 +154,7 @@ useEffect(() => {
       }
 
       console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+      setLoading(true); // Show loading state
 
       try {
         const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${selectedScheduleId}/bookingStatus`;
@@ -160,18 +163,31 @@ useEffect(() => {
         const response = await axios.get(apiUrl);
         const { data } = response;
 
-        if (data && data.onlineAppointments !== undefined) {
-          console.log(`✅ Booking status received: ${data.onlineAppointments}`);
-          setSettings((prev) => ({ ...prev, onlineAppointments: data.onlineAppointments }));
+        if (data && typeof data.bookingWindow === 'boolean') {
+          console.log(`✅ Booking status received: ${data.bookingWindow}`);
+          setSettings((prev) => ({ ...prev, onlineAppointments: data.bookingWindow }));
+          // Update allowOnlineBooking state to match backend data
+          setAllowOnlineBooking(data.bookingWindow ? "yes" : "no");
         } else {
-          console.warn("⚠ No valid booking status received from API");
+          console.warn("⚠ Invalid booking status structure:", data);
+          setError("Unable to determine booking status");
         }
       } catch (error) {
         console.error("❌ Error fetching booking status:", error);
+        setError("Failed to load booking status");
+      } finally {
+        setLoading(false);
       }
     };
 
+    // Force fetch on component mount and when selectedScheduleId changes
+    console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
     fetchBookingStatus();
+    
+    // Setup a refresh interval (every 30 seconds)
+    const intervalId = setInterval(fetchBookingStatus, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
 
 
