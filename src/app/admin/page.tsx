@@ -63,6 +63,8 @@ import {
   selectSelectedScheduleId,
 } from "@/app/redux/scheduleSlice";
 import { useToast } from "@/hooks/use-toast";
+import NotificationHeader from "./notification";
+import NotificationBanner from "./NotificationBanner";
 interface Patient {
   id: string;
   appointmentId: string;
@@ -999,10 +1001,56 @@ export default function QueueManagement() {
     : lastCompletedPatient
     ? lastCompletedPatient.queueNumber // If no one is serving, show last completed patient
     : "-"; // If no patients have been served yet, show "-"
+  const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
+  const [nextAvailableSchedule, setNextAvailableSchedule] = useState<Date | undefined>(undefined);
+  const [showCapacityWarning, setShowCapacityWarning] = useState(false);
+  const [capacityLimit, setCapacityLimit] = useState(0);
+  const [remainingCapacity, setRemainingCapacity] = useState(0);
+
+  // ...existing code...
+
+  // Calculate remaining capacity and show warning if approaching limit
+  useEffect(() => {
+    // This would come from your API in production
+    const totalCapacity = queueStatus?.totalLimit || 0;
+    const totalQueue = queueStatus?.totalQueue || 0;
+    
+    const remaining = totalCapacity - totalQueue;
+    setRemainingCapacity(remaining);
+    
+    // Show warning if 5 or fewer slots remain
+    setShowCapacityWarning(remaining > 0 && remaining <= 5);
+    setCapacityLimit(totalCapacity);
+    
+  }, [queueStatus]);
+
+  // Fetch next available schedule date/time when booking window is closed
+  useEffect(() => {
+    if (settings.onlineAppointments === false) {
+      // This would be a real API call in production
+      // For now we'll just use a dummy future date for demonstration
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0); // 10:00 AM tomorrow
+      setNextAvailableSchedule(tomorrow);
+    }
+  }, [settings.onlineAppointments]);
+  
+  // Function to handle editing the schedule
+  const handleEditSchedule = () => {
+    // Navigate to settings page or open settings dialog
+    console.log("Navigating to schedule settings");
+    // Example: router.push("/admin/settings");
+  };
+
+  const handleCapacityWarningDismiss = () => {
+    setShowCapacityWarning(false);
+  };
+
   return (
-    <div className="min-h-screen  overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden">
       <div>
-        {/* ✅ Top Moving Loader */}
+        {/* Top Moving Loader */}
         {showTopLoader && (
           <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
             <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
@@ -1015,6 +1063,28 @@ export default function QueueManagement() {
           </div>
         )}
       </div>
+      
+      {/* Notification Header */}
+      <NotificationHeader
+        title=""
+        isConnected={isConnected}
+        onReconnect={() => socket?.connect()}
+        bookingWindowOpen={settings.onlineAppointments}
+        onEditSchedule={handleEditSchedule}
+        nextScheduleDate={nextAvailableSchedule}
+      />
+      
+      {/* Capacity Warning Notification */}
+      <NotificationBanner
+        type="warning"
+        show={showCapacityWarning}
+        onDismiss={handleCapacityWarningDismiss}
+        message={`Queue is approaching capacity limit! Only ${remainingCapacity} ${remainingCapacity === 1 ? 'slot' : 'slots'} remaining out of ${capacityLimit}.`}
+        
+        
+      />
+      
+      
       <div className="flex h-[calc(100vh-73px)]">
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
