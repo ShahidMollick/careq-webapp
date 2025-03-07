@@ -256,65 +256,7 @@ function ClinicSetting() {
     setShowSaveButton(true);
   };
 
-  const handleOnSave = async (scheduleId: string) => {
-    if (!scheduleId) {
-      alert("No schedule selected. Please select a schedule first.");
-      return;
-    }
-
-    const doctorId = localStorage.getItem("doctorId");
-    if (!doctorId) {
-      alert("Doctor ID is missing. Please login again.");
-      return;
-    }
-
-    const currentSchedule = schedules.find(s => s.id === scheduleId);
-    if (!currentSchedule) {
-      alert("Selected schedule not found.");
-      return;
-    }
-
-    try {
-      // Get latest values
-      const fees = schedules.find(s => s.id === scheduleId)?.fees || 0;
-      const patientLimit = schedules.find(s => s.id === scheduleId)?.patientLimit || 0;
-
-      const updateData = {
-        clinicName: currentSchedule.clinicName,
-        clinicAddress: currentSchedule.clinicAddress,
-        day: currentSchedule.day,
-        from: scheduleStart,
-        to: scheduleEnd,
-        fees,
-        Limit: patientLimit,
-        bookingStart,
-        bookingEnd,
-      };
-
-      const response = await axios.patch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/schedules`,
-        updateData
-      );
-
-      setSchedules(prevSchedules =>
-        prevSchedules.map(schedule =>
-          schedule.id === scheduleId ? { ...schedule, ...response.data } : schedule
-        )
-      );
-
-      setShowSaveButton(false);
-      alert("Changes saved successfully!");
-    } catch (error) {
-      let errorMessage = "Failed to save changes";
-      if (isApiError(error)) {
-        errorMessage = error.response.data.message;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      console.error("Schedule update failed:", error);
-      alert(`Error: ${errorMessage}`);
-    }
-  };
+  
 
   const handleAddSchedule = async () => {
     // Validate input
