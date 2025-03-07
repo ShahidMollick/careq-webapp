@@ -1652,19 +1652,29 @@ export default function QueueManagement() {
               <Button
                 className="w-full mt-6"
                 variant="default"
-                onClick={addPatient}
+                onClick={async () => {
+                  await addPatient();
+                  // Reset form after successful addition
+                  setNewPatient({
+                    phone: "",
+                    name: "",
+                    gender: "male",
+                    dob: ""
+                  });
+                  setVerifiedPatients(false);
+                  setVerifiedPatient(null);
+                }}
                 disabled={
                   !verifiedPatients ||
                   !newPatient.name ||
                   !newPatient.phone ||
                   loadings
-                  // Removed the settings.onlineAppointments condition to allow booking regardless of window status
                 }
               >
                 {loadings ? (
                   <>Adding Patient...</>
                 ) : (
-                  <>Add Patient</> // Always shows "Add Patient" regardless of booking window status
+                  <>Add Patient</>
                 )}
               </Button>
             </div>
