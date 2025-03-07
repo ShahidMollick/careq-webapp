@@ -101,6 +101,8 @@ export default function QueueManagement() {
   const [verifiedPatients, setVerifiedPatients] = useState(false);
   const [Patients, setPatients] = useState<Patient[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [processingNext, setProcessingNext] = useState(false);
+  const [processingFinish, setProcessingFinish] = useState(false);
   // const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [allowOnlineBooking, setAllowOnlineBooking] = useState<"yes" | "no">("yes");
@@ -1276,28 +1278,44 @@ useEffect(() => {
                     <Button
                       variant="default"
                       onClick={() =>
-                        handleFinishServing(selectedScheduleId || "")
+                      handleFinishServing(selectedScheduleId || "")
+                      .finally(() => setProcessingFinish(false))
                       }
                       className=""
-                      disabled={processing}
+                      disabled={processingFinish}
                     >
-                      {processing ? (
-                        <>
-                          Ending Consultation...
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        </>
+                      {processingFinish ? (
+                      <>
+                        Ending Consultation...
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      </>
                       ) : (
-                        <>
-                          <CheckCheck></CheckCheck>
-                          Finish Consultation
-                        </>
+                      <>
+                        <CheckCheck className="mr-2" />
+                        Finish Consultation
+                      </>
                       )}
                     </Button>
                     <Button
                       variant="default"
-                      onClick={() => handleStartServing(selectedScheduleId || "")}
+                      onClick={() => {
+                      setProcessingNext(true);
+                      handleStartServing(selectedScheduleId || "")
+                        .finally(() => setProcessingNext(false));
+                      }}
+                      disabled={processingNext}
                     >
-                      Next Patient
+                      {processingNext ? (
+                      <>
+                        Calling Next Patient...
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      </>
+                      ) : (
+                      <>
+                        Next Patient
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                      )}
                     </Button>
                   </div>
                 </>
