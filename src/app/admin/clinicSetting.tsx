@@ -141,7 +141,7 @@ function ClinicSetting() {
       const parsedData = JSON.parse(storedDoctorData);
       console.log("Patient limit:", parsedData.schedules?.[0]?.Limit);
       console.log("Parsed doctorData:", parsedData);
-    }
+}
     const loadDoctorData = () => {
       const storedDoctorData = localStorage.getItem("doctorData");
       if (!storedDoctorData) return;
@@ -669,7 +669,7 @@ function ClinicSetting() {
                         value={(() => {
                           if (!newSchedule.from) return "";
                           const [h] = newSchedule.from.split(":");
-                          let hour24 = parseInt(h, 10);
+                          const hour24 = parseInt(h, 10);
                           // Ensure we produce a 2-digit string
                           return String(hour24).padStart(2, "0");
                         })()}
@@ -737,7 +737,7 @@ function ClinicSetting() {
                         value={(() => {
                           if (!newSchedule.to) return "";
                           const [h] = newSchedule.to.split(":");
-                          let hour24 = parseInt(h, 10);
+                          const hour24 = parseInt(h, 10);
                           return String(hour24).padStart(2, "0");
                         })()}
                         onValueChange={(val) => {

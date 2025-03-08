@@ -137,13 +137,10 @@ export default function QueueManagement() {
 
   const [newPatient, setNewPatient] = useState({
     phone: "",
-
     name: "",
     gender: "male",
     dob: "",
   });
-
-  // Retrieve schedule ID (e.g., from state or context)
 
   console.log("the schedule that is selected is ", selectedScheduleId);
   const {
@@ -207,60 +204,7 @@ export default function QueueManagement() {
     return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
 
-  // useEffect(() => {
-  //   const fetchBookingStatus = async () => {
-  //     if (!selectedScheduleId) {
-  //       console.warn("⚠ No schedule selected, skipping fetch.");
-  //       return;
-  //     }
-
-  //     console.log(
-  //       `📡 Fetching booking status for schedule: ${selectedScheduleId}`
-  //     );
-  //     console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
-  //     setLoading(true); // Show loading state
-
-  //     try {
-  //       const apiUrl = `http:localhost:5001/doctors/${selectedScheduleId}/bookingStatus`;
-  //       console.log(`🔗 API Request URL: ${apiUrl}`);
-
-  //       const response = await axios.get(apiUrl);
-  //       const { data } = response;
-
-  //       console.log("📊 ❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌❌ Received booking status data:", data);
-
-  //       // Handle either bookingWindow or onlineAppointments property
-  //       if (data && (typeof data.bookingWindow === 'boolean' || typeof data.onlineAppointments === 'boolean')) {
-  //         const bookingStatus = typeof data.bookingWindow === 'boolean'
-  //           ? data.bookingWindow
-  //           : data.onlineAppointments;
-
-  //         console.log(`✅ Booking status determined: ${bookingStatus}`);
-
-  //         // Update settings state
-  //         setSettings((prev) => ({
-  //           ...prev,
-  //           onlineAppointments: bookingStatus
-  //         }));
-
-  //         // Update allowOnlineBooking state
-  //         setAllowOnlineBooking(bookingStatus ? "yes" : "no");
-  //       } else {
-  //         console.warn("⚠ Invalid booking status structure:", data);
-  //         setError("Unable to determine booking status");
-  //       }
-  //     } catch (error) {
-  //       console.error("❌ Error fetching booking status:", error);
-  //       setError("Failed to load booking status");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   // Force fetch on component mount and when selectedScheduleId changes
-  //   console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
-  //   fetchBookingStatus();
-  // }, [selectedScheduleId]);
+  
 
   useEffect(() => {
     if (selectedScheduleId) {
@@ -1021,7 +965,9 @@ export default function QueueManagement() {
   // Calculate remaining capacity and show warning if approaching limit
   useEffect(() => {
     // This would come from your API in production
-    const totalCapacity = queueStatus?.totalLimit || 0;
+    const totalCapacity = queueStatus && 'totalLimit' in (queueStatus as Record<string, unknown>) 
+      ? (queueStatus as Record<string, number>).totalLimit 
+      : 0;
     const totalQueue = queueStatus?.totalQueue || 0;
 
     const remaining = totalCapacity - totalQueue;
