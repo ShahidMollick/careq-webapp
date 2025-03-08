@@ -42,6 +42,7 @@ import {
   Clock,
   MoreVertical,
   CalendarX2,
+  Calendar,
 } from "lucide-react";
 import {
   Select,
@@ -161,19 +162,24 @@ export default function QueueManagement() {
         return;
       }
 
-      console.log(`📡 Fetching booking status for schedule: ${selectedScheduleId}`);
+      console.log(
+        `📡 Fetching booking status for schedule: ${selectedScheduleId}`
+      );
       setLoading(true); // Show loading state
 
       try {
         const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${selectedScheduleId}/bookingStatus`;
         console.log(`🔗 API Request URL: ${apiUrl}`);
-        
+
         const response = await axios.get(apiUrl);
         const { data } = response;
 
-        if (data && typeof data.bookingWindow === 'boolean') {
+        if (data && typeof data.bookingWindow === "boolean") {
           console.log(`✅ Booking status received: ${data.bookingWindow}`);
-          setSettings((prev) => ({ ...prev, onlineAppointments: data.bookingWindow }));
+          setSettings((prev) => ({
+            ...prev,
+            onlineAppointments: data.bookingWindow,
+          }));
           // Update allowOnlineBooking state to match backend data
           setAllowOnlineBooking(data.bookingWindow ? "yes" : "no");
         } else {
@@ -189,12 +195,15 @@ export default function QueueManagement() {
     };
 
     // Force fetch on component mount and when selectedScheduleId changes
-    console.log("🔄 Booking status effect triggered, scheduleId:", selectedScheduleId);
+    console.log(
+      "🔄 Booking status effect triggered, scheduleId:",
+      selectedScheduleId
+    );
     fetchBookingStatus();
-    
+
     // Setup a refresh interval (every 30 seconds)
     const intervalId = setInterval(fetchBookingStatus, 30000);
-    
+
     return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
 
@@ -222,18 +231,18 @@ export default function QueueManagement() {
 
   //       // Handle either bookingWindow or onlineAppointments property
   //       if (data && (typeof data.bookingWindow === 'boolean' || typeof data.onlineAppointments === 'boolean')) {
-  //         const bookingStatus = typeof data.bookingWindow === 'boolean' 
-  //           ? data.bookingWindow 
+  //         const bookingStatus = typeof data.bookingWindow === 'boolean'
+  //           ? data.bookingWindow
   //           : data.onlineAppointments;
-            
+
   //         console.log(`✅ Booking status determined: ${bookingStatus}`);
-          
+
   //         // Update settings state
-  //         setSettings((prev) => ({ 
-  //           ...prev, 
-  //           onlineAppointments: bookingStatus 
+  //         setSettings((prev) => ({
+  //           ...prev,
+  //           onlineAppointments: bookingStatus
   //         }));
-          
+
   //         // Update allowOnlineBooking state
   //         setAllowOnlineBooking(bookingStatus ? "yes" : "no");
   //       } else {
@@ -312,16 +321,14 @@ export default function QueueManagement() {
 
   const fetchAppointments = async (scheduleId: string | null) => {
     // ✅ Prevent API call if scheduleId is null or invalid
-    if (!scheduleId ) {
+    if (!scheduleId) {
       console.warn("⚠ No valid schedule selected. Skipping API call.");
       setPatients([]); // Clear the list to prevent showing wrong data
       setLoading(false);
       return;
     }
 
-    
     setError("");
-    
 
     try {
       setLoading(true);
@@ -443,7 +450,7 @@ export default function QueueManagement() {
       gender: newPatient.gender,
       dob: newPatient.dob,
     };
-    
+
     setLoadings(true); // Start top loader
     try {
       let patient;
@@ -493,7 +500,7 @@ export default function QueueManagement() {
       });
     } catch (error) {
       console.error("❌ Error adding patient:", error);
-      
+
       // Show error toast
       toast({
         title: "Error",
@@ -1002,7 +1009,9 @@ export default function QueueManagement() {
     ? lastCompletedPatient.queueNumber // If no one is serving, show last completed patient
     : "-"; // If no patients have been served yet, show "-"
   const [bookingStatusLoading, setBookingStatusLoading] = useState(false);
-  const [nextAvailableSchedule, setNextAvailableSchedule] = useState<Date | undefined>(undefined);
+  const [nextAvailableSchedule, setNextAvailableSchedule] = useState<
+    Date | undefined
+  >(undefined);
   const [showCapacityWarning, setShowCapacityWarning] = useState(false);
   const [capacityLimit, setCapacityLimit] = useState(0);
   const [remainingCapacity, setRemainingCapacity] = useState(0);
@@ -1014,14 +1023,13 @@ export default function QueueManagement() {
     // This would come from your API in production
     const totalCapacity = queueStatus?.totalLimit || 0;
     const totalQueue = queueStatus?.totalQueue || 0;
-    
+
     const remaining = totalCapacity - totalQueue;
     setRemainingCapacity(remaining);
-    
+
     // Show warning if 5 or fewer slots remain
     setShowCapacityWarning(remaining > 0 && remaining <= 5);
     setCapacityLimit(totalCapacity);
-    
   }, [queueStatus]);
 
   // Fetch next available schedule date/time when booking window is closed
@@ -1035,7 +1043,7 @@ export default function QueueManagement() {
       setNextAvailableSchedule(tomorrow);
     }
   }, [settings.onlineAppointments]);
-  
+
   // Function to handle editing the schedule
   const handleEditSchedule = () => {
     // Navigate to settings page or open settings dialog
@@ -1063,7 +1071,7 @@ export default function QueueManagement() {
           </div>
         )}
       </div>
-      
+
       {/* Notification Header */}
       <NotificationHeader
         title=""
@@ -1073,18 +1081,17 @@ export default function QueueManagement() {
         onEditSchedule={handleEditSchedule}
         nextScheduleDate={nextAvailableSchedule}
       />
-      
+
       {/* Capacity Warning Notification */}
       <NotificationBanner
         type="warning"
         show={showCapacityWarning}
         onDismiss={handleCapacityWarningDismiss}
-        message={`Queue is approaching capacity limit! Only ${remainingCapacity} ${remainingCapacity === 1 ? 'slot' : 'slots'} remaining out of ${capacityLimit}.`}
-        
-        
+        message={`Queue is approaching capacity limit! Only ${remainingCapacity} ${
+          remainingCapacity === 1 ? "slot" : "slots"
+        } remaining out of ${capacityLimit}.`}
       />
-      
-      
+
       <div className="flex h-[calc(100vh-73px)]">
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -1092,12 +1099,11 @@ export default function QueueManagement() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex flex-row gap-4 items-center mb-1">
-                  <h2 className="text-md font-semibold">
-                    Patient Queue Of - {todayDate}
-                  </h2>
-
-                  <div className="flex gap-2 items-center">
-                    {/* Connection Status Indicator */}
+                  <div className="flex items-center">
+                    <h2 className="text-md font-semibold mr-2">
+                      Patient Queue
+                    </h2>
+                    {/* Connection Status Indicator
                     <div className="flex items-center gap-1">
                       {isConnected ? (
                         <CircleCheck className="w-4 h-4 text-green-500" />
@@ -1115,32 +1121,36 @@ export default function QueueManagement() {
                           </>
                         )}
                       </span>
-                    </div>
-
-                    {/* Retry Button (Only when offline) */}
-                    {!isConnected && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => socket?.connect()} // ✅ Retry Connection
-                      >
-                        Reconnect
-                      </Button>
-                    )}
+                    </div> */}
                   </div>
                 </div>
 
-                <p className="text-sm text-muted-foreground">
-                  Information Information Information Information
-                </p>
+                <div className="flex gap-2 items-center mt-2">
+                  <div className="inline-flex items-center px-2.5 py-1 rounded-full border border-gray-200 bg-gray-50 text-sm font-medium">
+                    <span className="text-gray-500 text-sm gap-2 mr-1 flex flex-row items-center"><Calendar size='16'></Calendar> Today:</span>
+                    {new Date().toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </div>
+
+                  {/* Retry Button (Only when offline) */}
+                  {!isConnected && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => socket?.connect()} // ✅ Retry Connection
+                    >
+                      Reconnect
+                    </Button>
+                  )}
+                </div>
               </div>
               {/* ✅ Show Queue Status */}
               {/* Online Booking Toggle */}
-              <div className="mt-4">
+              <div className="">
                 <h3 className="text-md font-medium">Online Booking</h3>
-                <p className="text-sm text-gray-500">
-                  Current booking window status:
-                </p>
                 <div className="mt-2 flex items-center space-x-2">
                   {/* 
                     Switch disabled - viewing only 
@@ -1534,43 +1544,45 @@ export default function QueueManagement() {
                     <Button
                       variant="default"
                       onClick={() =>
-                      handleFinishServing(selectedScheduleId || "")
-                      .finally(() => setProcessingFinish(false))
+                        handleFinishServing(selectedScheduleId || "").finally(
+                          () => setProcessingFinish(false)
+                        )
                       }
                       className=""
                       disabled={processingFinish}
                     >
                       {processingFinish ? (
-                      <>
-                        Ending Consultation...
-                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                      </>
+                        <>
+                          Ending Consultation...
+                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                        </>
                       ) : (
-                      <>
-                        <CheckCheck className="mr-2" />
-                        Finish Consultation
-                      </>
+                        <>
+                          <CheckCheck className="mr-2" />
+                          Finish Consultation
+                        </>
                       )}
                     </Button>
                     <Button
                       variant="default"
                       onClick={() => {
-                      setProcessingNext(true);
-                      handleStartServing(selectedScheduleId || "")
-                        .finally(() => setProcessingNext(false));
+                        setProcessingNext(true);
+                        handleStartServing(selectedScheduleId || "").finally(
+                          () => setProcessingNext(false)
+                        );
                       }}
                       disabled={processingNext}
                     >
                       {processingNext ? (
-                      <>
-                        Calling Next Patient...
-                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                      </>
+                        <>
+                          Calling Next Patient...
+                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                        </>
                       ) : (
-                      <>
-                        Next Patient
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
+                        <>
+                          Next Patient
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
                       )}
                     </Button>
                   </div>
@@ -1607,7 +1619,7 @@ export default function QueueManagement() {
               <div>
                 <h2 className="text-md font-semibold ">Add Patient</h2>
                 <p className="text-sm text-muted-foreground">
-                  Information Information Information Information
+                  Add a new patient to the queue
                 </p>
               </div>
             </div>
@@ -1616,29 +1628,34 @@ export default function QueueManagement() {
               <div>
                 <label className="text-sm font-medium">Phone Number</label>
                 <div className="flex gap-2 mt-1">
-                  <div className="flex-1 flex">
+                    <div className="flex-1 flex">
                     <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
                       +91
                     </div>
                     <Input
                       placeholder="Enter 10-digit mobile number"
-                      value={newPatient.phone}
+                      value={
+                      newPatient.phone.startsWith("+91 ")
+                        ? newPatient.phone.slice(4)
+                        : newPatient.phone
+                      }
                       onChange={(e) => {
-                        // Only allow digits
-                        const value = e.target.value.replace(/\D/g, '');
-                        // Limit to 10 digits
-                        const sanitizedValue = value.slice(0, 10);
-                        setNewPatient((prev) => ({
-                          ...prev,
-                          phone: sanitizedValue,
-                        }));
+                      // Remove any non-digit characters
+                      const value = e.target.value.replace(/\D/g, "");
+                      // Limit to 10 digits
+                      const sanitizedValue = value.slice(0, 10);
+                      // Save with the +91 prefix and a space
+                      setNewPatient((prev) => ({
+                        ...prev,
+                        phone: "+91 " + sanitizedValue,
+                      }));
                       }}
                       className="rounded-l-none"
                     />
-                  </div>
-                  <Button 
-                    onClick={verifyPatient} 
-                    disabled={loading || newPatient.phone.length !== 10}
+                    </div>
+                  <Button
+                    onClick={verifyPatient}
+                    disabled={loading || (newPatient.phone.startsWith("+91 ") ? newPatient.phone.slice(4).length !== 10 : newPatient.phone.length !== 10)}
                   >
                     {loading ? (
                       <>
@@ -1650,9 +1667,13 @@ export default function QueueManagement() {
                     )}
                   </Button>
                 </div>
-                {newPatient.phone.length > 0 && newPatient.phone.length !== 10 && error && (
-                  <p className="text-xs text-red-500 mt-1">Please enter a valid 10-digit phone number</p>
-                )}
+                {newPatient.phone.length > 0 &&
+                  newPatient.phone.length !== 10 &&
+                  error && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Please enter a valid 10-digit phone number
+                    </p>
+                  )}
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -1729,7 +1750,7 @@ export default function QueueManagement() {
                     phone: "",
                     name: "",
                     gender: "male",
-                    dob: ""
+                    dob: "",
                   });
                   setVerifiedPatients(false);
                   setVerifiedPatient(null);
@@ -1741,11 +1762,7 @@ export default function QueueManagement() {
                   loadings
                 }
               >
-                {loadings ? (
-                  <>Adding Patient...</>
-                ) : (
-                  <>Add Patient</>
-                )}
+                {loadings ? <>Adding Patient...</> : <>Add Patient</>}
               </Button>
             </div>
           </div>
