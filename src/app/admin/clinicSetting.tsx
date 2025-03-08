@@ -79,6 +79,7 @@ function ClinicSetting() {
     bookingStart?: string;
     bookingEnd?: string;
     patientLimit?: number;
+    Limit?: number;  // Add this line to fix the error
   };
 
   type ClinicInfo = {
@@ -120,6 +121,15 @@ function ClinicSetting() {
   // Add these lines for Redux
   const dispatch = useDispatch();
   const selectedScheduleId = useSelector(selectSelectedScheduleId);
+
+  // Add these new state variables near other state definitions
+  const [selectedScheduleData, setSelectedScheduleData] = useState<{
+    fees: number;
+    patientLimit: number | string;  // Allow both number and string
+  }>({
+    fees: 0,
+    patientLimit: 0
+  });
 
   // ----------------------------------------------------------------
   // Load doctor info on mount
@@ -234,6 +244,11 @@ function ClinicSetting() {
       setScheduleEnd(selectedSchedule.to);
       setBookingStart(selectedSchedule.bookingStart || "");
       setBookingEnd(selectedSchedule.bookingEnd || "");
+      // Check for Limit first (API response) then patientLimit (local state)
+      setSelectedScheduleData({
+        fees: selectedSchedule.fees || 0,
+        patientLimit: selectedSchedule.Limit || selectedSchedule.patientLimit || ''
+      });
     }
   }, [selectedScheduleId, schedules]);
 
@@ -285,8 +300,10 @@ function ClinicSetting() {
         day: currentSchedule.day,
         from: scheduleStart,
         to: scheduleEnd,
-        fees,
-        Limit: patientLimit,
+        fees: selectedScheduleData.fees,
+        Limit: typeof selectedScheduleData.patientLimit === 'string' 
+          ? (selectedScheduleData.patientLimit === '' ? 0 : parseInt(selectedScheduleData.patientLimit)) 
+          : selectedScheduleData.patientLimit,
         bookingStart,
         bookingEnd,
       };
@@ -296,11 +313,23 @@ function ClinicSetting() {
         updateData
       );
 
-      setSchedules(prevSchedules =>
-        prevSchedules.map(schedule =>
-          schedule.id === scheduleId ? { ...schedule, ...response.data } : schedule
-        )
+      // Update schedules state
+      const updatedSchedules = schedules.map(schedule =>
+        schedule.id === scheduleId ? { ...schedule, ...response.data, fees: selectedScheduleData.fees, Limit: typeof selectedScheduleData.patientLimit === 'string' 
+          ? (selectedScheduleData.patientLimit === '' ? 0 : parseInt(selectedScheduleData.patientLimit))
+          : selectedScheduleData.patientLimit, patientLimit: typeof selectedScheduleData.patientLimit === 'string' 
+          ? (selectedScheduleData.patientLimit === '' ? 0 : parseInt(selectedScheduleData.patientLimit))
+          : selectedScheduleData.patientLimit } : schedule
       );
+      setSchedules(updatedSchedules);
+
+      // Update doctorData in localStorage
+      const storedDoctorData = localStorage.getItem("doctorData");
+      if (storedDoctorData) {
+        const doctorData = JSON.parse(storedDoctorData);
+        doctorData.schedules = updatedSchedules;
+        localStorage.setItem("doctorData", JSON.stringify(doctorData));
+      }
 
       setShowSaveButton(false);
       alert("Changes saved successfully!");
@@ -388,6 +417,58 @@ function ClinicSetting() {
   // ----------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------
+  const renderFeesAndLimit = () => {
+    if (!selectedScheduleId) return null;
+
+    return (
+      <>
+        <div className="mt-4">
+          <h3 className="text-md font-medium">Consultation Fees</h3>
+          <p className="text-sm text-gray-500">
+            Set the fees amount for this appointment slot.
+          </p>
+          <div className="mt-2">
+            <Input
+              type="number"
+              placeholder="Enter fees amount"
+              value={selectedScheduleData.fees || ''}
+              onChange={(e) => {
+                setSelectedScheduleData(prev => ({
+                  ...prev,
+                  fees: parseInt(e.target.value) || 0
+                }));
+                handleChange();
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-md font-medium">Patient Limit</h3>
+          <p className="text-sm text-gray-500">
+            Maximum number of patients for this slot.
+          </p>
+          <div className="mt-2">
+            <Input
+              type="number"
+              min="0"
+              placeholder="Max patients"
+              value={selectedScheduleData.patientLimit}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedScheduleData(prev => ({
+                  ...prev,
+                  patientLimit: value === '' ? '' : parseInt(value)
+                }));
+                handleChange();
+              }}
+            />
+          </div>
+        </div>
+      </>
+    );
+  };
+
   return (
     <div>
       <Sheet>
@@ -505,51 +586,7 @@ function ClinicSetting() {
               </div>
 
               {/* Fees */}
-            {/* Fees */}
-            <div className="mt-4">
-              <h3 className="text-md font-medium">Consultation Fees</h3>
-              <p className="text-sm text-gray-500">
-                Set the fees amount for this appointment slot.
-              </p>
-              <div className="mt-2">
-                <Input
-                  type="number"
-                  placeholder="Enter fees amount"
-                  value={selectedScheduleId ? schedules.find(s => s.id === selectedScheduleId)?.fees || '' : ''}
-                  onChange={(e) => {
-                      setSchedules(prev => prev.map(s =>
-                          s.id === selectedScheduleId
-                              ? { ...s, fees: parseInt(e.target.value) || 0 }
-                              : s
-                      ));
-                      handleChange();
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Patient Limit */}
-            <div className="mt-4">
-              <h3 className="text-md font-medium">Patient Limit</h3>
-              <p className="text-sm text-gray-500">
-                Maximum number of patients for this slot.
-              </p>
-              <div className="mt-2">
-                <Input
-                  type="number"
-                  placeholder="Max patients"
-                  value={selectedScheduleId ? schedules.find(s => s.id === selectedScheduleId)?.patientLimit || '' : ''}
-                  onChange={(e) => {
-                      setSchedules(prev => prev.map(s =>
-                          s.id === selectedScheduleId
-                              ? { ...s, patientLimit: parseInt(e.target.value) || 0 }
-                              : s
-                      ));
-                      handleChange();
-                  }}
-                />
-              </div>
-            </div>
+              {renderFeesAndLimit()}
 
                 {/* Conditionally show a Save button if something changed */}
                 {showSaveButton && (

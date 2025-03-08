@@ -1571,7 +1571,7 @@ export default function QueueManagement() {
                           () => setProcessingNext(false)
                         );
                       }}
-                      disabled={processingNext}
+                      disabled={processingNext || !Patients.some(p => p.status === "waiting")}
                     >
                       {processingNext ? (
                         <>
@@ -1593,8 +1593,7 @@ export default function QueueManagement() {
                     variant="default"
                     size="lg"
                     onClick={() => handleFinish(selectedScheduleId || "")}
-                    // disabled={!Patients.some((p) => p.status === "waiting") || !currentPatient}
-                    disabled={processing}
+                    disabled={processing || !Patients.some(p => p.status === "waiting")}
                   >
                     {processing ? (
                       <>
