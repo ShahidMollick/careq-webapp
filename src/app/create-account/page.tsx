@@ -70,7 +70,7 @@ export default function CreateDoctorAccount() {
 
       const data = await response.json();
       alert("Doctor account created successfully!");
-      router.push("/admin"); // Redirect to doctor dashboard or success page
+      router.push("/"); // Redirect to doctor dashboard or success page
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

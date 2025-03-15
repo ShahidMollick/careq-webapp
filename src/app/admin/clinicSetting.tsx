@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Settings2, Plus } from "lucide-react";
+import { Settings2, Plus, Settings } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { 
@@ -473,9 +473,9 @@ function ClinicSetting() {
     <div>
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <Settings2 className="w-5 h-5" />
-          </Button>
+          <div className="cursor-pointer p-2 rounded-full hover:bg-primary-accent transition-colors">
+            <Settings size={24} strokeWidth={2} className="text-gray-700 hover:text-gray-900" />
+          </div>
         </SheetTrigger>
 
         <SheetContent className="flex flex-col justify-between">
@@ -483,7 +483,9 @@ function ClinicSetting() {
           <div>
             <SheetHeader className="mt-2 flex flex-row justify-between mb-4">
               <SheetTitle>
-                Clinic Settings
+                <div className="flex flex-row gap-1 items-center "><Settings className="text-gray-500" size='20'></Settings>
+                Clinic Settings</div>
+                
                 <p className="text-sm flex flex-row text-gray-500 font-normal items-center gap-2">
                   Configure your bookings
                 </p>

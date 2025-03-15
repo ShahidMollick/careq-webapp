@@ -152,6 +152,20 @@ export default function QueueManagement() {
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
 
+  // Add this utility function near the top of the component
+  const extractErrorMessage = (error: unknown): string => {
+    // Case 1: Axios error with response data
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data?.message || `Error: ${error.response.status} ${error.response.statusText}`;
+    }
+    // Case 2: Error object with message property
+    else if (error instanceof Error) {
+      return error.message;
+    }
+    // Case 3: Unknown error type
+    return "An unexpected error occurred";
+  };
+
   useEffect(() => {
     const fetchBookingStatus = async () => {
       if (!selectedScheduleId) {
@@ -185,7 +199,7 @@ export default function QueueManagement() {
         }
       } catch (error) {
         console.error("❌ Error fetching booking status:", error);
-        setError("Failed to load booking status");
+        setError(extractErrorMessage(error));
       } finally {
         setLoading(false);
       }
@@ -321,7 +335,7 @@ export default function QueueManagement() {
       }
     } catch (error) {
       console.error("❌ Error fetching appointments:", error);
-      setError("Error fetching appointments. Please try again.");
+      setError(extractErrorMessage(error));
       setPatients([]); // Ensure UI does not show old data
     } finally {
       setLoading(false);
@@ -364,9 +378,8 @@ export default function QueueManagement() {
         console.log("Patient not found with phone:", newPatient.phone);
 
         setVerifiedPatient(null); // Clear verification state
-        setError(
-          "Patient not found. Please enter details to create an appointment."
-        );
+        // Use more specific message from backend if available
+        setError(response.data.message || "Patient not found. Please enter details to create an appointment.");
 
         setNewPatient({
           phone: newPatient.phone, // Retain the entered phone number
@@ -377,7 +390,7 @@ export default function QueueManagement() {
       }
     } catch (error) {
       console.error("Error occurred during patient verification:", error);
-      setError("Error verifying patient. Please try again.");
+      setError(extractErrorMessage(error));
     } finally {
       setLoading(false);
       setVerifiedPatients(true);
@@ -445,10 +458,10 @@ export default function QueueManagement() {
     } catch (error) {
       console.error("❌ Error adding patient:", error);
 
-      // Show error toast
+      // Show error toast with backend message
       toast({
         title: "Error",
-        description: "Failed to add patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -547,12 +560,8 @@ export default function QueueManagement() {
         console.error(`- Stack: ${error.stack}`);
       }
 
-      // Show error to user or handle it
-      setError(
-        `Failed to update booking status: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      // Show error to user with backend message
+      setError(extractErrorMessage(error));
     }
   };
 
@@ -629,45 +638,13 @@ export default function QueueManagement() {
         variant: "default",
       });
     } catch (error) {
-      // Handle different error types
-      if (axios.isAxiosError(error)) {
-        // Network or server errors (typed Axios errors)
-        if (error.response) {
-          // Server returned error response (4xx, 5xx)
-          const status = error.response.status;
-          const errorMessage =
-            error.response.data?.message || "Unknown server error";
-
-          console.error(
-            `Server error (${status}) cancelling appointment:`,
-            error.response.data
-          );
-          setError(
-            status >= 500
-              ? "Server error. Please try again later."
-              : `Failed to cancel appointment: ${errorMessage}`
-          );
-        } else if (error.request) {
-          // Request made but no response received
-          console.error("Network error cancelling appointment:", error.message);
-          setError(
-            "Network error. Please check your connection and try again."
-          );
-        } else {
-          // Error in request configuration
-          console.error("Error preparing request:", error.message);
-          setError("An error occurred. Please try again.");
-        }
-      } else {
-        // Generic error handling
-        console.error("Unexpected error cancelling appointment:", error);
-        setError("An unexpected error occurred. Please try again.");
-      }
+      console.error("Error cancelling appointment:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to cancel appointment. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -721,21 +698,14 @@ export default function QueueManagement() {
       });
     } catch (error) {
       console.error("Failed to reschedule patient:", error);
-
-      // Show appropriate error message based on response
-      if (axios.isAxiosError(error) && error.response) {
-        const errorMessage =
-          error.response.data?.message || "Unknown error occurred";
-        console.error("Server error details:", error.response.data);
-        alert(`Failed to reschedule patient: ${errorMessage}`);
-      } else {
-        alert("Failed to reschedule patient. Please try again.");
-      }
+      
+      // Show appropriate error message from backend
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to reschedule patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -790,49 +760,16 @@ export default function QueueManagement() {
         description: `Patient with appointment ID ${appointmentId} has been skipped.`,
         variant: "default",
       });
-    } catch (err: unknown) {
-      console.error("Error skipping patient:", err);
-
-      // Type guard function to check if the error is an Axios error
-      const isAxiosError = (
-        error: unknown
-      ): error is {
-        response?: {
-          data?: { message?: string };
-          status?: number;
-        };
-      } => {
-        return (
-          typeof error === "object" && error !== null && "response" in error
-        );
-      };
-
-      // Type guard function to check if the error has a message property
-      const hasMessage = (error: unknown): error is { message: string } => {
-        return (
-          typeof error === "object" &&
-          error !== null &&
-          "message" in error &&
-          typeof (error as { message: string }).message === "string"
-        );
-      };
-
-      if (isAxiosError(err) && err.response) {
-        console.error("Response data:", err.response.data);
-        console.error("Response status:", err.response.status);
-        const errorMessage =
-          err.response.data?.message || "Unknown error occurred";
-        alert(`Failed to skip patient: ${errorMessage}`);
-      } else if (hasMessage(err)) {
-        alert(`Failed to skip patient: ${err.message}`);
-      } else {
-        alert("Failed to skip patient: An unknown error occurred");
-      }
+    } catch (error) {
+      console.error("Error skipping patient:", error);
+      
+      // No need for complex type guards with our utility function
+      alert(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to skip patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -857,17 +794,15 @@ export default function QueueManagement() {
         description: "The next patient has been called.",
         variant: "default",
       });
-    } catch (err) {
+    } catch (error) {
       setShowTopLoader(false);
-      console.error("Error processing patients:", err);
-      setError(
-        "Failed to update patient status and call next patient. Please try again."
-      );
+      console.error("Error processing patients:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to call next patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -890,14 +825,14 @@ export default function QueueManagement() {
         description: "The consultation has been finished.",
         variant: "default",
       });
-    } catch (err) {
-      console.error("Error finishing serving patient:", err);
-      setError("Failed to finish serving the patient. Please try again.");
+    } catch (error) {
+      console.error("Error finishing serving patient:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to finish consultation. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -921,14 +856,14 @@ export default function QueueManagement() {
         description: "The next patient has been called.",
         variant: "default",
       });
-    } catch (err) {
-      console.error("Error calling next patient:", err);
-      setError("Failed to call the next patient. Please try again.");
+    } catch (error) {
+      console.error("Error calling next patient:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to call next patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -1433,9 +1368,10 @@ export default function QueueManagement() {
                     variant="outline"
                     onClick={() => setCancelDialogOpen(false)}
                   >
+                    
                     Cancel
                   </Button>
-                  <Button variant="default" onClick={confirmCancel}>
+                  <Button variant="destructive" onClick={confirmCancel}>
                     Confirm
                   </Button>
                 </DialogFooter>

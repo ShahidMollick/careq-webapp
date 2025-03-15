@@ -1,12 +1,12 @@
 "use client";
 import Image from 'next/image';
 import Cookies from "js-cookie";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import apiClient from "@/utils/apiClient"; // Import API client
+import apiClient from "@/utils/apiClient";
 import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
-
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { ShieldAlert } from 'lucide-react';
 
 interface DecodedToken {
   id: string;
@@ -31,8 +32,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
   const dispatch = useDispatch();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const token = Cookies.get("accessToken");
+      if (token) {
+        try {
+          // Verify token is valid and not expired
+          const decoded = jwtDecode<DecodedToken>(token);
+          const currentTime = Date.now() / 1000;
+          
+          if (decoded.exp > currentTime) {
+            console.log("✅ Valid session found, redirecting to dashboard...");
+            router.push("/admin");
+            return;
+          } else {
+            // Token is expired, clear it
+            console.log("❌ Expired token found, clearing...");
+            Cookies.remove("accessToken");
+          }
+        } catch (err) {
+          console.error("❌ Invalid token:", err);
+          Cookies.remove("accessToken");
+        }
+      }
+      setCheckingSession(false);
+    };
+
+    checkExistingSession();
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +94,7 @@ export default function LoginPage() {
       Cookies.set("accessToken", access_token, { expires: 1, secure: true });
   
       // Store doctor details in local storage or state for future use
-      localStorage.setItem("doctorData", JSON.stringify(doctor)); // ✅ Save doctor details
+      localStorage.setItem("doctorData", JSON.stringify(doctor));
       console.log("✅ Doctor data stored in localStorage");
   
       console.log("✅ Login successful! Redirecting...");
@@ -70,22 +102,46 @@ export default function LoginPage() {
       // Redirect to dashboard or panel
       router.push("/admin");
   
-    } catch (err: unknown) {  // ✅ Fix: Use 'unknown' instead of 'Error'
+    } catch (err) {
       console.error("❌ Login Error:", err);
-    
-      // Type guard to check if err is an instance of Error
-      if (err instanceof Error) {
+      
+      // Handle axios errors
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          // The server responded with a status code outside of 2xx range
+          const data = err.response.data;
+          if (typeof data === 'object' && data !== null) {
+            // Check for common error message fields in REST APIs
+            if (data.message) setError(data.message);
+            else if (data.error) setError(data.error);
+            else if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+              // Handle validation errors array
+              setError(data.errors[0].message || JSON.stringify(data.errors[0]));
+            } else {
+              setError(`Server error: ${err.response.status}`);
+            }
+          } else {
+            setError(`Server error: ${err.response.status}`);
+          }
+        } else if (err.request) {
+          // The request was made but no response was received
+          setError("No response from server. Please check your connection.");
+        } else {
+          // Something happened in setting up the request
+          setError("Failed to send request. Please try again.");
+        }
+      } else if (err instanceof Error) {
+        // Handle regular Error objects
         setError(err.message);
       } else {
-        setError("Something went wrong. Please try again.");
+        // Handle unknown errors
+        setError("An unknown error occurred. Please try again.");
       }
-    }
-     finally {
+    } finally {
       setLoading(false);
     }
   };
   
-
   return (
     <div className="min-h-screen flex flex-col items-center p-5 justify-between bg-[url('/CareQ.png')]">
       <div className="flex-grow flex items-center justify-center">
@@ -99,7 +155,12 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {checkingSession ? (
+              <div className="flex flex-col justify-center items-center h-40">
+                <div className="animate-spin-fast rounded-full mb-1 h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+                <div>Checking session...</div>
+              </div>
+            ) : loading ? (
               <div className="flex flex-col justify-center items-center h-40">
                 <div className="animate-spin-fast rounded-full mb-1 h-10 w-10 border-t-2 border-b-2 border-primary"></div>
                 <div>Authenticating...</div>
@@ -139,7 +200,10 @@ export default function LoginPage() {
                     />
                   </div>
                   {error && (
-                    <p className="text-red-600 text-sm mt-2">{error}</p>
+                    <div className="bg-red-50 border-l-4 flex flex-row items-center border-red-500 text-red-700 p-3 rounded" role="alert">
+                       <ShieldAlert size='20' className='mr-1' />
+                      <p className='text-sm'>{error}</p>
+                    </div>
                   )}
                 </div>
                 <Button type="submit" className="w-full mt-4">
@@ -153,7 +217,7 @@ export default function LoginPage() {
       <footer className="w-full flex items-center justify-center py-4">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-600">© 2025 </span>
-        <Image src="/logo.png" alt="Company Logo" width={28} height={28} />
+          <Image src="/logo.png" alt="Company Logo" width={28} height={28} />
           <span className="text-sm text-gray-600">All rights reserved.</span>
         </div>
       </footer>
