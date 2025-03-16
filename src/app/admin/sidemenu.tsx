@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../../components/ui/button";
@@ -56,6 +56,44 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ href, icon, label }) => {
 };
 
 const Sidebar: React.FC = () => {
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      
+      // Clear all possible auth storage mechanisms
+      // 1. Clear localStorage
+      localStorage.clear();
+      
+      // 2. Clear sessionStorage
+      sessionStorage.clear();
+      
+      // 3. Clear cookies - this is important if your auth uses cookies
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+      
+      // 4. Call your logout API if you have one
+      // Example: await fetch('/api/auth/logout', { method: 'POST' });
+      
+      // Force redirect to the login page and prevent caching
+      // This ensures the browser doesn't use cached data
+      window.location.href = '/';
+      
+      // Alternatively, if you want to use router (but window.location is more reliable for auth logout)
+      // router.push('/');
+      // router.refresh(); // Force refresh the Next.js router cache
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="w-[70px] justify-between align-middle items-center px-2 py-4 pb-6 flex flex-col gap-8 ">
       <div className="flex flex-col gap-8 ">
@@ -100,9 +138,13 @@ const Sidebar: React.FC = () => {
             <DialogClose>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Link href="/" passHref>
-              <Button variant="destructive">Log out</Button>
-            </Link>
+            <Button 
+              variant="destructive" 
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? 'Logging out...' : 'Log out'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

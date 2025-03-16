@@ -43,6 +43,7 @@ import {
   MoreVertical,
   CalendarX2,
   Calendar,
+  X,
 } from "lucide-react";
 import {
   Select,
@@ -153,6 +154,20 @@ export default function QueueManagement() {
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
 
+  // Add this utility function near the top of the component
+  const extractErrorMessage = (error: unknown): string => {
+    // Case 1: Axios error with response data
+    if (axios.isAxiosError(error) && error.response) {
+      return error.response.data?.message || `Error: ${error.response.status} ${error.response.statusText}`;
+    }
+    // Case 2: Error object with message property
+    else if (error instanceof Error) {
+      return error.message;
+    }
+    // Case 3: Unknown error type
+    return "An unexpected error occurred";
+  };
+
   useEffect(() => {
     const fetchBookingStatus = async () => {
       if (!selectedScheduleId) {
@@ -186,7 +201,7 @@ export default function QueueManagement() {
         }
       } catch (error) {
         console.error("❌ Error fetching booking status:", error);
-        setError("Failed to load booking status");
+        setError(extractErrorMessage(error));
       } finally {
         setLoading(false);
       }
@@ -326,7 +341,7 @@ export default function QueueManagement() {
       }
     } catch (error) {
       console.error("❌ Error fetching appointments:", error);
-      setError("Error fetching appointments. Please try again.");
+      setError(extractErrorMessage(error));
       setPatients([]); // Ensure UI does not show old data
     } finally {
       setLoading(false);
@@ -365,13 +380,24 @@ export default function QueueManagement() {
           gender: patient.gender,
           dob: formattedDob,
         });
+        
+        // Show success toast for patient found
+        toast({
+          title: "Patient Found",
+          description: `${patient.name} was found in our records.`,
+          variant: "default",
+        });
       } else {
         console.log("Patient not found with phone:", newPatient.phone);
 
         setVerifiedPatient(null); // Clear verification state
-        setError(
-          "Patient not found. Please enter details to create an appointment."
-        );
+        
+        // Show info toast for new patient
+        toast({
+          title: "New Patient",
+          description: "Patient not found. Please enter details to create a new patient.",
+          variant: "info",
+        });
 
         setNewPatient({
           phone: newPatient.phone, // Retain the entered phone number
@@ -382,7 +408,13 @@ export default function QueueManagement() {
       }
     } catch (error) {
       console.error("Error occurred during patient verification:", error);
-      setError("Error verifying patient. Please try again.");
+      
+      // Show error toast instead of setting error state
+      toast({
+        title: "Verification Failed",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
       setVerifiedPatients(true);
@@ -450,10 +482,10 @@ export default function QueueManagement() {
     } catch (error) {
       console.error("❌ Error adding patient:", error);
 
-      // Show error toast
+      // Show error toast with backend message
       toast({
         title: "Error",
-        description: "Failed to add patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -553,12 +585,8 @@ export default function QueueManagement() {
         console.error(`- Stack: ${error.stack}`);
       }
 
-      // Show error to user or handle it
-      setError(
-        `Failed to update booking status: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      // Show error to user with backend message
+      setError(extractErrorMessage(error));
     }
   };
 
@@ -683,21 +711,14 @@ const handleCancellationError = (error) => {
       });
     } catch (error) {
       console.error("Failed to reschedule patient:", error);
-
-      // Show appropriate error message based on response
-      if (axios.isAxiosError(error) && error.response) {
-        const errorMessage =
-          error.response.data?.message || "Unknown error occurred";
-        console.error("Server error details:", error.response.data);
-        alert(`Failed to reschedule patient: ${errorMessage}`);
-      } else {
-        alert("Failed to reschedule patient. Please try again.");
-      }
+      
+      // Show appropriate error message from backend
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to reschedule patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -752,49 +773,16 @@ const handleCancellationError = (error) => {
         description: `Patient with appointment ID ${appointmentId} has been skipped.`,
         variant: "default",
       });
-    } catch (err: unknown) {
-      console.error("Error skipping patient:", err);
-
-      // Type guard function to check if the error is an Axios error
-      const isAxiosError = (
-        error: unknown
-      ): error is {
-        response?: {
-          data?: { message?: string };
-          status?: number;
-        };
-      } => {
-        return (
-          typeof error === "object" && error !== null && "response" in error
-        );
-      };
-
-      // Type guard function to check if the error has a message property
-      const hasMessage = (error: unknown): error is { message: string } => {
-        return (
-          typeof error === "object" &&
-          error !== null &&
-          "message" in error &&
-          typeof (error as { message: string }).message === "string"
-        );
-      };
-
-      if (isAxiosError(err) && err.response) {
-        console.error("Response data:", err.response.data);
-        console.error("Response status:", err.response.status);
-        const errorMessage =
-          err.response.data?.message || "Unknown error occurred";
-        alert(`Failed to skip patient: ${errorMessage}`);
-      } else if (hasMessage(err)) {
-        alert(`Failed to skip patient: ${err.message}`);
-      } else {
-        alert("Failed to skip patient: An unknown error occurred");
-      }
+    } catch (error) {
+      console.error("Error skipping patient:", error);
+      
+      // No need for complex type guards with our utility function
+      alert(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to skip patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -819,17 +807,15 @@ const handleCancellationError = (error) => {
         description: "The next patient has been called.",
         variant: "default",
       });
-    } catch (err) {
+    } catch (error) {
       setShowTopLoader(false);
-      console.error("Error processing patients:", err);
-      setError(
-        "Failed to update patient status and call next patient. Please try again."
-      );
+      console.error("Error processing patients:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to call next patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -852,14 +838,14 @@ const handleCancellationError = (error) => {
         description: "The consultation has been finished.",
         variant: "default",
       });
-    } catch (err) {
-      console.error("Error finishing serving patient:", err);
-      setError("Failed to finish serving the patient. Please try again.");
+    } catch (error) {
+      console.error("Error finishing serving patient:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to finish consultation. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -883,14 +869,14 @@ const handleCancellationError = (error) => {
         description: "The next patient has been called.",
         variant: "default",
       });
-    } catch (err) {
-      console.error("Error calling next patient:", err);
-      setError("Failed to call the next patient. Please try again.");
+    } catch (error) {
+      console.error("Error calling next patient:", error);
+      setError(extractErrorMessage(error));
 
       // Show error toast
       toast({
         title: "Error",
-        description: "Failed to call next patient. Please try again.",
+        description: extractErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -1408,9 +1394,10 @@ const handleCancellationError = (error) => {
                       setTimeout(() => setSelectedPatientForCancel(null), 0);
                     }}
                   >
+                    
                     Cancel
                   </Button>
-                  <Button variant="default" onClick={confirmCancel}>
+                  <Button variant="destructive" onClick={confirmCancel}>
                     Confirm
                   </Button>
                 </DialogFooter>
@@ -1534,44 +1521,49 @@ const handleCancellationError = (error) => {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-[400px] border-l p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-md font-semibold ">Add Patient</h2>
-                <p className="text-sm text-muted-foreground">
-                  Add a new patient to the queue
-                </p>
+            <div className="w-[400px] border-l p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-md font-semibold">Add Patient</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Add a new patient to the queue
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium">Phone Number</label>
-                <div className="flex gap-2 mt-1">
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium">Phone Number</label>
+                  <div className="flex gap-2 mt-1">
                     <div className="flex-1 flex">
-                    <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
-                      +91
-                    </div>
-                    <Input
-                      placeholder="Enter 10-digit mobile number"
-                      value={
-                      newPatient.phone.startsWith("+91 ")
-                        ? newPatient.phone.slice(4)
-                        : newPatient.phone
-                      }
-                      onChange={(e) => {
-                      // Remove any non-digit characters
-                      const value = e.target.value.replace(/\D/g, "");
-                      // Limit to 10 digits
-                      const sanitizedValue = value.slice(0, 10);
-                      // Save with the +91 prefix and a space
-                      setNewPatient((prev) => ({
-                        ...prev,
-                        phone: "+91 " + sanitizedValue,
-                      }));
-                      }}
-                      className="rounded-l-none"
-                    />
+                      <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
+                        +91
+                      </div>
+                      <Input
+                        placeholder="Enter 10-digit mobile number"
+                        value={
+                          newPatient.phone.startsWith("+91 ")
+                            ? newPatient.phone.slice(4)
+                            : newPatient.phone
+                        }
+                        onChange={(e) => {
+                          // Remove any non-digit characters
+                          const value = e.target.value.replace(/\D/g, "");
+                          // Limit to 10 digits
+                          const sanitizedValue = value.slice(0, 10);
+                          // Save with the +91 prefix and a space
+                          setNewPatient((prev) => ({
+                            ...prev,
+                            phone: "+91 " + sanitizedValue,
+                          }));
+                          
+                          // Clear error when user starts typing again
+                          if (error && error.includes("phone")) {
+                            setError("");
+                          }
+                        }}
+                        className={`rounded-l-none ${newPatient.phone.length > 0 && newPatient.phone.length !== 14 ? "border-red-500" : ""}`}
+                      />
                     </div>
                     <Button
                     onClick={() => {
@@ -1604,98 +1596,437 @@ const handleCancellationError = (error) => {
                       Please enter a valid 10-digit phone number
                     </p>
                   )}
-              </div>
-
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-
-              {/* Render the form fields */}
-              {verifiedPatients ? (
-                <div>
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input
-                    className="mt-1"
-                    placeholder="Enter Patient's Name"
-                    value={newPatient.name}
-                    onChange={(e) =>
-                      setNewPatient((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    disabled={!verifiedPatients} // Disable if patient is verified
-                  />
-                  <div className="grid grid-cols-2 mt-1 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Gender</label>
-                      <Select
-                        value={newPatient.gender}
-                        onValueChange={(value) =>
-                          setNewPatient((prev) => ({
-                            ...prev,
-                            gender: value,
-                          }))
-                        }
-                        disabled={!verifiedPatients} // Disable if patient is verified
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium">
-                        Date Of Birth
-                      </label>
-                      <Input
-                        className="mt-1"
-                        type="date"
-                        value={newPatient.dob}
-                        onChange={(e) =>
-                          setNewPatient((prev) => ({
-                            ...prev,
-                            dob: e.target.value,
-                          }))
-                        }
-                        disabled={!verifiedPatients} // Disable if patient is verified
-                      />
-                    </div>
-                  </div>
                 </div>
-              ) : (
-                <></>
-              )}
-              <Button
-                className="w-full mt-6"
-                variant="default"
-                onClick={async () => {
-                  await addPatient();
-                  // Reset form after successful addition
-                  setNewPatient({
-                    phone: "",
-                    name: "",
-                    gender: "male",
-                    dob: "",
-                  });
-                  setVerifiedPatients(false);
-                  setVerifiedPatient(null);
-                }}
-                disabled={
-                  !verifiedPatients ||
-                  !newPatient.name ||
-                  !newPatient.phone ||
-                  loadings
-                }
-              >
-                {loadings ? <>Adding Patient...</> : <>Add Patient</>}
-              </Button>
+
+                {/* Patient Form after Verification */}
+                {verifiedPatients && (
+                  <div className="animate-in fade-in-50 duration-300">
+                  {/* Show booking options (Self or Family Member) for all patients */}
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">Booking for</label>
+                    <Tabs defaultValue="self" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="self">Self</TabsTrigger>
+                      <TabsTrigger value="family">Family Member</TabsTrigger>
+                    </TabsList>
+                    
+                    {/* Tab content */}
+                    <div className="mt-2">
+                      {/* SELF TAB CONTENT */}
+                      <div data-state="active" role="tabpanel" value="self" className="data-[state=inactive]:hidden p-2 border rounded-md mt-2">
+                      {verifiedPatient ? (
+                        // Existing verified patient
+                        <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">{verifiedPatient.name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                          {verifiedPatient.gender}, {calculateAge(verifiedPatient.dob)} years
+                          </p>
+                        </div>
+                        <CircleCheck className="h-5 w-5 text-primary" />
+                        </div>
+                      ) : (
+                        // New patient form (simplified)
+                        <div className="space-y-3">
+                        <label className="text-sm text-muted-foreground">
+                          Enter your details to create a new patient record
+                        </label>
+                        <div>
+                          <label className="text-sm font-medium">Full Name</label>
+                          <Input
+                          className="mt-1"
+                          placeholder="Enter Your Name"
+                          value={newPatient.name}
+                          onChange={(e) =>
+                            setNewPatient((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                            }))
+                          }
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                          <label className="text-sm font-medium">Gender</label>
+                          <Select
+                            value={newPatient.gender}
+                            onValueChange={(value) =>
+                            setNewPatient((prev) => ({
+                              ...prev,
+                              gender: value,
+                            }))
+                            }
+                          >
+                            <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          </div>
+                          <div>
+                          <label className="text-sm font-medium">Date Of Birth</label>
+                          <Input
+                            className="mt-1"
+                            type="date"
+                            value={newPatient.dob}
+                            onChange={(e) =>
+                            setNewPatient((prev) => ({
+                              ...prev,
+                              dob: e.target.value,
+                            }))
+                            }
+                          />
+                          </div>
+                        </div>
+                        </div>
+                      )}
+                      </div>
+                      
+                      {/* FAMILY MEMBER TAB CONTENT */}
+                      <div data-state="inactive" role="tabpanel" value="family" className="data-[state=active]:block hidden">
+                      {verifiedPatient ? (
+                        // For verified patients, show their family members + add new option
+                        <div className="space-y-3" id="family-members-container">
+                        {/* Add New Family Member Button */}
+                        <Button 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center gap-2 animate-in fade-in-50 transition-all duration-300 ease-in-out"
+                          onClick={() => {
+                          // Toggle visibility of the add family member form
+                          const formEl = document.getElementById("add-family-form");
+                          if (formEl) {
+                            formEl.classList.toggle("hidden");
+                            formEl.classList.toggle("flex");
+                            
+                            // Focus on the name input when form appears
+                            setTimeout(() => {
+                            const nameInput = formEl.querySelector('input[placeholder="Enter Family Member\'s Name"]');
+                            if (nameInput) {
+                              (nameInput as HTMLInputElement).focus();
+                            }
+                            }, 100);
+                          }
+                          }}
+                        >
+                          <User className="h-4 w-4" />
+                          Add New Family Member
+                        </Button>
+
+                        {/* Add Family Member Form - Initially Hidden */}
+                        <div id="add-family-form" className="border rounded-md p-3 space-y-3 hidden opacity-0 transform scale-95 transition-all duration-300 ease-in-out">
+                          <div className="flex justify-between items-center mb-1">
+                          <h4 className="text-sm font-medium">New Family Member</h4>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                            const formEl = document.getElementById("add-family-form");
+                            if (formEl) {
+                              formEl.classList.remove("opacity-100", "scale-100");
+                              formEl.classList.add("opacity-0", "scale-95");
+                              
+                              // Wait for animation to complete before hiding
+                              setTimeout(() => {
+                              formEl.classList.add("hidden");
+                              formEl.classList.remove("flex");
+                              }, 300);
+                            }
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          </div>
+                          <div>
+                          <label className="text-sm font-medium">Full Name</label>
+                          <Input
+                            className="mt-1"
+                            placeholder="Enter Family Member's Name"
+                            onChange={(e) => {
+                            setNewPatient((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                            }}
+                          />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-sm font-medium">Gender</label>
+                            <Select 
+                            value={newPatient.gender}
+                            onValueChange={(value) =>
+                              setNewPatient((prev) => ({
+                              ...prev,
+                              gender: value,
+                              }))
+                            }
+                            >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Relationship</label>
+                            <Select 
+                            defaultValue="spouse"
+                            onValueChange={(value) => {
+                              // Store relationship in state if needed
+                              console.log("Relationship selected:", value);
+                            }}
+                            >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select relation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="spouse">Spouse</SelectItem>
+                              <SelectItem value="child">Child</SelectItem>
+                              <SelectItem value="parent">Parent</SelectItem>
+                              <SelectItem value="sibling">Sibling</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                            </Select>
+                          </div>
+                          </div>
+                          <div>
+                          <label className="text-sm font-medium">Date of Birth</label>
+                          <Input 
+                            className="mt-1" 
+                            type="date"
+                            value={newPatient.dob}
+                            onChange={(e) =>
+                            setNewPatient((prev) => ({
+                              ...prev,
+                              dob: e.target.value,
+                            }))
+                            } 
+                          />
+                          </div>
+                          <Button 
+                          className="w-full mt-2" 
+                          size="sm"
+                          onClick={() => {
+                            // Generate random ID for demonstration
+                            const newMemberId = `member-${Date.now()}`;
+                            
+                            // Get relationship value
+                            const relationshipSelect = document.querySelector('#add-family-form select[placeholder="Select relation"]');
+                            const relationship = relationshipSelect ? 
+                            (relationshipSelect as HTMLSelectElement).value : 'spouse';
+                            
+                            // Create new member element
+                            const membersContainer = document.getElementById('family-members-list');
+                            if (membersContainer) {
+                            // Create new member element
+                            const memberDiv = document.createElement('div');
+                            memberDiv.id = newMemberId;
+                            memberDiv.className = 'p-3 hover:bg-muted/50 transition-colors cursor-pointer flex items-center justify-between border-b last:border-0';
+                            memberDiv.setAttribute('data-member-id', newMemberId);
+                            
+                            // Add member content
+                            memberDiv.innerHTML = `
+                              <div>
+                              <h5 class="font-medium text-sm">${newPatient.name || 'New Family Member'}</h5>
+                              <p class="text-xs text-muted-foreground">${relationship}, ${newPatient.dob ? calculateAge(newPatient.dob) : '?'} years</p>
+                              </div>
+                              <div class="h-5 w-5 rounded-full border-2 border-primary/0 transition-all duration-300 ease-in-out" data-selected="false"></div>
+                            `;
+                            
+                            // Add click handler to select this member
+                            memberDiv.addEventListener('click', () => {
+                              // Deselect all other members
+                              document.querySelectorAll('#family-members-list [data-selected="true"]').forEach(el => {
+                              el.setAttribute('data-selected', 'false');
+                              el.classList.remove('border-primary');
+                              el.classList.add('border-primary/0');
+                              });
+                              
+                              // Select this member
+                              const selectIndicator = memberDiv.querySelector('[data-selected]');
+                              if (selectIndicator) {
+                              selectIndicator.setAttribute('data-selected', 'true');
+                              selectIndicator.classList.remove('border-primary/0');
+                              selectIndicator.classList.add('border-primary');
+                              }
+                              
+                              // Animate the selection with a ripple effect
+                              const ripple = document.createElement('div');
+                              ripple.className = 'absolute w-full h-full bg-primary/10 rounded-md animate-ripple';
+                              memberDiv.style.position = 'relative';
+                              memberDiv.appendChild(ripple);
+                              
+                              // Remove ripple after animation
+                              setTimeout(() => ripple.remove(), 1000);
+                            });
+                            
+                            // Add to container with animation
+                            memberDiv.style.opacity = '0';
+                            memberDiv.style.transform = 'translateY(10px)';
+                            membersContainer.prepend(memberDiv);
+                            
+                            // Empty state handling - hide if we have members
+                            const emptyState = document.getElementById('family-members-empty');
+                            if (emptyState) emptyState.style.display = 'none';
+                            
+                            // Animate in the new member
+                            setTimeout(() => {
+                              memberDiv.style.transition = 'all 300ms ease-in-out';
+                              memberDiv.style.opacity = '1';
+                              memberDiv.style.transform = 'translateY(0)';
+                            }, 10);
+                            }
+                            
+                            // Show success toast
+                            toast({
+                            title: "Family Member Added",
+                            description: "Family member has been added successfully.",
+                            variant: "default",
+                            });
+                            
+                            // Reset form
+                            setNewPatient({
+                            ...newPatient,
+                            name: "",
+                            dob: "",
+                            });
+                            
+                            // Hide the form with animation
+                            const formEl = document.getElementById("add-family-form");
+                            if (formEl) {
+                            formEl.classList.remove('opacity-100', 'scale-100');
+                            formEl.classList.add('opacity-0', 'scale-95');
+                            
+                            setTimeout(() => {
+                              formEl.classList.add('hidden');
+                              formEl.classList.remove('flex');
+                            }, 300);
+                            }
+                          }}
+                          >
+                          Save Family Member
+                          </Button>
+                        </div>
+
+                        {/* Family Members List */}
+                        <div className="border rounded-md overflow-hidden transition-all duration-300 ease-in-out">
+                          <div className="p-2 border-b bg-muted/30">
+                          <h4 className="text-sm font-medium">Select Family Member</h4>
+                          </div>
+                          
+                          {/* Dynamic family members list */}
+                          <div id="family-members-list" className="divide-y max-h-[250px] overflow-y-auto">
+                          {/* Empty state - initially visible */}
+                          <div id="family-members-empty" className="p-4 text-center text-sm text-muted-foreground">
+                            No family members added yet
+                          </div>
+                          </div>
+                        </div>
+                        </div>
+                      ) : (
+                        // For new patients, explain they need to create account first
+                        <div className="border rounded-md p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CircleAlert className="h-5 w-5 text-amber-500" />
+                          <h4 className="font-medium">Create Your Account First</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          You need to create your account before adding family members. 
+                          Please provide your details in the "Self" tab first and book 
+                          an appointment. You can add family members for future appointments.
+                        </p>
+                        </div>
+                      )}
+                      </div>
+                    </div>
+                    </Tabs>
+                  </div>
+                    
+                  {/* Add Patient Button */}
+                  <Button
+                    className="w-full mt-6"
+                    variant="default"
+                    onClick={async () => {
+                    await addPatient();
+                    // Reset form after successful addition
+                    setNewPatient({
+                      phone: "",
+                      name: "",
+                      gender: "male",
+                      dob: "",
+                    });
+                    setVerifiedPatients(false);
+                    setVerifiedPatient(null);
+                    }}
+                    disabled={
+                    !newPatient.name ||
+                    !newPatient.phone ||
+                    loadings
+                    }
+                  >
+                    {loadings ? (
+                    <>
+                      Adding Patient...
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                    </>
+                    ) : (
+                    <>Add Patient</>
+                    )}
+                  </Button>
+                  
+                  {/* Add animation styles */}
+                  <style jsx global>{`
+                    @keyframes ripple {
+                    0% {
+                      opacity: 1;
+                      transform: scale(0);
+                    }
+                    100% {
+                      opacity: 0;
+                      transform: scale(1.5);
+                    }
+                    }
+                    
+                    .animate-ripple {
+                    animation: ripple 1s ease-in-out;
+                    }
+                    
+                    #add-family-form.flex {
+                    display: flex;
+                    flex-direction: column;
+                    opacity: 1 !important;
+                    transform: scale(100%) !important;
+                    }
+                    
+                    [data-selected="true"] {
+                    background-color: #f8f9fc;
+                    position: relative;
+                    }
+                    
+                    [data-selected="true"]::after {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background-color: var(--primary);
+                    opacity: 1;
+                    transition: opacity 300ms ease-in-out;
+                    }
+                  `}</style>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
         </div>
       </div>
     </div>
