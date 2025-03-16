@@ -16,9 +16,8 @@ interface Patient {
   timeCompleted: Date | string | null;
 }
 
-
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5002"; // ✅ Default to localhost if env is missing
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5002";
 
 export function useWebSocket(scheduleId: string) {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -27,20 +26,26 @@ export function useWebSocket(scheduleId: string) {
   const [currentPatient, setCurrentPatient] = useState<Patient | null>(null);
   const [showTopLoaders, setShowTopLoaders] = useState(false);
 
-  // ✅ Store Queue Status
-  const [queueStatus, setQueueStatus] = useState<{ currentQueue: number; totalQueue: number }>({
+  const [queueStatus, setQueueStatus] = useState<{
+    totalLimit: number;
+    currentQueue: number;
+    totalQueue: number;
+  }>({
+    totalLimit: 0,
     currentQueue: 0,
     totalQueue: 0,
   });
 
-  // ✅ Function to Calculate Age
   const calculateAge = (dob: string | null) => {
     if (!dob) return "N/A";
     const birthDate = new Date(dob);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
     return age;
@@ -53,21 +58,19 @@ export function useWebSocket(scheduleId: string) {
 
     const newSocket = io(SOCKET_URL, {
       transports: ["websocket"],
-      reconnectionAttempts: 5, // Retry 5 times if disconnected
-      reconnectionDelay: 3000, // Wait 3 seconds before retrying
+      reconnectionAttempts: 5,
+      reconnectionDelay: 3000,
     });
 
     setSocket(newSocket);
-    setShowTopLoaders(true); // ✅ Start loader while fetching data
+    setShowTopLoaders(true);
 
     newSocket.on("connect", () => {
       console.log("✅ WebSocket Connected");
       setIsConnected(true);
 
-      // ✅ Fetch Initial Data
-      console.log("📡 Requesting initial data...");
       newSocket.emit("fetchAppointments", scheduleId);
-      newSocket.emit("schedule-queue-status", { scheduleId }); // ✅ Request Queue Status
+      newSocket.emit("schedule-queue-status", { scheduleId });
     });
 
     newSocket.on("disconnect", () => {
@@ -75,69 +78,68 @@ export function useWebSocket(scheduleId: string) {
       setIsConnected(false);
     });
 
-    // ✅ Listen for Queue Status Updates
     const queueEventName = `queue-updated-${scheduleId}`;
     newSocket.on(queueEventName, (data) => {
       console.log(`🔄 Queue Status Update Received for ${scheduleId}:`, data);
-
-      if (!data || typeof data.currentQueue === "undefined" || typeof data.totalQueue === "undefined") {
+      if (
+        !data ||
+        typeof data.currentQueue === "undefined" ||
+        typeof data.totalQueue === "undefined"
+      ) {
         console.error("❌ Invalid queue status data received:", data);
         return;
       }
 
-      // ✅ Update Queue Status
-      setQueueStatus({
+      setQueueStatus((prevState) => ({
+        totalLimit: data.totalLimit ?? prevState.totalLimit ?? 0,
         currentQueue: data.currentQueue ?? 0,
         totalQueue: data.totalQueue ?? 0,
-      });
+      }));
 
       console.log("✅ Updated Queue Status:", data.currentQueue, data.totalQueue);
     });
 
-    // ✅ Listen for Appointment Updates
     newSocket.on("appointmentsUpdated", (updatedAppointments) => {
       console.log("🔄 Received real-time updates:", updatedAppointments);
 
       if (!Array.isArray(updatedAppointments)) {
         console.error("❌ Invalid WebSocket data:", updatedAppointments);
-        setShowTopLoaders(false); // ✅ Stop loader if data is invalid
+        setShowTopLoaders(false);
         return;
       }
 
-      // ✅ Format and Clean WebSocket Data
-      const formattedPatients: Patient[] = updatedAppointments.map((appointment) => {
-        const patient = appointment.patient || {};
-        return {
-          id: patient.id || "Unknown ID",
-          appointmentId: appointment.id || "Unknown Appointment ID",
-          queueNumber: appointment.queueNumber ?? "N/A",
-          name: patient.name || "Unknown",
-          phone: patient.phone || "N/A",
-          age: calculateAge(patient.dob),
-          gender: patient.gender || "N/A",
-          status: appointment.status ?? "unknown",
-          dob: patient.dob || "N/A",
-          timeAdded: appointment.createdAt || new Date(),
-          timeStarted: appointment.timeStarted || null,
-          timeCompleted: appointment.timeCompleted || null,
-        };
-      });
+      const formattedPatients: Patient[] = updatedAppointments.map(
+        (appointment) => {
+          const patient = appointment.patient || {};
+          return {
+            id: patient.id || "Unknown ID",
+            appointmentId: appointment.id || "Unknown Appointment ID",
+            queueNumber: appointment.queueNumber ?? "N/A",
+            name: patient.name || "Unknown",
+            phone: patient.phone || "N/A",
+            age: calculateAge(patient.dob),
+            gender: patient.gender || "N/A",
+            status: appointment.status ?? "unknown",
+            dob: patient.dob || "N/A",
+            timeAdded: appointment.createdAt || new Date(),
+            timeStarted: appointment.timeStarted || null,
+            timeCompleted: appointment.timeCompleted || null,
+          };
+        }
+      );
 
       setPatients(formattedPatients);
 
-      // ✅ Ensure Serving Patient is Set Correctly
-      const servingPatient = formattedPatients.find((p) => p.status === "serving");
-
+      const servingPatient = formattedPatients.find(
+        (p) => p.status === "serving"
+      );
       if (servingPatient) {
-        setCurrentPatient({
-          ...servingPatient, // ✅ Ensures all required fields are included
-        });
+        setCurrentPatient({ ...servingPatient });
         console.log("✅ Updated currentPatient:", servingPatient);
       } else {
         setCurrentPatient(null);
       }
 
-      // ✅ Stop Loader When Data is Received
       if (formattedPatients.length > 0) {
         setShowTopLoaders(false);
       } else {
@@ -148,7 +150,7 @@ export function useWebSocket(scheduleId: string) {
     return () => {
       console.log("❌ Disconnecting WebSocket");
       newSocket.off(queueEventName);
-      newSocket.disconnect(); // ✅ Cleanup when unmounting
+      newSocket.disconnect();
     };
   }, [scheduleId]);
 

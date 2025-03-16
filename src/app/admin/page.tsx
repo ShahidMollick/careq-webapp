@@ -122,6 +122,7 @@ export default function QueueManagement() {
   const [showTopLoader, setShowTopLoader] = useState(false);
   const [nextQueueNumber, setNextQueueNumber] = useState(1);
   const [todayDate, setTodayDate] = useState("");
+  const [verificationLoading, setVerificationLoading] = useState(false);  
 
   useEffect(() => {
     const date = new Date();
@@ -249,6 +250,10 @@ export default function QueueManagement() {
     setShowTopLoader(true);
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
   };
+  useEffect(() => {
+    console.log("Dialog open state changed:", cancelDialogOpen);
+  }, [cancelDialogOpen]);
+  
 
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
@@ -458,6 +463,7 @@ export default function QueueManagement() {
       setLoadings(false);
     }
   };
+  
 
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob);
@@ -556,125 +562,81 @@ export default function QueueManagement() {
     }
   };
 
-  const cancelAppointment = (patient: Patient) => {
-    setSelectedPatientForCancel(patient);
-    setCancelDialogOpen(true);
-  };
-  const confirmCancel = async () => {
-    // Store patient info before closing dialog
-    const patientToCancel = selectedPatientForCancel;
+  
+const cancelAppointment = (patient: Patient) => {
+  // Set patient data first before opening dialog to avoid race conditions
+  setSelectedPatientForCancel(patient);
+  // Use setTimeout to ensure state updates are processed before opening dialog
+  setTimeout(() => setCancelDialogOpen(true), 0);
+};
 
-    // Close dialog immediately to prevent UI issues
+const confirmCancel = async () => {
+  // Create local reference to avoid issues with state changes during async operation
+  const patientToCancel = selectedPatientForCancel;
+  const currentScheduleId = selectedScheduleId;
+  
+  if (!patientToCancel?.appointmentId || !currentScheduleId) {
+    setError("Missing appointment details.");
+    // Always close dialog even if validation fails
     setCancelDialogOpen(false);
     setSelectedPatientForCancel(null);
+    return;
+  }
+  
+  // Close dialog immediately to prevent UI freezing
+  setCancelDialogOpen(false);
+  
+  setShowTopLoader(true);
+  setError("");
 
-    // Validate the patient data
-    if (!patientToCancel) {
-      console.error("Cannot cancel: No patient selected");
-      return;
+  try {
+    const cancelUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/cancelappointment/${currentScheduleId}/${patientToCancel.appointmentId}`;
+    console.log("Cancelling appointment:", cancelUrl);
+
+    const response = await axios.patch(cancelUrl);
+
+    // Update local state
+    setPatients((prev) =>
+      prev.filter((p) => p.appointmentId !== patientToCancel.appointmentId)
+    );
+
+    // Refresh data via WebSocket or API
+    if (socket?.connected) {
+      socket.emit("fetchAppointments", currentScheduleId);
+    } else {
+      console.warn("WebSocket disconnected, fetching manually...");
+      await fetchAppointments(currentScheduleId);
     }
 
-    if (!patientToCancel.appointmentId) {
-      console.error(
-        "Cannot cancel: Missing appointmentId for patient",
-        patientToCancel
-      );
-      setError("Cannot cancel: Missing appointment information");
-      return;
+    toast({
+      title: "Appointment Cancelled",
+      description: `Appointment for ${patientToCancel.name} has been cancelled.`,
+      variant: "default",
+    });
+
+  } catch (error) {
+    handleCancellationError(error);
+  } finally {
+    setShowTopLoader(false);
+    // Clean up patient reference
+    setSelectedPatientForCancel(null);
+  }
+};
+
+const handleCancellationError = (error) => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      setError(error.response.data?.message || "Server error. Try again.");
+    } else if (error.request) {
+      setError("Network issue. Please try again.");
+    } else {
+      setError("Unexpected error occurred.");
     }
-
-    if (!selectedScheduleId) {
-      console.error("Cannot cancel: Missing scheduleId");
-      setError("System configuration error. Please contact support.");
-      return;
-    }
-
-    try {
-      // Show loading indicator
-      setShowTopLoader(true);
-      setError("");
-
-      // Use the same domain as other API calls
-      const cancelUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/cancelappointment/${selectedScheduleId}/${patientToCancel.appointmentId}`;
-      console.log(`Attempting to cancel appointment: ${cancelUrl}`);
-
-      // Call API to cancel the appointment
-      const response = await axios.patch(cancelUrl);
-
-      // Log success
-      // console.log(Successfully cancelled appointment for ${patientToCancel.name}, response.data);
-
-      // Update local state first (optimistic update)
-      setPatients((prevPatients) =>
-        prevPatients.filter(
-          (p) => p.appointmentId !== patientToCancel.appointmentId
-        )
-      );
-
-      // Then update all clients via WebSocket
-      if (socket?.connected) {
-        socket.emit("fetchAppointments", selectedScheduleId);
-      } else {
-        console.warn(
-          "WebSocket disconnected, changes won't be synchronized automatically"
-        );
-        // Fetch appointments manually as fallback
-        await fetchAppointments(selectedScheduleId);
-      }
-
-      // Show success toast
-      toast({
-        title: "Appointment Cancelled",
-        description: `Appointment for ${patientToCancel.name} has been cancelled.`,
-        variant: "default",
-      });
-    } catch (error) {
-      // Handle different error types
-      if (axios.isAxiosError(error)) {
-        // Network or server errors (typed Axios errors)
-        if (error.response) {
-          // Server returned error response (4xx, 5xx)
-          const status = error.response.status;
-          const errorMessage =
-            error.response.data?.message || "Unknown server error";
-
-          console.error(
-            `Server error (${status}) cancelling appointment:`,
-            error.response.data
-          );
-          setError(
-            status >= 500
-              ? "Server error. Please try again later."
-              : `Failed to cancel appointment: ${errorMessage}`
-          );
-        } else if (error.request) {
-          // Request made but no response received
-          console.error("Network error cancelling appointment:", error.message);
-          setError(
-            "Network error. Please check your connection and try again."
-          );
-        } else {
-          // Error in request configuration
-          console.error("Error preparing request:", error.message);
-          setError("An error occurred. Please try again.");
-        }
-      } else {
-        // Generic error handling
-        console.error("Unexpected error cancelling appointment:", error);
-        setError("An unexpected error occurred. Please try again.");
-      }
-
-      // Show error toast
-      toast({
-        title: "Error",
-        description: "Failed to cancel appointment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      // Hide loading indicator
-      setShowTopLoader(false);
-    }
-  };
+  } else {
+    setError("An error occurred. Please try again.");
+  }
+  toast({ title: "Error", description: "Failed to cancel appointment. Please try again.", variant: "destructive" });
+};  
 
   const autoSchedulePatient = async (patient: Patient) => {
     if (!patient.appointmentId) {
@@ -1419,8 +1381,18 @@ export default function QueueManagement() {
             </div>
 
             {/* Confirmation Dialog for Cancel */}
-            <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-              <DialogContent>
+            <Dialog 
+              open={cancelDialogOpen} 
+              onOpenChange={(open) => {
+                // If dialog is being closed, always clean up related state
+                if (!open) {
+                  setCancelDialogOpen(false);
+                  // Use setTimeout to avoid state update conflicts
+                  setTimeout(() => setSelectedPatientForCancel(null), 0);
+                }
+              }}
+            >
+              <DialogContent onEscapeKeyDown={() => setCancelDialogOpen(false)}>
                 <DialogHeader>
                   <DialogTitle>Cancel Appointment</DialogTitle>
                   <DialogDescription>
@@ -1431,7 +1403,10 @@ export default function QueueManagement() {
                 <DialogFooter>
                   <Button
                     variant="outline"
-                    onClick={() => setCancelDialogOpen(false)}
+                    onClick={() => {
+                      setCancelDialogOpen(false);
+                      setTimeout(() => setSelectedPatientForCancel(null), 0);
+                    }}
                   >
                     Cancel
                   </Button>
@@ -1598,19 +1573,29 @@ export default function QueueManagement() {
                       className="rounded-l-none"
                     />
                     </div>
-                  <Button
-                    onClick={verifyPatient}
-                    disabled={loading || (newPatient.phone.startsWith("+91 ") ? newPatient.phone.slice(4).length !== 10 : newPatient.phone.length !== 10)}
-                  >
-                    {loading ? (
+                    <Button
+                    onClick={() => {
+                      const verifyWithLoading = async () => {
+                      setVerificationLoading(true);
+                      try {
+                        await verifyPatient();
+                      } finally {
+                        setVerificationLoading(false);
+                      }
+                      };
+                      verifyWithLoading();
+                    }}
+                    disabled={verificationLoading || (newPatient.phone.startsWith("+91 ") ? newPatient.phone.slice(4).length !== 10 : newPatient.phone.length !== 10)}
+                    >
+                    {verificationLoading ? (
                       <>
-                        Verifying
-                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      Verifying
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
                       </>
                     ) : (
                       "Verify"
                     )}
-                  </Button>
+                    </Button>
                 </div>
                 {newPatient.phone.length > 0 &&
                   newPatient.phone.length !== 10 &&
