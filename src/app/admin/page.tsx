@@ -350,6 +350,8 @@ export default function QueueManagement() {
   const verifyPatient = async () => {
     setLoading(true);
     setError(""); // Reset error
+    setActiveTab("self"); // Force self tab to be active
+    setFamilyMembers([]); // Reset family members list
     console.log("Verifying patient with phone:", newPatient.phone);
 
     try {
@@ -474,6 +476,15 @@ export default function QueueManagement() {
       setShowTopLoader(false);
       setError("");
       setVerifiedPatients(false);
+      setVerifiedPatient(null);
+      setSelectedFamilyMember(null);
+      setFamilyMembers([]); // Reset family members
+      setFamilyMemberFormData({ // Reset family member form
+        name: "",
+        relationship: "spouse",
+        gender: "male",
+        dob: "",
+      });
       setLoadings(false);
     }
   };
@@ -1670,7 +1681,30 @@ const handleCancellationError = (error) => {
                       {/* FAMILY MEMBER TAB CONTENT */}
                       {activeTab === 'family' && (
                         <div className="p-2 border rounded-md mt-2">
-                          {verifiedPatient ? (
+                          {!newPatient.name || !newPatient.dob ? (
+                            // Show message to complete self details first
+                            <div className="p-8 text-center space-y-4">
+                              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <User className="h-6 w-6 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-lg">Let's Get Started!</h4>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Please fill in your details in the "Self" tab first.
+                                  Once completed, you'll be able to add family members here.
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setActiveTab('self')}
+                                className="mt-2"
+                              >
+                                Go to Self Tab
+                              </Button>
+                            </div>
+                          ) : (
+                            // Show family member functionality for all patients
                             <div className="space-y-3">
                               {/* Add New Family Member Button */}
                               <Button 
@@ -1681,8 +1715,8 @@ const handleCancellationError = (error) => {
                                 <User className="h-4 w-4" />
                                 Add New Family Member
                               </Button>
-
-                              {/* Family Member Form - shown when showFamilyForm is true */}
+                          
+                              {/* Family Member Form */}
                               {showFamilyForm && (
                                 <div className="border rounded-md p-3 space-y-3 animate-in fade-in-50 slide-in-from-top-5 duration-300">
                                   <div className="flex justify-between items-center mb-1">
@@ -1775,7 +1809,7 @@ const handleCancellationError = (error) => {
                                   </Button>
                                 </div>
                               )}
-
+                          
                               {/* Family Members List */}
                               <div className="border rounded-md overflow-hidden">
                                 <div className="p-2 border-b bg-muted/30">
@@ -1813,18 +1847,6 @@ const handleCancellationError = (error) => {
                                   )}
                                 </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div className="border rounded-md p-4">
-                              <div className="flex items-center gap-2 mb-3">
-                                <CircleAlert className="h-5 w-5 text-amber-500" />
-                                <h4 className="font-medium">Create Your Account First</h4>
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                You need to create your account before adding family members. 
-                                Please provide your details in the "Self" tab first and book 
-                                an appointment. You can add family members for future appointments.
-                              </p>
                             </div>
                           )}
                         </div>
