@@ -97,6 +97,15 @@ interface Appointment {
   };
 }
 
+// Add a new interface for family members
+interface FamilyMember {
+  id: string;
+  name: string;
+  relationship: string;
+  gender: string;
+  dob: string;
+}
+
 export default function QueueManagement() {
   const [loading, setLoading] = useState(false);
   const [loadings, setLoadings] = useState(false);
@@ -143,6 +152,17 @@ export default function QueueManagement() {
     dob: "",
   });
 
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [showFamilyForm, setShowFamilyForm] = useState(false);
+  const [selectedFamilyMember, setSelectedFamilyMember] = useState<string | null>(null);
+  const [familyMemberFormData, setFamilyMemberFormData] = useState({
+    name: "",
+    relationship: "spouse",
+    gender: "male",
+    dob: "",
+  });
+  const [activeTab, setActiveTab] = useState("self");
+
   console.log("the schedule that is selected is ", selectedScheduleId);
   const {
     patients: livePatients,
@@ -152,7 +172,6 @@ export default function QueueManagement() {
     showTopLoaders,
     queueStatus,
   } = useWebSocket(selectedScheduleId || "");
-
   // Add this utility function near the top of the component
   const extractErrorMessage = (error: unknown): string => {
     // Case 1: Axios error with response data
@@ -173,19 +192,15 @@ export default function QueueManagement() {
         console.warn("⚠ No schedule selected, skipping fetch.");
         return;
       }
-
       console.log(
         `📡 Fetching booking status for schedule: ${selectedScheduleId}`
       );
       setLoading(true); // Show loading state
-
       try {
         const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${selectedScheduleId}/bookingStatus`;
         console.log(`🔗 API Request URL: ${apiUrl}`);
-
         const response = await axios.get(apiUrl);
         const { data } = response;
-
         if (data && typeof data.bookingWindow === "boolean") {
           console.log(`✅ Booking status received: ${data.bookingWindow}`);
           setSettings((prev) => ({
@@ -205,21 +220,16 @@ export default function QueueManagement() {
         setLoading(false);
       }
     };
-
     // Force fetch on component mount and when selectedScheduleId changes
     console.log(
       "🔄 Booking status effect triggered, scheduleId:",
       selectedScheduleId
     );
     fetchBookingStatus();
-
     // Setup a refresh interval (every 30 seconds)
     const intervalId = setInterval(fetchBookingStatus, 30000);
-
     return () => clearInterval(intervalId);
   }, [selectedScheduleId]);
-
-  
 
   useEffect(() => {
     if (selectedScheduleId) {
@@ -241,7 +251,6 @@ export default function QueueManagement() {
             isOpen ? "OPEN" : "CLOSED"
           }`
         );
-
         if (selectedScheduleId === scheduleId) {
           setSettings((prev) => ({
             ...prev,
@@ -250,12 +259,10 @@ export default function QueueManagement() {
         }
       });
     }
-
     return () => {
       socket?.off("bookingWindowUpdated");
     };
   }, [socket, selectedScheduleId]);
-
   useEffect(() => {
     setPatients(livePatients);
   }, [livePatients]);
@@ -264,7 +271,6 @@ export default function QueueManagement() {
     setShowTopLoader(true);
     // setTimeout(() => setShowTopLoader(false), 2000); // Auto-hide after 2s
   };
-
   const filteredPatients = Patients.filter((patient) => {
     const matchesSearch =
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -274,10 +280,8 @@ export default function QueueManagement() {
       skipped: ["skipped"],
       completed: ["completed"],
     }[currentTab]?.includes(patient.status);
-
     return matchesSearch && matchesTab;
   });
-
   const fetchAppointments = async (scheduleId: string | null) => {
     // ✅ Prevent API call if scheduleId is null or invalid
     if (!scheduleId) {
@@ -286,22 +290,18 @@ export default function QueueManagement() {
       setLoading(false);
       return;
     }
-
     setError("");
 
     try {
       setLoading(true);
       setShowTopLoader(true); // Show top loader
       console.log("📡 Fetching appointments for scheduleId:", scheduleId);
-
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${scheduleId}`
       );
-
       // ✅ Ensure response is valid
       if (response.data && Array.isArray(response.data)) {
         console.log("✅ Appointments fetched:", response.data);
-
         // ✅ Format data correctly
         const formattedPatients = response.data.map(
           (appointment: Appointment) => ({
@@ -327,7 +327,6 @@ export default function QueueManagement() {
               : null, // ✅ Convert or leave undefined
           })
         );
-
         setPatients(formattedPatients);
       } else {
         console.error("❌ Invalid data received:", response.data);
@@ -342,11 +341,9 @@ export default function QueueManagement() {
       setLoading(false);
     }
   };
-
   const verifyPatient = async () => {
     setLoading(true);
     setError(""); // Reset error
-
     console.log("Verifying patient with phone:", newPatient.phone);
 
     try {
@@ -355,11 +352,9 @@ export default function QueueManagement() {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/verify`,
         { phone: newPatient.phone }
       );
-
       if (response.data.message === "Patient exists") {
         const patient = response.data.patient;
         console.log("Patient exists:", patient);
-
         setVerifiedPatient(patient);
 
         // Check if DOB is available and format it; otherwise, assign a default value
@@ -367,7 +362,6 @@ export default function QueueManagement() {
         const formattedDob = patient.dob
           ? new Date(patient.dob).toISOString().split("T")[0]
           : ""; // Convert to YYYY-MM-DD format
-
         // Set new patient data based on the verified patient response
         setNewPatient({
           ...newPatient,
@@ -375,7 +369,7 @@ export default function QueueManagement() {
           gender: patient.gender,
           dob: formattedDob,
         });
-        
+
         // Show success toast for patient found
         toast({
           title: "Patient Found",
@@ -384,16 +378,14 @@ export default function QueueManagement() {
         });
       } else {
         console.log("Patient not found with phone:", newPatient.phone);
-
         setVerifiedPatient(null); // Clear verification state
         
-        // Show info toast for new patient
+        // Show info toast for new patient verification state
         toast({
           title: "New Patient",
           description: "Patient not found. Please enter details to create a new patient.",
           variant: "info",
         });
-
         setNewPatient({
           phone: newPatient.phone, // Retain the entered phone number
           name: "",
@@ -403,7 +395,6 @@ export default function QueueManagement() {
       }
     } catch (error) {
       console.error("Error occurred during patient verification:", error);
-      
       // Show error toast instead of setting error state
       toast({
         title: "Verification Failed",
@@ -413,20 +404,16 @@ export default function QueueManagement() {
     } finally {
       setLoading(false);
       setVerifiedPatients(true);
-
       console.log("Verification process complete. Loading state set to false.");
     }
   };
-
   const addPatient = async () => {
     const patientData = {
       phone: newPatient.phone,
-
       name: newPatient.name,
       gender: newPatient.gender,
       dob: newPatient.dob,
     };
-
     setLoadings(true); // Start top loader
     try {
       let patient;
@@ -437,14 +424,12 @@ export default function QueueManagement() {
         patient = verifiedPatient; // Use the verified patient
       } else {
         console.log("sending patient data: ", patientData);
-
         const patientResponse = await axios.post(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
           patientData
         );
         patient = patientResponse.data;
       }
-
       // Step 2: Create an appointment and add the patient to the queue
       const scheduleId =
         typeof window !== "undefined"
@@ -452,10 +437,9 @@ export default function QueueManagement() {
           : null;
       // Retrieve schedule ID (e.g., from state or context)
       console.log("the schedule that is selected is ", scheduleId);
-
+      // Retrieve schedule ID (e.g., from state or context)
       const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
       console.log("patientId :", patient.id);
-
       const appointmentResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
         {
@@ -464,10 +448,8 @@ export default function QueueManagement() {
           source: source,
         }
       );
-
       console.log("📡 Emitting WebSocket update manually...");
       socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
-
       // Show success toast
       toast({
         title: "Patient Added",
@@ -476,7 +458,6 @@ export default function QueueManagement() {
       });
     } catch (error) {
       console.error("❌ Error adding patient:", error);
-
       // Show error toast with backend message
       toast({
         title: "Error",
@@ -490,7 +471,6 @@ export default function QueueManagement() {
       setLoadings(false);
     }
   };
-
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob);
     const today = new Date();
@@ -507,36 +487,31 @@ export default function QueueManagement() {
   const BookingStatusChange = async (): Promise<void> => {
     // Retrieve schedule ID from local storage or state
     const scheduleId = localStorage.getItem("selectedScheduleId");
-
+    // Retrieve schedule ID from local storage or state
     if (!scheduleId) {
       console.error("❌ BookingStatusChange failed: No scheduleId available");
       return;
     }
-
     console.log(
       `🔄 Starting booking window toggle for schedule ID: ${scheduleId}`
     );
     console.log(`📊 Current booking status: ${allowOnlineBooking}`);
 
-    const startTime = performance.now();
-
     try {
+      const startTime = performance.now();
       // Log request details
       const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/doctors/${scheduleId}/booking-window`;
       console.log(`📤 Sending PATCH request to: ${endpoint}`);
-
       const response = await fetch(endpoint, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
       });
-
       // Log response status
       console.log(
         `📥 Response status: ${response.status} ${response.statusText}`
       );
-
       if (!response.ok) {
         const errorData = await response
           .json()
@@ -548,10 +523,8 @@ export default function QueueManagement() {
           }`
         );
       }
-
       const updatedSchedule = await response.json();
       const timeElapsed = Math.round(performance.now() - startTime);
-
       console.log(
         `✅ Booking window updated successfully (${timeElapsed}ms):`,
         updatedSchedule
@@ -561,7 +534,6 @@ export default function QueueManagement() {
           updatedSchedule.onlineAppointments ? "open" : "closed"
         }`
       );
-
       // Update local state to match the server state
       setSettings((prev) => ({
         ...prev,
@@ -573,17 +545,14 @@ export default function QueueManagement() {
         `❌ Error updating booking window (${timeElapsed}ms):`,
         error
       );
-
       if (error instanceof Error) {
         console.error(`- Message: ${error.message}`);
         console.error(`- Stack: ${error.stack}`);
       }
-
       // Show error to user with backend message
       setError(extractErrorMessage(error));
     }
   };
-
   const cancelAppointment = (patient: Patient) => {
     setSelectedPatientForCancel(patient);
     setCancelDialogOpen(true);
@@ -591,17 +560,14 @@ export default function QueueManagement() {
   const confirmCancel = async () => {
     // Store patient info before closing dialog
     const patientToCancel = selectedPatientForCancel;
-
     // Close dialog immediately to prevent UI issues
     setCancelDialogOpen(false);
     setSelectedPatientForCancel(null);
-
     // Validate the patient data
     if (!patientToCancel) {
       console.error("Cannot cancel: No patient selected");
       return;
     }
-
     if (!patientToCancel.appointmentId) {
       console.error(
         "Cannot cancel: Missing appointmentId for patient",
@@ -610,35 +576,27 @@ export default function QueueManagement() {
       setError("Cannot cancel: Missing appointment information");
       return;
     }
-
     if (!selectedScheduleId) {
       console.error("Cannot cancel: Missing scheduleId");
       setError("System configuration error. Please contact support.");
       return;
     }
-
     try {
       // Show loading indicator
       setShowTopLoader(true);
       setError("");
-
       // Use the same domain as other API calls
       const cancelUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/cancelappointment/${selectedScheduleId}/${patientToCancel.appointmentId}`;
       console.log(`Attempting to cancel appointment: ${cancelUrl}`);
-
-      // Call API to cancel the appointment
       const response = await axios.patch(cancelUrl);
-
       // Log success
       // console.log(Successfully cancelled appointment for ${patientToCancel.name}, response.data);
-
       // Update local state first (optimistic update)
       setPatients((prevPatients) =>
         prevPatients.filter(
           (p) => p.appointmentId !== patientToCancel.appointmentId
         )
       );
-
       // Then update all clients via WebSocket
       if (socket?.connected) {
         socket.emit("fetchAppointments", selectedScheduleId);
@@ -649,7 +607,6 @@ export default function QueueManagement() {
         // Fetch appointments manually as fallback
         await fetchAppointments(selectedScheduleId);
       }
-
       // Show success toast
       toast({
         title: "Appointment Cancelled",
@@ -659,7 +616,6 @@ export default function QueueManagement() {
     } catch (error) {
       console.error("Error cancelling appointment:", error);
       setError(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -671,32 +627,27 @@ export default function QueueManagement() {
       setShowTopLoader(false);
     }
   };
-
   const autoSchedulePatient = async (patient: Patient) => {
     if (!patient.appointmentId) {
       console.error("Cannot reschedule patient: Missing appointmentId");
       alert("Cannot reschedule patient: Missing appointment information");
       return;
     }
-
     if (!selectedScheduleId) {
       console.error("Cannot reschedule: Missing scheduleId");
       alert("System error: Missing schedule information");
       return;
     }
-
     try {
       // Show loading indicator
       setShowTopLoader(true);
       console.log(
         `Rescheduling patient: ${patient.name}, appointmentId: ${patient.appointmentId}`
       );
-
       // Call the API endpoint to reschedule the skipped patient - use the same base URL as other successful API calls
       const response = await axios.patch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/autoreschedule/${selectedScheduleId}/${patient.appointmentId}`
       );
-
       console.log("Rescheduling response:", response.data);
 
       // Trigger WebSocket update to refresh the appointments for all clients
@@ -708,7 +659,6 @@ export default function QueueManagement() {
         // Fallback - manually fetch appointments if WebSocket isn't connected
         await fetchAppointments(selectedScheduleId);
       }
-
       // Show success toast
       toast({
         title: "Patient Rescheduled",
@@ -717,10 +667,8 @@ export default function QueueManagement() {
       });
     } catch (error) {
       console.error("Failed to reschedule patient:", error);
-      
       // Show appropriate error message from backend
       setError(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -739,16 +687,13 @@ export default function QueueManagement() {
       "appointmentId:",
       appointmentId
     );
-
     if (!scheduleId || !appointmentId) {
       console.error("Cannot skip patient: Missing scheduleId or appointmentId");
       alert("Cannot skip patient: Missing required information");
       return;
     }
-
     try {
       setShowTopLoader(true); // Show loading indicator
-
       type ApiError = {
         response?: {
           data?: { message?: string };
@@ -768,11 +713,9 @@ export default function QueueManagement() {
           },
         }
       );
-
       console.log("Skip response:", response.data);
       console.log("📡 Emitting WebSocket update after skipping patient...");
       socket?.emit("fetchAppointments", scheduleId);
-
       // Show success toast
       toast({
         title: "Patient Skipped",
@@ -781,10 +724,8 @@ export default function QueueManagement() {
       });
     } catch (error) {
       console.error("Error skipping patient:", error);
-      
       // No need for complex type guards with our utility function
       alert(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -795,7 +736,6 @@ export default function QueueManagement() {
       setShowTopLoader(false); // Hide loading indicator
     }
   };
-
   const handleStartServing = async (selectedScheduleId: string) => {
     try {
       // First mark the current patient as completed
@@ -804,7 +744,6 @@ export default function QueueManagement() {
       await axios.patch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/callnextpatient/${selectedScheduleId}`
       );
-
       // The server + WebSocket will update the state
 
       // Show success toast
@@ -817,7 +756,6 @@ export default function QueueManagement() {
       setShowTopLoader(false);
       console.error("Error processing patients:", error);
       setError(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -828,7 +766,6 @@ export default function QueueManagement() {
       setShowTopLoader(false);
     }
   };
-
   const handleFinishServing = async (selectedScheduleId: string) => {
     setProcessing(true);
     startTopLoader();
@@ -837,7 +774,6 @@ export default function QueueManagement() {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/finish/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
-
       // Show success toast
       toast({
         title: "Consultation Finished",
@@ -847,7 +783,6 @@ export default function QueueManagement() {
     } catch (error) {
       console.error("Error finishing serving patient:", error);
       setError(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -859,7 +794,6 @@ export default function QueueManagement() {
       setShowTopLoader(false);
     }
   };
-
   const handleFinish = async (selectedScheduleId: string) => {
     setProcessing(true);
     startTopLoader(); // Start top loader
@@ -868,7 +802,6 @@ export default function QueueManagement() {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/serve/${selectedScheduleId}`
       );
       // The server auto-calls the next patient; WebSocket updates your UI
-
       // Show success toast
       toast({
         title: "Next Patient Called",
@@ -878,7 +811,6 @@ export default function QueueManagement() {
     } catch (error) {
       console.error("Error calling next patient:", error);
       setError(extractErrorMessage(error));
-
       // Show error toast
       toast({
         title: "Error",
@@ -900,7 +832,6 @@ export default function QueueManagement() {
         new Date(a.timeCompleted).getTime()
       );
     })[0];
-
   const currentQueueNumber = currentPatient
     ? currentPatient.queueNumber // If serving, show current patient queue number
     : lastCompletedPatient
@@ -923,10 +854,8 @@ export default function QueueManagement() {
       ? (queueStatus as Record<string, number>).totalLimit 
       : 0;
     const totalQueue = queueStatus?.totalQueue || 0;
-
     const remaining = totalCapacity - totalQueue;
     setRemainingCapacity(remaining);
-
     // Show warning if 5 or fewer slots remain
     setShowCapacityWarning(remaining > 0 && remaining <= 5);
     setCapacityLimit(totalCapacity);
@@ -955,23 +884,73 @@ export default function QueueManagement() {
     setShowCapacityWarning(false);
   };
 
+  // Function to add a new family member
+  const addFamilyMember = () => {
+    // Validate form data
+    if (!familyMemberFormData.name || !familyMemberFormData.dob) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide name and date of birth.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Create new family member object
+    const newMember: FamilyMember = {
+      id: `member-${Date.now()}`,
+      name: familyMemberFormData.name,
+      relationship: familyMemberFormData.relationship,
+      gender: familyMemberFormData.gender,
+      dob: familyMemberFormData.dob,
+    };
+    // Add to family members array
+    setFamilyMembers(prev => [newMember, ...prev]);
+    // Show success toast
+    toast({
+      title: "Family Member Added",
+      description: `${newMember.name} has been added as a family member.`,
+      variant: "default",
+    });
+    // Reset form
+    setFamilyMemberFormData({
+      name: "",
+      relationship: "spouse",
+      gender: "male",
+      dob: "",
+    });
+    // Hide form
+    setShowFamilyForm(false);
+  };
+
+  // Function to select a family member for appointment
+  const selectFamilyMember = (memberId: string) => {
+    setSelectedFamilyMember(memberId);
+    // Find the selected family member and apply their info to the newPatient state
+    const selectedMember = familyMembers.find(member => member.id === memberId);
+    if (selectedMember) {
+      setNewPatient(prev => ({
+        ...prev,
+        name: selectedMember.name,
+        gender: selectedMember.gender,
+        dob: selectedMember.dob,
+      }));
+    }
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden">
-      <div>
-        {/* Top Moving Loader */}
-        {showTopLoader && (
-          <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
-          </div>
-        )}
-        {/* ✅ Top Moving Loader */}
-        {showTopLoaders && (
-          <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
-            <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
-          </div>
-        )}
-      </div>
-
+      {/* Top Moving Loader */}
+      {showTopLoader && (
+        <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
+        </div>
+      )}
+      {/* ✅ Top Moving Loader */}
+      {showTopLoaders && (
+        <div className="relative w-full h-1 bg-gray-200 overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1/4 bg-primary animate-smooth-moving-loader"></div>
+        </div>
+      )}
       {/* Notification Header */}
       <NotificationHeader
         title=""
@@ -981,7 +960,6 @@ export default function QueueManagement() {
         onEditSchedule={handleEditSchedule}
         nextScheduleDate={nextAvailableSchedule}
       />
-
       {/* Capacity Warning Notification */}
       <NotificationBanner
         type="warning"
@@ -991,7 +969,6 @@ export default function QueueManagement() {
           remainingCapacity === 1 ? "slot" : "slots"
         } remaining out of ${capacityLimit}.`}
       />
-
       <div className="flex h-[calc(100vh-73px)]">
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -1024,7 +1001,6 @@ export default function QueueManagement() {
                     </div> */}
                   </div>
                 </div>
-
                 <div className="flex gap-2 items-center mt-2">
                   <div className="inline-flex items-center px-2.5 py-1 rounded-full border border-gray-200 bg-gray-50 text-sm font-medium">
                     <span className="text-gray-500 text-sm gap-2 mr-1 flex flex-row items-center"><Calendar size='16'></Calendar> Today:</span>
@@ -1034,7 +1010,6 @@ export default function QueueManagement() {
                       year: "numeric",
                     })}
                   </div>
-
                   {/* Retry Button (Only when offline) */}
                   {!isConnected && (
                     <Button
@@ -1089,7 +1064,6 @@ export default function QueueManagement() {
                 </div>
               </div>
             </div>
-
             <div className="flex gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -1114,7 +1088,6 @@ export default function QueueManagement() {
                 </TabsList>
               </Tabs>
             </div>
-
             <div className="space-y-4 mb-16">
               {currentTab === "live" && (
                 <>
@@ -1155,7 +1128,6 @@ export default function QueueManagement() {
                       </AccordionItem>
                     </Accordion>
                   )}
-
                   <Accordion
                     type="single"
                     collapsible
@@ -1167,11 +1139,9 @@ export default function QueueManagement() {
                         <div className="flex flex-row items-center gap-2">
                           Waiting
                           <p className=" flex text-white text-sm h-6 w-6 items-center justify-center  rounded-full bg-primary">
-                            {
-                              filteredPatients.filter(
-                                (p) => p.status === "waiting"
-                              ).length
-                            }
+                            {filteredPatients.filter(
+                              (p) => p.status === "waiting"
+                            ).length}
                           </p>
                         </div>
                       </AccordionTrigger>
@@ -1240,7 +1210,6 @@ export default function QueueManagement() {
                                                   "Patient data:",
                                                   patient
                                                 );
-
                                                 if (
                                                   !selectedScheduleId ||
                                                   !patient.appointmentId
@@ -1253,7 +1222,6 @@ export default function QueueManagement() {
                                                   );
                                                   return;
                                                 }
-
                                                 console.log(
                                                   "Skipping patient with appointmentId:",
                                                   patient.appointmentId
@@ -1296,7 +1264,6 @@ export default function QueueManagement() {
                   </Accordion>
                 </>
               )}
-
               {currentTab === "skipped" && (
                 <div>
                   {filteredPatients.length > 0 ? (
@@ -1338,7 +1305,6 @@ export default function QueueManagement() {
                   )}
                 </div>
               )}
-
               {currentTab === "completed" && (
                 <div className="mb-28">
                   {filteredPatients.length > 0 ? (
@@ -1371,7 +1337,6 @@ export default function QueueManagement() {
                 </div>
               )}
             </div>
-
             {/* Confirmation Dialog for Cancel */}
             <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
               <DialogContent>
@@ -1387,7 +1352,6 @@ export default function QueueManagement() {
                     variant="outline"
                     onClick={() => setCancelDialogOpen(false)}
                   >
-                    
                     Cancel
                   </Button>
                   <Button variant="destructive" onClick={confirmCancel}>
@@ -1396,7 +1360,6 @@ export default function QueueManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-
             {/* Bottom Action Bar */}
             <div className="fixed bottom-0 left-[72px] right-0 p-4 bg-background border-t flex items-center justify-between">
               {currentPatient ? (
@@ -1502,469 +1465,369 @@ export default function QueueManagement() {
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       </>
                     ) : (
-                      <>
-                        Call Next Patient
-                        <ArrowRight></ArrowRight>
-                      </>
+                      <>Call Next Patient</>
                     )}
                   </Button>
                 </div>
               )}
             </div>
           </div>
-
           {/* Right Sidebar */}
-            <div className="w-[400px] border-l p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-md font-semibold">Add Patient</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Add a new patient to the queue
-                  </p>
-                </div>
+          <div className="w-[400px] border-l p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-md font-semibold">Add Patient</h2>
+                <p className="text-sm text-muted-foreground">
+                  Add a new patient to the queue
+                </p>
               </div>
+            </div>
 
-              <div className="space-y-6">
-                <div>
-                  <label className="text-sm font-medium">Phone Number</label>
-                  <div className="flex gap-2 mt-1">
-                    <div className="flex-1 flex">
-                      <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
-                        +91
-                      </div>
-                      <Input
-                        placeholder="Enter 10-digit mobile number"
-                        value={
-                          newPatient.phone.startsWith("+91 ")
-                            ? newPatient.phone.slice(4)
-                            : newPatient.phone
-                        }
-                        onChange={(e) => {
-                          // Remove any non-digit characters
-                          const value = e.target.value.replace(/\D/g, "");
-                          // Limit to 10 digits
-                          const sanitizedValue = value.slice(0, 10);
-                          // Save with the +91 prefix and a space
-                          setNewPatient((prev) => ({
-                            ...prev,
-                            phone: "+91 " + sanitizedValue,
-                          }));
-                          
-                          // Clear error when user starts typing again
-                          if (error && error.includes("phone")) {
-                            setError("");
-                          }
-                        }}
-                        className={`rounded-l-none ${newPatient.phone.length > 0 && newPatient.phone.length !== 14 ? "border-red-500" : ""}`}
-                      />
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium">Phone Number</label>
+                <div className="flex gap-2 mt-1">
+                  <div className="flex-1 flex">
+                    <div className="flex items-center justify-center px-3 border border-r-0 border-input rounded-l-md">
+                      +91
                     </div>
-                    <Button
-                      onClick={verifyPatient}
-                      disabled={loading || (newPatient.phone.startsWith("+91 ") ? newPatient.phone.slice(4).length !== 10 : newPatient.phone.length !== 10)}
-                    >
-                      {loading ? (
-                        <>
-                          Verifying
-                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                        </>
-                      ) : (
-                        "Verify"
-                      )}
-                    </Button>
+                    <Input
+                      placeholder="Enter 10-digit mobile number"
+                      value={
+                        newPatient.phone.startsWith("+91 ")
+                          ? newPatient.phone.slice(4)
+                          : newPatient.phone
+                      }
+                      onChange={(e) => {
+                        // Remove any non-digit characters
+                        const value = e.target.value.replace(/\D/g, "");
+                        // Limit to 10 digits
+                        const sanitizedValue = value.slice(0, 10);
+                        // Save with the +91 prefix and a space
+                        setNewPatient((prev) => ({
+                          ...prev,
+                          phone: "+91 " + sanitizedValue,
+                        }));
+                        // Clear error when user starts typing again
+                        if (error && error.includes("phone")) {
+                          setError("");
+                        }
+                      }}
+                      className={`rounded-l-none ${newPatient.phone.length > 0 && newPatient.phone.length !== 14 ? "border-red-500" : ""}`}
+                    />
                   </div>
-                  {/* Show validation warning immediately as user types */}
-                  {newPatient.phone.length > 0 && 
-                    (newPatient.phone.startsWith("+91 ") 
+                  <Button
+                    onClick={verifyPatient}
+                    disabled={loading || (newPatient.phone.startsWith("+91 ") ? newPatient.phone.slice(4).length !== 10 : newPatient.phone.length !== 10)}
+                  >
+                    {loading ? (
+                      <>
+                        Verifying
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      </>
+                    ) : (
+                      "Verify"
+                    )}
+                  </Button>
+                </div>
+                {/* Show validation warning immediately as user types */}
+                {newPatient.phone.length > 0 && 
+                  (newPatient.phone.startsWith("+91 ") 
                     ? newPatient.phone.slice(4).length !== 10 
                     : newPatient.phone.length !== 10) && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center">
-                      <CircleAlert className="w-3 h-3 mr-1" />
-                      Please enter a valid 10-digit phone number
-                    </p>
-                  )}
-                </div>
+                  <p className="text-xs text-red-500 mt-1 flex items-center">
+                    <CircleAlert className="w-3 h-3 mr-1" />
+                    Please enter a valid 10-digit phone number
+                  </p>
+                )}
+              </div>
 
-                {/* Patient Form after Verification */}
-                {verifiedPatients && (
-                  <div className="animate-in fade-in-50 duration-300">
+              {/* Patient Form after Verification */}
+              {verifiedPatients && (
+                <div className="animate-in fade-in-50 duration-300">
                   {/* Show booking options (Self or Family Member) for all patients */}
                   <div className="mb-4">
                     <label className="text-sm font-medium mb-2 block">Booking for</label>
-                    <Tabs defaultValue="self" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="self">Self</TabsTrigger>
-                      <TabsTrigger value="family">Family Member</TabsTrigger>
-                    </TabsList>
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="self">Self</TabsTrigger>
+                        <TabsTrigger value="family">Family Member</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                     
-                    {/* Tab content */}
+                    {/* Tab content using conditional rendering */}
                     <div className="mt-2">
                       {/* SELF TAB CONTENT */}
-                      <div data-state="active" role="tabpanel" value="self" className="data-[state=inactive]:hidden p-2 border rounded-md mt-2">
-                      {verifiedPatient ? (
-                        // Existing verified patient
-                        <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">{verifiedPatient.name}</h4>
-                          <p className="text-xs text-muted-foreground">
-                          {verifiedPatient.gender}, {calculateAge(verifiedPatient.dob)} years
-                          </p>
-                        </div>
-                        <CircleCheck className="h-5 w-5 text-primary" />
-                        </div>
-                      ) : (
-                        // New patient form (simplified)
-                        <div className="space-y-3">
-                        <label className="text-sm text-muted-foreground">
-                          Enter your details to create a new patient record
-                        </label>
-                        <div>
-                          <label className="text-sm font-medium">Full Name</label>
-                          <Input
-                          className="mt-1"
-                          placeholder="Enter Your Name"
-                          value={newPatient.name}
-                          onChange={(e) =>
-                            setNewPatient((prev) => ({
-                            ...prev,
-                            name: e.target.value,
-                            }))
-                          }
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                          <label className="text-sm font-medium">Gender</label>
-                          <Select
-                            value={newPatient.gender}
-                            onValueChange={(value) =>
-                            setNewPatient((prev) => ({
-                              ...prev,
-                              gender: value,
-                            }))
-                            }
-                          >
-                            <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          </div>
-                          <div>
-                          <label className="text-sm font-medium">Date Of Birth</label>
-                          <Input
-                            className="mt-1"
-                            type="date"
-                            value={newPatient.dob}
-                            onChange={(e) =>
-                            setNewPatient((prev) => ({
-                              ...prev,
-                              dob: e.target.value,
-                            }))
-                            }
-                          />
-                          </div>
-                        </div>
+                      {activeTab === 'self' && (
+                        <div className="p-2 border rounded-md mt-2">
+                          {verifiedPatient ? (
+                            // Existing verified patient
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium">{verifiedPatient.name}</h4>
+                                <p className="text-xs text-muted-foreground">
+                                  {verifiedPatient.gender}, {calculateAge(verifiedPatient.dob)} years
+                                </p>
+                              </div>
+                              <CircleCheck className="h-5 w-5 text-primary" />
+                            </div>
+                          ) : (
+                            // New patient form (simplified)
+                            <div className="space-y-3">
+                              <label className="text-sm text-muted-foreground">
+                                Enter your details to create a new patient record
+                              </label>
+                              <div>
+                                <label className="text-sm font-medium">Full Name</label>
+                                <Input
+                                  className="mt-1"
+                                  placeholder="Enter Your Name"
+                                  value={newPatient.name}
+                                  onChange={(e) =>
+                                    setNewPatient((prev) => ({
+                                      ...prev,
+                                      name: e.target.value,
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-sm font-medium">Gender</label>
+                                  <Select
+                                    value={newPatient.gender}
+                                    onValueChange={(value) =>
+                                      setNewPatient((prev) => ({
+                                        ...prev,
+                                        gender: value,
+                                      }))
+                                    }
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue placeholder="Select gender" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="male">Male</SelectItem>
+                                      <SelectItem value="female">Female</SelectItem>
+                                      <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Date Of Birth</label>
+                                  <Input
+                                    className="mt-1"
+                                    type="date"
+                                    value={newPatient.dob}
+                                    onChange={(e) =>
+                                      setNewPatient((prev) => ({
+                                        ...prev,
+                                        dob: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
-                      </div>
                       
                       {/* FAMILY MEMBER TAB CONTENT */}
-                      <div data-state="inactive" role="tabpanel" value="family" className="data-[state=active]:block hidden">
-                      {verifiedPatient ? (
-                        // For verified patients, show their family members + add new option
-                        <div className="space-y-3" id="family-members-container">
-                        {/* Add New Family Member Button */}
-                        <Button 
-                          variant="outline" 
-                          className="w-full flex items-center justify-center gap-2 animate-in fade-in-50 transition-all duration-300 ease-in-out"
-                          onClick={() => {
-                          // Toggle visibility of the add family member form
-                          const formEl = document.getElementById("add-family-form");
-                          if (formEl) {
-                            formEl.classList.toggle("hidden");
-                            formEl.classList.toggle("flex");
-                            
-                            // Focus on the name input when form appears
-                            setTimeout(() => {
-                            const nameInput = formEl.querySelector('input[placeholder="Enter Family Member\'s Name"]');
-                            if (nameInput) {
-                              (nameInput as HTMLInputElement).focus();
-                            }
-                            }, 100);
-                          }
-                          }}
-                        >
-                          <User className="h-4 w-4" />
-                          Add New Family Member
-                        </Button>
+                      {activeTab === 'family' && (
+                        <div className="p-2 border rounded-md mt-2">
+                          {verifiedPatient ? (
+                            <div className="space-y-3">
+                              {/* Add New Family Member Button */}
+                              <Button 
+                                variant="outline" 
+                                className="w-full flex items-center justify-center gap-2"
+                                onClick={() => setShowFamilyForm(true)}
+                              >
+                                <User className="h-4 w-4" />
+                                Add New Family Member
+                              </Button>
 
-                        {/* Add Family Member Form - Initially Hidden */}
-                        <div id="add-family-form" className="border rounded-md p-3 space-y-3 hidden opacity-0 transform scale-95 transition-all duration-300 ease-in-out">
-                          <div className="flex justify-between items-center mb-1">
-                          <h4 className="text-sm font-medium">New Family Member</h4>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                            const formEl = document.getElementById("add-family-form");
-                            if (formEl) {
-                              formEl.classList.remove("opacity-100", "scale-100");
-                              formEl.classList.add("opacity-0", "scale-95");
-                              
-                              // Wait for animation to complete before hiding
-                              setTimeout(() => {
-                              formEl.classList.add("hidden");
-                              formEl.classList.remove("flex");
-                              }, 300);
-                            }
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          </div>
-                          <div>
-                          <label className="text-sm font-medium">Full Name</label>
-                          <Input
-                            className="mt-1"
-                            placeholder="Enter Family Member's Name"
-                            onChange={(e) => {
-                            setNewPatient((prev) => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
-                            }}
-                          />
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-sm font-medium">Gender</label>
-                            <Select 
-                            value={newPatient.gender}
-                            onValueChange={(value) =>
-                              setNewPatient((prev) => ({
-                              ...prev,
-                              gender: value,
-                              }))
-                            }
-                            >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Select gender" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium">Relationship</label>
-                            <Select 
-                            defaultValue="spouse"
-                            onValueChange={(value) => {
-                              // Store relationship in state if needed
-                              console.log("Relationship selected:", value);
-                            }}
-                            >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue placeholder="Select relation" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="spouse">Spouse</SelectItem>
-                              <SelectItem value="child">Child</SelectItem>
-                              <SelectItem value="parent">Parent</SelectItem>
-                              <SelectItem value="sibling">Sibling</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                            </Select>
-                          </div>
-                          </div>
-                          <div>
-                          <label className="text-sm font-medium">Date of Birth</label>
-                          <Input 
-                            className="mt-1" 
-                            type="date"
-                            value={newPatient.dob}
-                            onChange={(e) =>
-                            setNewPatient((prev) => ({
-                              ...prev,
-                              dob: e.target.value,
-                            }))
-                            } 
-                          />
-                          </div>
-                          <Button 
-                          className="w-full mt-2" 
-                          size="sm"
-                          onClick={() => {
-                            // Generate random ID for demonstration
-                            const newMemberId = `member-${Date.now()}`;
-                            
-                            // Get relationship value
-                            const relationshipSelect = document.querySelector('#add-family-form select[placeholder="Select relation"]');
-                            const relationship = relationshipSelect ? 
-                            (relationshipSelect as HTMLSelectElement).value : 'spouse';
-                            
-                            // Create new member element
-                            const membersContainer = document.getElementById('family-members-list');
-                            if (membersContainer) {
-                            // Create new member element
-                            const memberDiv = document.createElement('div');
-                            memberDiv.id = newMemberId;
-                            memberDiv.className = 'p-3 hover:bg-muted/50 transition-colors cursor-pointer flex items-center justify-between border-b last:border-0';
-                            memberDiv.setAttribute('data-member-id', newMemberId);
-                            
-                            // Add member content
-                            memberDiv.innerHTML = `
-                              <div>
-                              <h5 class="font-medium text-sm">${newPatient.name || 'New Family Member'}</h5>
-                              <p class="text-xs text-muted-foreground">${relationship}, ${newPatient.dob ? calculateAge(newPatient.dob) : '?'} years</p>
+                              {/* Family Member Form - shown when showFamilyForm is true */}
+                              {showFamilyForm && (
+                                <div className="border rounded-md p-3 space-y-3 animate-in fade-in-50 slide-in-from-top-5 duration-300">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <h4 className="text-sm font-medium">New Family Member</h4>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => setShowFamilyForm(false)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm font-medium">Full Name</label>
+                                    <Input
+                                      className="mt-1"
+                                      placeholder="Enter Family Member's Name"
+                                      value={familyMemberFormData.name}
+                                      onChange={(e) => setFamilyMemberFormData(prev => ({
+                                        ...prev,
+                                        name: e.target.value
+                                      }))}
+                                    />
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="text-sm font-medium">Gender</label>
+                                      <Select 
+                                        value={familyMemberFormData.gender}
+                                        onValueChange={(value) => setFamilyMemberFormData(prev => ({
+                                          ...prev,
+                                          gender: value
+                                        }))}
+                                      >
+                                        <SelectTrigger className="mt-1">
+                                          <SelectValue placeholder="Select gender" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="male">Male</SelectItem>
+                                          <SelectItem value="female">Female</SelectItem>
+                                          <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    <div>
+                                      <label className="text-sm font-medium">Relationship</label>
+                                      <Select 
+                                        value={familyMemberFormData.relationship}
+                                        onValueChange={(value) => setFamilyMemberFormData(prev => ({
+                                          ...prev,
+                                          relationship: value
+                                        }))}
+                                      >
+                                        <SelectTrigger className="mt-1">
+                                          <SelectValue placeholder="Select relation" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="spouse">Spouse</SelectItem>
+                                          <SelectItem value="child">Child</SelectItem>
+                                          <SelectItem value="parent">Parent</SelectItem>
+                                          <SelectItem value="sibling">Sibling</SelectItem>
+                                          <SelectItem value="other">Other</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm font-medium">Date of Birth</label>
+                                    <Input 
+                                      className="mt-1" 
+                                      type="date"
+                                      value={familyMemberFormData.dob}
+                                      onChange={(e) => setFamilyMemberFormData(prev => ({
+                                        ...prev,
+                                        dob: e.target.value
+                                      }))} 
+                                    />
+                                  </div>
+                                  
+                                  <Button 
+                                    className="w-full mt-2" 
+                                    size="sm"
+                                    onClick={addFamilyMember}
+                                    disabled={!familyMemberFormData.name || !familyMemberFormData.dob}
+                                  >
+                                    Save Family Member
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Family Members List */}
+                              <div className="border rounded-md overflow-hidden">
+                                <div className="p-2 border-b bg-muted/30">
+                                  <h4 className="text-sm font-medium">Select Family Member</h4>
+                                </div>
+                                
+                                <div className="divide-y max-h-[250px] overflow-y-auto">
+                                  {familyMembers.length === 0 ? (
+                                    <div className="p-4 text-center text-sm text-muted-foreground">
+                                      No family members added yet
+                                    </div>
+                                  ) : (
+                                    familyMembers.map(member => (
+                                      <div 
+                                        key={member.id}
+                                        className={`p-3 hover:bg-muted/50 transition-colors cursor-pointer flex items-center justify-between relative ${selectedFamilyMember === member.id ? 'bg-muted/50' : ''}`}
+                                        onClick={() => selectFamilyMember(member.id)}
+                                      >
+                                        <div>
+                                          <h5 className="font-medium text-sm">{member.name}</h5>
+                                          <p className="text-xs text-muted-foreground">
+                                            {member.relationship}, {calculateAge(member.dob)} years
+                                          </p>
+                                        </div>
+                                        <div 
+                                          className={`h-5 w-5 rounded-full border-2 transition-all duration-300 ease-in-out ${
+                                            selectedFamilyMember === member.id ? 'border-primary' : 'border-primary/0'
+                                          }`}
+                                        />
+                                        {selectedFamilyMember === member.id && (
+                                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
                               </div>
-                              <div class="h-5 w-5 rounded-full border-2 border-primary/0 transition-all duration-300 ease-in-out" data-selected="false"></div>
-                            `;
-                            
-                            // Add click handler to select this member
-                            memberDiv.addEventListener('click', () => {
-                              // Deselect all other members
-                              document.querySelectorAll('#family-members-list [data-selected="true"]').forEach(el => {
-                              el.setAttribute('data-selected', 'false');
-                              el.classList.remove('border-primary');
-                              el.classList.add('border-primary/0');
-                              });
-                              
-                              // Select this member
-                              const selectIndicator = memberDiv.querySelector('[data-selected]');
-                              if (selectIndicator) {
-                              selectIndicator.setAttribute('data-selected', 'true');
-                              selectIndicator.classList.remove('border-primary/0');
-                              selectIndicator.classList.add('border-primary');
-                              }
-                              
-                              // Animate the selection with a ripple effect
-                              const ripple = document.createElement('div');
-                              ripple.className = 'absolute w-full h-full bg-primary/10 rounded-md animate-ripple';
-                              memberDiv.style.position = 'relative';
-                              memberDiv.appendChild(ripple);
-                              
-                              // Remove ripple after animation
-                              setTimeout(() => ripple.remove(), 1000);
-                            });
-                            
-                            // Add to container with animation
-                            memberDiv.style.opacity = '0';
-                            memberDiv.style.transform = 'translateY(10px)';
-                            membersContainer.prepend(memberDiv);
-                            
-                            // Empty state handling - hide if we have members
-                            const emptyState = document.getElementById('family-members-empty');
-                            if (emptyState) emptyState.style.display = 'none';
-                            
-                            // Animate in the new member
-                            setTimeout(() => {
-                              memberDiv.style.transition = 'all 300ms ease-in-out';
-                              memberDiv.style.opacity = '1';
-                              memberDiv.style.transform = 'translateY(0)';
-                            }, 10);
-                            }
-                            
-                            // Show success toast
-                            toast({
-                            title: "Family Member Added",
-                            description: "Family member has been added successfully.",
-                            variant: "default",
-                            });
-                            
-                            // Reset form
-                            setNewPatient({
-                            ...newPatient,
-                            name: "",
-                            dob: "",
-                            });
-                            
-                            // Hide the form with animation
-                            const formEl = document.getElementById("add-family-form");
-                            if (formEl) {
-                            formEl.classList.remove('opacity-100', 'scale-100');
-                            formEl.classList.add('opacity-0', 'scale-95');
-                            
-                            setTimeout(() => {
-                              formEl.classList.add('hidden');
-                              formEl.classList.remove('flex');
-                            }, 300);
-                            }
-                          }}
-                          >
-                          Save Family Member
-                          </Button>
-                        </div>
-
-                        {/* Family Members List */}
-                        <div className="border rounded-md overflow-hidden transition-all duration-300 ease-in-out">
-                          <div className="p-2 border-b bg-muted/30">
-                          <h4 className="text-sm font-medium">Select Family Member</h4>
-                          </div>
-                          
-                          {/* Dynamic family members list */}
-                          <div id="family-members-list" className="divide-y max-h-[250px] overflow-y-auto">
-                          {/* Empty state - initially visible */}
-                          <div id="family-members-empty" className="p-4 text-center text-sm text-muted-foreground">
-                            No family members added yet
-                          </div>
-                          </div>
-                        </div>
-                        </div>
-                      ) : (
-                        // For new patients, explain they need to create account first
-                        <div className="border rounded-md p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CircleAlert className="h-5 w-5 text-amber-500" />
-                          <h4 className="font-medium">Create Your Account First</h4>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          You need to create your account before adding family members. 
-                          Please provide your details in the "Self" tab first and book 
-                          an appointment. You can add family members for future appointments.
-                        </p>
+                            </div>
+                          ) : (
+                            <div className="border rounded-md p-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <CircleAlert className="h-5 w-5 text-amber-500" />
+                                <h4 className="font-medium">Create Your Account First</h4>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                You need to create your account before adding family members. 
+                                Please provide your details in the "Self" tab first and book 
+                                an appointment. You can add family members for future appointments.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
-                      </div>
                     </div>
-                    </Tabs>
                   </div>
-                    
+                  
                   {/* Add Patient Button */}
                   <Button
                     className="w-full mt-6"
                     variant="default"
                     onClick={async () => {
-                    await addPatient();
-                    // Reset form after successful addition
-                    setNewPatient({
-                      phone: "",
-                      name: "",
-                      gender: "male",
-                      dob: "",
-                    });
-                    setVerifiedPatients(false);
-                    setVerifiedPatient(null);
+                      await addPatient();
+                      // Reset form after successful addition
+                      setNewPatient({
+                        phone: "",
+                        name: "",
+                        gender: "male",
+                        dob: "",
+                      });
+                      setVerifiedPatients(false);
+                      setVerifiedPatient(null);
+                      setSelectedFamilyMember(null); // Also reset family member selection
                     }}
                     disabled={
-                    !newPatient.name ||
-                    !newPatient.phone ||
-                    loadings
+                      !newPatient.name ||
+                      !newPatient.phone ||
+                      loadings
                     }
                   >
                     {loadings ? (
-                    <>
-                      Adding Patient...
-                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                    </>
+                      <>
+                        Adding Patient...
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      </>
                     ) : (
-                    <>Add Patient</>
+                      <>Add Patient</>
                     )}
                   </Button>
                   
@@ -1980,25 +1843,21 @@ export default function QueueManagement() {
                       transform: scale(1.5);
                     }
                     }
-                    
                     .animate-ripple {
                     animation: ripple 1s ease-in-out;
                     }
-                    
                     #add-family-form.flex {
                     display: flex;
                     flex-direction: column;
                     opacity: 1 !important;
                     transform: scale(100%) !important;
                     }
-                    
                     [data-selected="true"] {
                     background-color: #f8f9fc;
                     position: relative;
                     }
-                    
                     [data-selected="true"]::after {
-                    content: "";
+                    content: '';
                     position: absolute;
                     left: 0;
                     top: 0;
@@ -2009,10 +1868,10 @@ export default function QueueManagement() {
                     transition: opacity 300ms ease-in-out;
                     }
                   `}</style>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+          </div>
         </div>
       </div>
     </div>
