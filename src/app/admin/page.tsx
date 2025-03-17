@@ -1822,7 +1822,7 @@ const handleCancellationError = (error) => {
                               </div>
                               <p className="text-sm text-muted-foreground">
                                 You need to create your account before adding family members. 
-                                Please provide your details in the "Self" tab first and book 
+                                Please provide your details in the &ldquo;Self&rdquo; tab first and book 
                                 an appointment. You can add family members for future appointments.
                               </p>
                             </div>
