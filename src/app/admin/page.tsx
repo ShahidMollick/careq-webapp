@@ -347,63 +347,151 @@ export default function QueueManagement() {
       setLoading(false);
     }
   };
+  // const verifyPatient = async () => {
+  //   setLoading(true);
+  //   setError(""); // Reset error
+  //   setActiveTab("self"); // Force self tab to be active
+  //   setFamilyMembers([]); // Reset family members list
+  //   console.log("Verifying patient with phone:", newPatient.phone);
+
+  //   try {
+  //     console.log("Sending verification request to server...");
+  //     const response = await axios.post(
+  //       `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/verify`,
+  //       { phone: newPatient.phone }
+  //     );
+  //     if (response.data.message === "Patient exists") {
+  //       const patient = response.data.patient;
+  //       console.log("Patient exists:", patient);
+  //       setVerifiedPatient(patient);
+
+  //       // Check if DOB is available and format it; otherwise, assign a default value
+  //       // ✅ Ensure DOB is properly formatted
+  //       const formattedDob = patient.dob
+  //         ? new Date(patient.dob).toISOString().split("T")[0]
+  //         : ""; // Convert to YYYY-MM-DD format
+  //       // Set new patient data based on the verified patient response
+  //       setNewPatient({
+  //         ...newPatient,
+  //         name: patient.name,
+  //         gender: patient.gender,
+  //         dob: formattedDob,
+  //       });
+
+  //       // Show success toast for patient found
+  //       toast({
+  //         title: "Patient Found",
+  //         description: `${patient.name} was found in our records.`,
+  //         variant: "default",
+  //       });
+  //     } else {
+  //       console.log("Patient not found with phone:", newPatient.phone);
+  //       setVerifiedPatient(null); // Clear verification state
+        
+  //       // Show info toast for new patient verification state
+  //       toast({
+  //         title: "New Patient",
+  //         description: "Patient not found. Please enter details to create a new patient.",
+  //         variant: "info",
+  //       });
+  //       setNewPatient({
+  //         phone: newPatient.phone, // Retain the entered phone number
+  //         name: "",
+  //         gender: "male", // Default gender
+  //         dob: "",
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error occurred during patient verification:", error);
+  //     // Show error toast instead of setting error state
+  //     toast({
+  //       title: "Verification Failed",
+  //       description: extractErrorMessage(error),
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setLoading(false);
+  //     setVerifiedPatients(true);
+  //     console.log("Verification process complete. Loading state set to false.");
+  //   }
+  // };
+
   const verifyPatient = async () => {
     setLoading(true);
     setError(""); // Reset error
     setActiveTab("self"); // Force self tab to be active
     setFamilyMembers([]); // Reset family members list
     console.log("Verifying patient with phone:", newPatient.phone);
-
+  
     try {
       console.log("Sending verification request to server...");
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/verify`,
         { phone: newPatient.phone }
       );
+  
+      console.log("Response received:", response.data);
+  
       if (response.data.message === "Patient exists") {
         const patient = response.data.patient;
         console.log("Patient exists:", patient);
-        setVerifiedPatient(patient);
-
-        // Check if DOB is available and format it; otherwise, assign a default value
-        // ✅ Ensure DOB is properly formatted
+  
+        // Format patient DOB properly
         const formattedDob = patient.dob
           ? new Date(patient.dob).toISOString().split("T")[0]
-          : ""; // Convert to YYYY-MM-DD format
-        // Set new patient data based on the verified patient response
+          : "";
+  
+        // Set new patient data
+        setVerifiedPatient(patient);
         setNewPatient({
           ...newPatient,
           name: patient.name,
           gender: patient.gender,
           dob: formattedDob,
         });
-
-        // Show success toast for patient found
+  
+        // Handle family members
+        if (Array.isArray(patient.familyMembers) && patient.familyMembers.length > 0) {
+          const formattedFamilyMembers = patient.familyMembers.map((member) => ({
+            ...member,
+            dob: member.dob ? new Date(member.dob).toISOString().split("T")[0] : "", // Format DOB
+          }));
+  
+          console.log("Family Members:", formattedFamilyMembers);
+          setFamilyMembers(formattedFamilyMembers);
+        } else {
+          console.log("No family members found for this patient.");
+        }
+  
+        // Show success toast
         toast({
           title: "Patient Found",
           description: `${patient.name} was found in our records.`,
           variant: "default",
         });
+  
       } else {
         console.log("Patient not found with phone:", newPatient.phone);
         setVerifiedPatient(null); // Clear verification state
-        
-        // Show info toast for new patient verification state
+        setFamilyMembers([]); // Ensure family members are cleared
+  
+        // Show info toast
         toast({
           title: "New Patient",
           description: "Patient not found. Please enter details to create a new patient.",
           variant: "info",
         });
+  
+        // Set new patient with default values
         setNewPatient({
-          phone: newPatient.phone, // Retain the entered phone number
+          phone: newPatient.phone,
           name: "",
-          gender: "male", // Default gender
+          gender: "male",
           dob: "",
         });
       }
     } catch (error) {
       console.error("Error occurred during patient verification:", error);
-      // Show error toast instead of setting error state
       toast({
         title: "Verification Failed",
         description: extractErrorMessage(error),
@@ -415,58 +503,77 @@ export default function QueueManagement() {
       console.log("Verification process complete. Loading state set to false.");
     }
   };
+  
   const addPatient = async () => {
-    const patientData = {
-      phone: newPatient.phone,
-      name: newPatient.name,
-      gender: newPatient.gender,
-      dob: newPatient.dob,
-    };
     setLoadings(true); // Start top loader
+    setError("");
+    startTopLoader();
+  
     try {
       let patient;
-      console.log(verifiedPatient);
-      startTopLoader();
-      // Step 1: Check if the patient exists, if not create the patient
-      if (verifiedPatient) {
+      console.log("Verified Patient:", verifiedPatient);
+      console.log("Selected Family Member ID:", selectedFamilyMember);
+  
+      // Step 1: Determine whether to use self or selected family member
+      if (selectedFamilyMember) {
+        // Find selected family member details
+        patient = familyMembers.find((member) => member.id === selectedFamilyMember);
+        console.log("Booking appointment for selected family member:", patient);
+      } else if (verifiedPatient) {
         patient = verifiedPatient; // Use the verified patient
+        console.log("Booking appointment for self-patient:", patient);
       } else {
-        console.log("sending patient data: ", patientData);
+        // Create a new patient if not verified
+        const patientData = {
+          phone: newPatient.phone,
+          name: newPatient.name,
+          gender: newPatient.gender,
+          dob: newPatient.dob,
+        };
+  
+        console.log("Sending new patient data:", patientData);
         const patientResponse = await axios.post(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
           patientData
         );
         patient = patientResponse.data;
+        console.log("New Patient Created:", patient);
       }
-      // Step 2: Create an appointment and add the patient to the queue
+  
+      if (!patient || !patient.id) {
+        throw new Error("No valid patient found for booking an appointment.");
+      }
+  
+      // Step 2: Book the appointment
       const scheduleId =
-        typeof window !== "undefined"
-          ? localStorage.getItem("selectedScheduleId")
-          : null;
-      // Retrieve schedule ID (e.g., from state or context)
-      console.log("the schedule that is selected is ", scheduleId);
-      // Retrieve schedule ID (e.g., from state or context)
-      const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
-      console.log("patientId :", patient.id);
+        typeof window !== "undefined" ? localStorage.getItem("selectedScheduleId") : null;
+  
+      console.log("Selected Schedule ID:", scheduleId);
+      console.log("Booking appointment for Patient ID:", patient.id);
+  
       const appointmentResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
         {
           scheduleId: scheduleId,
-          patientId: patient.id,
-          source: source,
+          patientId: patient.id, // Use the selected family member or self
+          source: "web",
         }
       );
+  
+      console.log("Appointment Booking Successful:", appointmentResponse.data);
+  
+      // Emit WebSocket update
       console.log("📡 Emitting WebSocket update manually...");
-      socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
+      socket?.emit("fetchAppointments", scheduleId);
+  
       // Show success toast
       toast({
         title: "Patient Added",
-        description: `${newPatient.name} has been added to the queue.`,
+        description: `${patient.name} has been added to the queue.`,
         variant: "default",
       });
     } catch (error) {
       console.error("❌ Error adding patient:", error);
-      // Show error toast with backend message
       toast({
         title: "Error",
         description: extractErrorMessage(error),
@@ -474,22 +581,98 @@ export default function QueueManagement() {
       });
     } finally {
       setShowTopLoader(false);
-      setError("");
+      setLoadings(false);
       setVerifiedPatients(false);
       setVerifiedPatient(null);
       setSelectedFamilyMember(null);
       setFamilyMembers([]); // Reset family members
+  
       setFamilyMemberFormData({ // Reset family member form
         name: "",
         relationship: "spouse",
         gender: "male",
         dob: "",
       });
-      setLoadings(false);
+  
+      console.log("✅ Process complete. States reset.");
     }
   };
   
 
+  // const addPatient = async () => {
+  //   const patientData = {
+  //     phone: newPatient.phone,
+  //     name: newPatient.name,
+  //     gender: newPatient.gender,
+  //     dob: newPatient.dob,
+  //   };
+  //   setLoadings(true); // Start top loader
+  //   try {
+  //     let patient;
+  //     console.log(verifiedPatient);
+  //     startTopLoader();
+  //     // Step 1: Check if the patient exists, if not create the patient
+  //     if (verifiedPatient) {
+  //       patient = verifiedPatient; // Use the verified patient
+  //     } else {
+  //       console.log("sending patient data: ", patientData);
+  //       const patientResponse = await axios.post(
+  //         `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
+  //         patientData
+  //       );
+  //       patient = patientResponse.data;
+  //     }
+  //     // Step 2: Create an appointment and add the patient to the queue
+  //     const scheduleId =
+  //       typeof window !== "undefined"
+  //         ? localStorage.getItem("selectedScheduleId")
+  //         : null;
+  //     // Retrieve schedule ID (e.g., from state or context)
+  //     console.log("the schedule that is selected is ", scheduleId);
+  //     // Retrieve schedule ID (e.g., from state or context)
+  //     const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
+  //     console.log("patientId :", patient.id);
+  //     const appointmentResponse = await axios.post(
+  //       `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
+  //       {
+  //         scheduleId: scheduleId,
+  //         patientId: patient.id,
+  //         source: source,
+  //       }
+  //     );
+  //     console.log("📡 Emitting WebSocket update manually...");
+  //     socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
+  //     // Show success toast
+  //     toast({
+  //       title: "Patient Added",
+  //       description: `${newPatient.name} has been added to the queue.`,
+  //       variant: "default",
+  //     });
+  //   } catch (error) {
+  //     console.error("❌ Error adding patient:", error);
+  //     // Show error toast with backend message
+  //     toast({
+  //       title: "Error",
+  //       description: extractErrorMessage(error),
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setShowTopLoader(false);
+  //     setError("");
+  //     setVerifiedPatients(false);
+  //     setVerifiedPatient(null);
+  //     setSelectedFamilyMember(null);
+  //     setFamilyMembers([]); // Reset family members
+  //     setFamilyMemberFormData({ // Reset family member form
+  //       name: "",
+  //       relationship: "spouse",
+  //       gender: "male",
+  //       dob: "",
+  //     });
+  //     setLoadings(false);
+  //   }
+  // };
+  
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob);
     const today = new Date();
@@ -909,9 +1092,14 @@ const handleCancellationError = (error) => {
   };
 
   // Function to add a new family member
-  const addFamilyMember = () => {
+  const addFamilyMember = async () => {
+    console.group('📋 AddFamilyMember');
+    console.time('addFamilyMember');
+    
     // Validate form data
     if (!familyMemberFormData.name || !familyMemberFormData.dob) {
+      console.warn('⚠️ Validation failed: Missing name or DOB');
+      console.groupEnd();
       toast({
         title: "Missing Information",
         description: "Please provide name and date of birth.",
@@ -919,46 +1107,295 @@ const handleCancellationError = (error) => {
       });
       return;
     }
-    // Create new family member object
-    const newMember: FamilyMember = {
-      id: `member-${Date.now()}`,
-      name: familyMemberFormData.name,
-      relationship: familyMemberFormData.relationship,
-      gender: familyMemberFormData.gender,
-      dob: familyMemberFormData.dob,
-    };
-    // Add to family members array
-    setFamilyMembers(prev => [newMember, ...prev]);
-    // Show success toast
-    toast({
-      title: "Family Member Added",
-      description: `${newMember.name} has been added as a family member.`,
-      variant: "default",
-    });
-    // Reset form
-    setFamilyMemberFormData({
-      name: "",
-      relationship: "spouse",
-      gender: "male",
-      dob: "",
-    });
-    // Hide form
-    setShowFamilyForm(false);
+
+    try {
+      // Start loading indicator
+      setLoadings(true);
+      setShowTopLoader(true);
+      console.log('🔄 Starting family member creation process', {
+        formData: familyMemberFormData,
+        patientExists: !!verifiedPatient,
+        primaryPatient: newPatient
+      });
+      
+      let patientId: string;
+      
+      // STEP 1: Determine if we need to create a patient or use existing one
+      if (verifiedPatient) {
+        // Use existing patient ID if available
+        patientId = verifiedPatient.id;
+        console.log("✅ Using existing patient ID:", patientId);
+      } else if (newPatient.name && newPatient.phone && newPatient.dob) {
+        // Create new patient first
+        console.log("🆕 Creating new primary patient:", {
+          name: newPatient.name,
+          phone: newPatient.phone,
+          gender: newPatient.gender,
+          dobProvided: !!newPatient.dob
+        });
+        
+        const patientData = {
+          phone: newPatient.phone,
+          name: newPatient.name,
+          gender: newPatient.gender,
+          dob: newPatient.dob,
+        };
+        
+        console.time('createPatientAPI');
+        const patientResponse = await axios.post(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
+          patientData
+        );
+        console.timeEnd('createPatientAPI');
+
+        patientId = patientResponse.data.id;
+        console.log("✅ New patient created with ID:", patientId, {
+          responseData: patientResponse.data
+        });
+        
+        // Update verified patient state with new patient data
+        setVerifiedPatient({
+          ...patientResponse.data,
+          id: patientId,
+        });
+      } else {
+        console.error("❌ Missing patient information", {
+          name: newPatient.name || '[MISSING]',
+          phone: newPatient.phone || '[MISSING]',
+          dob: newPatient.dob || '[MISSING]'
+        });
+        throw new Error("Please complete patient information first");
+      }
+      
+      // STEP 2: Create family member using patient ID
+      console.log("🔄 Adding family member for patient ID:", patientId, {
+        memberData: familyMemberFormData
+      });
+      
+      const familyMemberData = {
+        name: familyMemberFormData.name,
+        relationship: familyMemberFormData.relationship,
+        gender: familyMemberFormData.gender,
+        dob: familyMemberFormData.dob,
+      };
+      
+      console.time('createFamilyMemberAPI');
+      const familyResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/${patientId}/family-members`,
+        familyMemberData
+      );
+      console.timeEnd('createFamilyMemberAPI');
+      console.log("✅ Family member created:", {
+        statusCode: familyResponse.status,
+        responseData: familyResponse.data
+      });
+
+    
+      
+      // Get created family member from response
+      const createdMember = familyResponse.data;
+      
+      // Create object for local state with data from API
+      const newMember: FamilyMember = {
+        id: createdMember.id || `member-${Date.now()}`, // Use API ID or fallback
+        name: familyMemberFormData.name,
+        relationship: familyMemberFormData.relationship,
+        gender: familyMemberFormData.gender,
+        dob: familyMemberFormData.dob,
+      };
+      
+      // Update family members list in state
+      setFamilyMembers(prev => {
+        console.log("📊 Updating family members state:", {
+          previous: prev.length,
+          new: prev.length + 1,
+          newMember
+        });
+        return [newMember, ...prev];
+      });
+      
+      // Show success notification
+      toast({
+        title: "Family Member Added",
+        description: `${newMember.name} has been added to your family.`,
+        variant: "default",
+      });
+      
+      // Reset form and hide it
+      setFamilyMemberFormData({
+        name: "",
+        relationship: "spouse",
+        gender: "male",
+        dob: "",
+      });
+      setShowFamilyForm(false);
+      
+    } catch (error) {
+      console.error("❌ Error adding family member:", error);
+      // Log detailed error information
+      if (axios.isAxiosError(error)) {
+        console.error("API Error Details:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+        });
+      }
+      toast({
+        title: "Error",
+        description: extractErrorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      setLoadings(false);
+      setShowTopLoader(false);
+      console.timeEnd('addFamilyMember');
+      console.groupEnd();
+    }
   };
 
+  const fetchFamilyMembers = async (patientId: string) => {
+    console.group('🔍 FetchFamilyMembers');
+    console.time('fetchFamilyMembers');
+    
+    try {
+        if (!patientId) {
+            console.error("❌ Cannot fetch family members: Missing patientId");
+            return;
+        }
+
+        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/${patientId}/family-members`;
+        console.log(`🔄 Fetching family members from ${url}`);
+
+        const response = await axios.get(url);
+        
+        if (!response.data || !Array.isArray(response.data)) {
+            console.error("❌ Unexpected response format", response.data);
+            throw new Error("Invalid response from server");
+        }
+
+        const memberCount = response.data.length;
+        console.log(`✅ Successfully fetched ${memberCount} family members`, {
+            patientId,
+            statusCode: response.status,
+            firstMember: memberCount > 0 ? response.data[0] : null,
+        });
+
+        // Ensure state is updated correctly
+        setFamilyMembers(response.data);
+
+        console.log("📊 Updated family members state", { familyMembers: response.data });
+
+    } catch (error) {
+        console.error("❌ Error fetching family members:", error);
+        if (axios.isAxiosError(error)) {
+            console.error("API Error Details:", {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                url: error.config?.url,
+            });
+        }
+    } finally {
+        console.timeEnd('fetchFamilyMembers');
+        console.groupEnd();
+    }
+};
+
+  // const fetchFamilyMembers = async (patientId: string) => {
+  //   console.group('🔍 FetchFamilyMembers');
+  //   console.time('fetchFamilyMembers');
+    
+  //   try {
+  //     if (!patientId) {
+  //       console.error("❌ Cannot fetch family members: Missing patientId");
+  //       return;
+  //     }
+      
+  //     const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/${patientId}/family-members`;
+  //     console.log(`🔄 Fetching family members from ${url}`);
+      
+  //     const response = await axios.get(url);
+      
+  //     const memberCount = response.data?.length || 0;
+  //     console.log(`✅ Successfully fetched ${memberCount} family members`, {
+  //       patientId,
+  //       statusCode: response.status,
+  //       firstMember: memberCount > 0 ? response.data[0] : null,
+  //     });
+      
+  //     setFamilyMembers(response.data);
+  //   } catch (error) {
+  //     console.error("❌ Error fetching family members:", error);
+  //     if (axios.isAxiosError(error)) {
+  //       console.error("API Error Details:", {
+  //         status: error.response?.status,
+  //         statusText: error.response?.statusText,
+  //         data: error.response?.data,
+  //         url: error.config?.url,
+  //       });
+  //     }
+  //   } finally {
+  //     console.timeEnd('fetchFamilyMembers');
+  //     console.groupEnd();
+  //   }
+  // };
+
   // Function to select a family member for appointment
-  const selectFamilyMember = (memberId: string) => {
-    setSelectedFamilyMember(memberId);
+  const selectFamilyMember = async (memberId: string) => {
+    console.group('👪 SelectFamilyMember');
+
+    if (verifiedPatient?.id) {
+      console.log("🔄 Fetching updated family members list");
+      await fetchFamilyMembers(verifiedPatient.id);
+    }
+    
+    setSelectedFamilyMember(prevId => {
+      const isSame = prevId === memberId;
+      console.log(`${isSame ? '🔄 Toggling' : '✅ Selecting'} family member: ${memberId}`);
+      return isSame ? null : memberId;
+    });
+    
     // Find the selected family member and apply their info to the newPatient state
     const selectedMember = familyMembers.find(member => member.id === memberId);
+    
     if (selectedMember) {
-      setNewPatient(prev => ({
-        ...prev,
+      console.log("✅ Family member found:", {
+        id: selectedMember.id,
         name: selectedMember.name,
-        gender: selectedMember.gender,
-        dob: selectedMember.dob,
-      }));
+        relationship: selectedMember.relationship
+      });
+      
+      setNewPatient(prev => {
+        const updated = {
+          ...prev,
+          name: selectedMember.name,
+          gender: selectedMember.gender,
+          dob: selectedMember.dob,
+        };
+        
+        console.log("📊 Updated patient form data:", {
+          previous: { 
+            name: prev.name,
+            gender: prev.gender,
+            dobProvided: !!prev.dob
+          },
+          updated: {
+            name: updated.name,
+            gender: updated.gender,
+            dobProvided: !!updated.dob
+          }
+        });
+        
+        return updated;
+      });
+    } else {
+      console.warn(`⚠️ Could not find family member with ID: ${memberId}`, {
+        availableMembers: familyMembers.map(m => ({ id: m.id, name: m.name }))
+      });
     }
+    
+    console.groupEnd();
   };
 
   return (
