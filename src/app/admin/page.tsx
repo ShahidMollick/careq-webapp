@@ -80,6 +80,15 @@ interface Patient {
   timeAdded: Date | string;
   timeStarted: Date | string | null;
   timeCompleted: Date | string | null;
+  isFamily?: boolean;
+  familyMember?: {
+    id: string;
+    name: string;
+    relationship: string;
+    gender: string;
+    dob: string;
+  } | null;
+  primaryPatientName?: string;
 }
 interface Appointment {
   id: string;
@@ -505,75 +514,97 @@ export default function QueueManagement() {
   };
   
   const addPatient = async () => {
-    setLoadings(true); // Start top loader
+    console.group('📋 Booking Appointment');
+    setLoadings(true);
     setError("");
     startTopLoader();
   
     try {
-      let patient;
-      console.log("Verified Patient:", verifiedPatient);
-      console.log("Selected Family Member ID:", selectedFamilyMember);
+      // Step 1: Determine who we're booking for
+      console.log('Booking Details:', {
+        isForFamilyMember: !!selectedFamilyMember,
+        selectedFamilyMemberId: selectedFamilyMember,
+        verifiedPatientId: verifiedPatient?.id,
+        activeTab
+      });
   
-      // Step 1: Determine whether to use self or selected family member
-      if (selectedFamilyMember) {
-        // Find selected family member details
-        patient = familyMembers.find((member) => member.id === selectedFamilyMember);
-        console.log("Booking appointment for selected family member:", patient);
-      } else if (verifiedPatient) {
-        patient = verifiedPatient; // Use the verified patient
-        console.log("Booking appointment for self-patient:", patient);
+      let patientForAppointment;
+      let primaryPatientId;
+  
+      if (verifiedPatient) {
+        // Case 1: Existing patient flow
+        primaryPatientId = verifiedPatient.id;
+        
+        if (selectedFamilyMember) {
+          // 1a: Booking for family member
+          patientForAppointment = familyMembers.find(m => m.id === selectedFamilyMember);
+          console.log('Selected family member:', patientForAppointment);
+        } else {
+          // 1b: Booking for self
+          patientForAppointment = verifiedPatient;
+          console.log('Booking for verified patient:', patientForAppointment);
+        }
       } else {
-        // Create a new patient if not verified
-        const patientData = {
-          phone: newPatient.phone,
-          name: newPatient.name,
-          gender: newPatient.gender,
-          dob: newPatient.dob,
-        };
-  
-        console.log("Sending new patient data:", patientData);
+        // Case 2: New patient flow
+        console.log('Creating new patient:', newPatient);
         const patientResponse = await axios.post(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
-          patientData
+          {
+            phone: newPatient.phone,
+            name: newPatient.name,
+            gender: newPatient.gender,
+            dob: newPatient.dob,
+          }
         );
-        patient = patientResponse.data;
-        console.log("New Patient Created:", patient);
+        primaryPatientId = patientResponse.data.id;
+        patientForAppointment = patientResponse.data;
+        console.log('New patient created:', patientForAppointment);
       }
   
-      if (!patient || !patient.id) {
-        throw new Error("No valid patient found for booking an appointment.");
+      if (!patientForAppointment || !primaryPatientId) {
+        throw new Error("Invalid patient data for booking");
       }
   
       // Step 2: Book the appointment
-      const scheduleId =
-        typeof window !== "undefined" ? localStorage.getItem("selectedScheduleId") : null;
+      const scheduleId = localStorage.getItem("selectedScheduleId");
+      if (!scheduleId) {
+        throw new Error("No schedule selected");
+      }
   
-      console.log("Selected Schedule ID:", scheduleId);
-      console.log("Booking appointment for Patient ID:", patient.id);
+      console.log('Booking appointment:', {
+        scheduleId,
+        primaryPatientId,
+        selectedFamilyMember,
+        source: 'web'
+      });
   
       const appointmentResponse = await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
         {
-          scheduleId: scheduleId,
-          patientId: patient.id, // Use the selected family member or self
-          source: "web",
+          scheduleId,
+          patientId: primaryPatientId,
+          familyMemberId: selectedFamilyMember || null,
+          source: 'web',
         }
       );
   
-      console.log("Appointment Booking Successful:", appointmentResponse.data);
+      console.log('Appointment booked successfully:', appointmentResponse.data);
   
       // Emit WebSocket update
-      console.log("📡 Emitting WebSocket update manually...");
       socket?.emit("fetchAppointments", scheduleId);
   
       // Show success toast
       toast({
-        title: "Patient Added",
-        description: `${patient.name} has been added to the queue.`,
+        title: "Appointment Booked",
+        description: `Appointment booked for ${patientForAppointment.name}`,
         variant: "default",
       });
+  
+      // Reset form states
+      resetFormStates();
+  
     } catch (error) {
-      console.error("❌ Error adding patient:", error);
+      console.error("❌ Error booking appointment:", error);
       toast({
         title: "Error",
         description: extractErrorMessage(error),
@@ -582,96 +613,29 @@ export default function QueueManagement() {
     } finally {
       setShowTopLoader(false);
       setLoadings(false);
-      setVerifiedPatients(false);
-      setVerifiedPatient(null);
-      setSelectedFamilyMember(null);
-      setFamilyMembers([]); // Reset family members
-  
-      setFamilyMemberFormData({ // Reset family member form
-        name: "",
-        relationship: "spouse",
-        gender: "male",
-        dob: "",
-      });
-  
-      console.log("✅ Process complete. States reset.");
+      console.groupEnd();
     }
   };
   
-
-  // const addPatient = async () => {
-  //   const patientData = {
-  //     phone: newPatient.phone,
-  //     name: newPatient.name,
-  //     gender: newPatient.gender,
-  //     dob: newPatient.dob,
-  //   };
-  //   setLoadings(true); // Start top loader
-  //   try {
-  //     let patient;
-  //     console.log(verifiedPatient);
-  //     startTopLoader();
-  //     // Step 1: Check if the patient exists, if not create the patient
-  //     if (verifiedPatient) {
-  //       patient = verifiedPatient; // Use the verified patient
-  //     } else {
-  //       console.log("sending patient data: ", patientData);
-  //       const patientResponse = await axios.post(
-  //         `${process.env.NEXT_PUBLIC_BACKEND_URL}/patients/create-patient`,
-  //         patientData
-  //       );
-  //       patient = patientResponse.data;
-  //     }
-  //     // Step 2: Create an appointment and add the patient to the queue
-  //     const scheduleId =
-  //       typeof window !== "undefined"
-  //         ? localStorage.getItem("selectedScheduleId")
-  //         : null;
-  //     // Retrieve schedule ID (e.g., from state or context)
-  //     console.log("the schedule that is selected is ", scheduleId);
-  //     // Retrieve schedule ID (e.g., from state or context)
-  //     const source = "web"; // Source can be 'web' or 'mobile', depending on where the request is coming from
-  //     console.log("patientId :", patient.id);
-  //     const appointmentResponse = await axios.post(
-  //       `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/book`,
-  //       {
-  //         scheduleId: scheduleId,
-  //         patientId: patient.id,
-  //         source: source,
-  //       }
-  //     );
-  //     console.log("📡 Emitting WebSocket update manually...");
-  //     socket?.emit("fetchAppointments", scheduleId); // ✅ Ensure updates are sent to all clients
-  //     // Show success toast
-  //     toast({
-  //       title: "Patient Added",
-  //       description: `${newPatient.name} has been added to the queue.`,
-  //       variant: "default",
-  //     });
-  //   } catch (error) {
-  //     console.error("❌ Error adding patient:", error);
-  //     // Show error toast with backend message
-  //     toast({
-  //       title: "Error",
-  //       description: extractErrorMessage(error),
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setShowTopLoader(false);
-  //     setError("");
-  //     setVerifiedPatients(false);
-  //     setVerifiedPatient(null);
-  //     setSelectedFamilyMember(null);
-  //     setFamilyMembers([]); // Reset family members
-  //     setFamilyMemberFormData({ // Reset family member form
-  //       name: "",
-  //       relationship: "spouse",
-  //       gender: "male",
-  //       dob: "",
-  //     });
-  //     setLoadings(false);
-  //   }
-  // };
+  // Add this helper function to clean up the code
+  const resetFormStates = () => {
+    setVerifiedPatients(false);
+    setVerifiedPatient(null);
+    setSelectedFamilyMember(null);
+    setFamilyMembers([]);
+    setNewPatient({
+      phone: "",
+      name: "",
+      gender: "male",
+      dob: "",
+    });
+    setFamilyMemberFormData({
+      name: "",
+      relationship: "spouse",
+      gender: "male",
+      dob: "",
+    });
+  };
   
   const calculateAge = (dob: string) => {
     const birthDate = new Date(dob);
@@ -1174,7 +1138,7 @@ const handleCancellationError = (error) => {
       
       const familyMemberData = {
         name: familyMemberFormData.name,
-        relationship: familyMemberFormData.relationship,
+        relationship: familyMemberFormData.relationship.toLowerCase(), // Important: send lowercase value
         gender: familyMemberFormData.gender,
         dob: familyMemberFormData.dob,
       };
@@ -1398,6 +1362,22 @@ const handleCancellationError = (error) => {
     console.groupEnd();
   };
 
+  // Helper function to format relationship text
+  const formatRelationship = (relationship: string): string => {
+    // Convert snake_case or any other format to display format
+    return relationship
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Add this utility function at the top of your component
+const formatPatientRelation = (patient: Patient): string => {
+  if (!patient.isFamily || !patient.familyMember || !patient.primaryPatientName) return '';
+  const relationship = patient.familyMember.relationship || 'Family Member';
+  return `${relationship} of ${patient.primaryPatientName}`;
+};
+
   return (
     <div className="min-h-screen overflow-x-hidden">
       {/* Top Moving Loader */}
@@ -1571,7 +1551,13 @@ const handleCancellationError = (error) => {
                               </div>
                               <div className="flex-1 text-sm grid grid-cols-4">
                                 <div className="text-sm">
-                                  {currentPatient.name}
+                                  <span className="font-medium">{currentPatient.name}</span>
+                                  {currentPatient.isFamily && (
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <User className="h-3 w-3" />
+                                      <span className="capitalize">{formatRelationship(currentPatient.familyMember?.relationship || 'family member')}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="text-sm">
                                   Phone: {currentPatient.phone}
@@ -1620,7 +1606,7 @@ const handleCancellationError = (error) => {
                                     Name
                                   </TableHead>
                                   <TableHead className="text-sm">
-                                    Phone
+                                    Patient Info
                                   </TableHead>
                                   <TableHead className="text-sm">Age</TableHead>
                                   <TableHead className="text-sm">
@@ -1642,10 +1628,27 @@ const handleCancellationError = (error) => {
                                         </div>
                                       </TableCell>
                                       <TableCell className="text-sm font-medium">
-                                        {patient.name}
+                                        <div>
+                                          <span className="font-medium">{patient.name}</span>
+                                          {patient.isFamily && (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                              <span className="text-xs px-2 py-0.5 bg-muted rounded-full capitalize flex items-center gap-1">
+                                                <User className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-muted-foreground">
+                                                  {formatPatientRelation(patient)}
+                                                </span>
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
                                       </TableCell>
                                       <TableCell className="text-sm">
                                         {patient.phone}
+                                        {patient.isFamily && (
+                                          <div className="text-xs text-muted-foreground">
+                                            Primary Contact
+                                          </div>
+                                        )}
                                       </TableCell>
                                       <TableCell className="text-sm">
                                         {patient.age}
@@ -1843,7 +1846,14 @@ const handleCancellationError = (error) => {
                       {currentPatient.queueNumber}
                     </div>
                     <div>
-                      <div className="font-medium">{currentPatient.name}</div>
+                      <div className="font-medium">
+                        <span>{currentPatient.name}</span>
+                        {currentPatient.isFamily && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <span>{formatPatientRelation(currentPatient)}</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="text-sm font-bold  text-primary">
                         Serving
                       </div>

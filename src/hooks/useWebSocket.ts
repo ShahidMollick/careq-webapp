@@ -14,6 +14,16 @@ interface Patient {
   timeAdded: Date | string;
   timeStarted: Date | string | null;
   timeCompleted: Date | string | null;
+  // Add new fields for family member info
+  familyMember?: {
+    id: string;
+    name: string;
+    relationship: string;
+    gender: string;
+    dob: string;
+  } | null;
+  isFamily?: boolean;
+  primaryPatientName?: string;
 }
 
 const SOCKET_URL =
@@ -108,25 +118,52 @@ export function useWebSocket(scheduleId: string) {
         return;
       }
 
-      const formattedPatients: Patient[] = updatedAppointments.map(
-        (appointment) => {
-          const patient = appointment.patient || {};
-          return {
-            id: patient.id || "Unknown ID",
-            appointmentId: appointment.id || "Unknown Appointment ID",
-            queueNumber: appointment.queueNumber ?? "N/A",
-            name: patient.name || "Unknown",
-            phone: patient.phone || "N/A",
-            age: calculateAge(patient.dob),
-            gender: patient.gender || "N/A",
-            status: appointment.status ?? "unknown",
-            dob: patient.dob || "N/A",
-            timeAdded: appointment.createdAt || new Date(),
-            timeStarted: appointment.timeStarted || null,
-            timeCompleted: appointment.timeCompleted || null,
+      const formattedPatients: Patient[] = updatedAppointments.map((appointment) => {
+        const patient = appointment.patient || {};
+        const familyMember = appointment.familyMember;
+        
+        const isFamily = !!familyMember;
+        
+        // Enhanced relationship handling
+        let relationship = "";
+        if (isFamily) {
+          // Try to get the relationship from either field
+          relationship = (familyMember.relationship || familyMember.relation || "").toLowerCase();
+          
+          // Map common values that might come from the backend
+          const relationshipMap = {
+            'family_member': 'Family Member',
+            'spouse': 'Spouse',
+            'child': 'Child',
+            'parent': 'Parent',
+            'sibling': 'Sibling',
+            'other': 'Other'
           };
+
+          relationship = relationshipMap[relationship] || 'Family Member';
         }
-      );
+
+        return {
+          id: patient.id || "Unknown ID",
+          appointmentId: appointment.id || "Unknown Appointment ID",
+          queueNumber: appointment.queueNumber ?? "N/A",
+          name: isFamily ? familyMember.name : patient.name || "Unknown",
+          phone: patient.phone || "N/A",
+          age: calculateAge(isFamily ? familyMember.dob : patient.dob),
+          gender: isFamily ? familyMember.gender : patient.gender || "N/A",
+          status: appointment.status ?? "unknown",
+          dob: isFamily ? familyMember.dob : patient.dob || "N/A",
+          timeAdded: appointment.createdAt || new Date(),
+          timeStarted: appointment.timeStarted || null,
+          timeCompleted: appointment.timeCompleted || null,
+          familyMember: familyMember ? {
+            ...familyMember,
+            relationship: relationship // Use the mapped relationship
+          } : null,
+          isFamily: isFamily,
+          primaryPatientName: isFamily ? patient.name : undefined
+        };
+      });
 
       setPatients(formattedPatients);
 
